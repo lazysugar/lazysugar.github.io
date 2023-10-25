@@ -6652,4 +6652,95 @@ filterConfigs.put(FilterName,filterConfig);
         <tag>Tomcat</tag>
       </tags>
   </entry>
+  <entry>
+    <title>深入java反序列化</title>
+    <url>/2023/07/15/%E6%B7%B1%E5%85%A5java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>这篇文章主要来讲一下当一个类重写了readObject()的时候，其中<code>readObject</code>和<code>defaultReadObject</code>的区别，为什么会有这篇文章呢，因为在分析CC4的时候用到了TreeBag，<code>TreeBag</code>重写readObject的时候就用到了<code>defaultReadObject</code>，这时发现没有完全弄懂反序列化</p>
+<p><img src="/images/20231010162410.png"></p>
+<h1 id="readObject源码分析"><a href="#readObject源码分析" class="headerlink" title="readObject源码分析"></a>readObject源码分析</h1><p>首先编写一个测试demo用来调试分析：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import java.io.*;</span><br><span class="line"></span><br><span class="line">public class Test &#123;</span><br><span class="line">    public static void main(String[] args) throws IOException, ClassNotFoundException &#123;</span><br><span class="line">        Person person = new Person(&quot;a&quot;,18,&quot;man&quot;);</span><br><span class="line">        Dog b = new Dog(&quot;b&quot;, 10);</span><br><span class="line">        person.setDog(b);</span><br><span class="line"></span><br><span class="line">        ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(&quot;person.txt&quot;));</span><br><span class="line">        objectOutputStream.writeObject(person);</span><br><span class="line">        objectOutputStream.close();</span><br><span class="line"></span><br><span class="line">        ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(&quot;person.txt&quot;));</span><br><span class="line">        Person serialPerson = (Person)objectInputStream.readObject();</span><br><span class="line">        System.out.println(serialPerson);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">class Person implements Serializable &#123;</span><br><span class="line">    public String name;</span><br><span class="line">    public int age;</span><br><span class="line">    public transient String sex;</span><br><span class="line">    private Dog dog;</span><br><span class="line"></span><br><span class="line">    public Dog getDog() &#123;</span><br><span class="line">        return dog;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setDog(Dog dog) &#123;</span><br><span class="line">        this.dog = dog;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Person(String name, int age, String sex)&#123;</span><br><span class="line">        this.name = name;</span><br><span class="line">        this.age = age;</span><br><span class="line">        this.sex = sex;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public String toString() &#123;</span><br><span class="line">        return &quot;Person&#123;&quot; +</span><br><span class="line">                &quot;name=&#x27;&quot; + name + &#x27;\&#x27;&#x27; +</span><br><span class="line">                &quot;, age=&quot; + age +</span><br><span class="line">                &quot;, sex=&#x27;&quot; + sex + &#x27;\&#x27;&#x27; +</span><br><span class="line">                &quot;, dog=&quot; + dog +</span><br><span class="line">                &#x27;&#125;&#x27;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">class Dog implements Serializable&#123;</span><br><span class="line">    public String name;</span><br><span class="line">    public int age;</span><br><span class="line"></span><br><span class="line">    public Dog(String name, int age) &#123;</span><br><span class="line">        this.name = name;</span><br><span class="line">        this.age = age;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public String toString() &#123;</span><br><span class="line">        return &quot;Dog&#123;&quot; +</span><br><span class="line">                &quot;name=&#x27;&quot; + name + &#x27;\&#x27;&#x27; +</span><br><span class="line">                &quot;, age=&quot; + age +</span><br><span class="line">                &#x27;&#125;&#x27;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>调用<code>readObject()</code>进行反序列化，来到<code>objectInputStream.readObject</code>方法中</p>
+<p><img src="/images/20231010164201.png"></p>
+<p><code>enableOverride</code>属性是在<code>objectInputStream</code>构造器中赋值为false的，如果用的是无参构造器就为true，之后调用<code>readObject0</code></p>
+<p><img src="/images/20231010164345.png"></p>
+<p>来到<code>readObject0</code>方法中，先会<code>(tc = bin.peekByte()) == TC_RESET</code>读取一个字节判断是否是<code>TC_RESET</code>，这里不满足往下走</p>
+<blockquote>
+<p>peekByte读取后一个字节，readByte读取当前字节</p>
+</blockquote>
+<p><img src="/images/20231010164601.png"></p>
+<p>switch判断当前字节为<code>TC_OBJECT</code>，表示反序列化的是一个类的实例化对象，调用<code>readOrdinaryObject</code>方法</p>
+<p><img src="/images/20231010164854.png"></p>
+<p><code>readOrdinaryObject</code>方法中会再判断一次当前字符是否是<code>TC_OBJECT</code>，然后调用<code>readClassDesc</code>获取类的信息，我们跟进<code>readClassDesc</code>方法</p>
+<p><img src="/images/20231010165339.png"></p>
+<p><code>readClassDesc</code>方法中peek到下一个字符为114，调用<code>readNonProxyDesc</code></p>
+<p><img src="/images/20231010165504.png"></p>
+<p>又做了一次判断当前字符为114，然后调用<code>readClassDescriptor()</code>读取反序列化类的相关描述符信息赋值给<code>readDesc</code>变量中</p>
+<p><img src="/images/20231010165653.png"><br><img src="/images/20231010165932.png"></p>
+<p><code>readClassDescriptor</code>方法中调用<code>readNonProxy</code>方法对对应的相关类的类名、suid、属性等进行读取操作</p>
+<p><img src="/images/20231010170227.png"><br><img src="/images/20231010170043.png"></p>
+<p>读取完类的信息后，下面调用<code>resolveClass</code>得到反序列类的Class对象，将这些信息都包装到ObjectStreamClass对象中后返回。</p>
+<p><img src="/images/20231010170523.png"></p>
+<p>回到<code>readOrdinaryObject</code>方法中后，类信息被保存到desc变量中，调用<code>newInstance()</code>用无参构造器对其实例化，得到Object对象。</p>
+<p><img src="/images/20231010171140.png"></p>
+<p>这时我们得到的实例化对象的属性是空的，下面就会调用<code>readSerialData</code>对其字段进行赋值。</p>
+<p><img src="/images/20231010171457.png"></p>
+<p><code>readSerialData</code>方法中就会分为两种情况：</p>
+<ol>
+<li>有ReadObject方法</li>
+<li>无ReadObject方法</li>
+</ol>
+<p><img src="/images/20231010185021.png"></p>
+<p>我们先来分析无ReadObject方法的情况</p>
+<h1 id="无ReadObject方法的情况"><a href="#无ReadObject方法的情况" class="headerlink" title="无ReadObject方法的情况"></a>无ReadObject方法的情况</h1><p>没有ReadObject方法的情况会进入下面的else，调用<code>defaultReadFields</code></p>
+<p><img src="/images/20231010185149.png"></p>
+<p>反序列化每个属性，然后赋值进属性中</p>
+<p><img src="/images/20231010190215.png"></p>
+<p>给属性赋完值后还会做什么？调用完<code>readSerialData</code>回到<code>readOrdinaryObject</code>方法中，<code>hasReadResolveMethod</code>会判断是否有readResolve方法，如果有就去反射调用(这里一般是对反序列化后的对象实现一些自定义的操作，比如我们希望反序列化后的类是个单例的，则可以在<code>readResolve</code>方法实现时修改这个对象)。我们的demo中没有这个方法，判断false返回，对象的反序列化就结束了。</p>
+<p><img src="/images/20231010191214.png"></p>
+<h1 id="有ReadObject方法的情况"><a href="#有ReadObject方法的情况" class="headerlink" title="有ReadObject方法的情况"></a>有ReadObject方法的情况</h1><p>这时我们像Person类加入一个空的<code>readObject</code>方法</p>
+<pre><code>private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException &#123;
+
+&#125;
+</code></pre>
+<p>再次去反序列化这个对象的时候我们会发现：反序列化后的对象中的属性没有值了。</p>
+<p><img src="/images/20231010191718.png"></p>
+<p>重新调试，我们来到<code>readSerialData</code>，这时<code>hasReadObjectMethod()</code>返回就是true了，进入这个分支</p>
+<p><img src="/images/20231010192000.png"></p>
+<p><code>invokeReadObject</code>方法会通过反射调用对象的<code>readObject</code>方法，注意方法需要有：ObjectInputStream参数，无返回值，private修饰符</p>
+<p><img src="/images/20231010192242.png"></p>
+<p><img src="/images/20231010192337.png"></p>
+<p>因为调用不到<code>defaultReadFields</code>导致无法给属性赋值，那么java是怎么解决的呢？这时候就需要引出<code>defaultReadObject</code></p>
+<h2 id="defaultReadObject"><a href="#defaultReadObject" class="headerlink" title="defaultReadObject"></a>defaultReadObject</h2><p>我们在<code>readObject</code>方法体中加入<code>in.defaultReadObject();</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException &#123;</span><br><span class="line">    in.defaultReadObject();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>继续上述的步骤，反射调用到<code>readObject</code>方法，这时调用<code>in.defaultReadObject()</code></p>
+<p><img src="/images/20231010193106.png"></p>
+<p>这里面调用了我们熟悉的<code>defaultReadFields</code>方法，其中就会递归地给属性赋值。</p>
+<p><img src="/images/20231010193154.png"></p>
+<p>writeObject同理</p>
+<h2 id="为什么还要特意设计一个readObject给用户来实现？"><a href="#为什么还要特意设计一个readObject给用户来实现？" class="headerlink" title="为什么还要特意设计一个readObject给用户来实现？"></a>为什么还要特意设计一个readObject给用户来实现？</h2><p>主要就是可以让用户实现一些自定义的功能，比如以下一个应用：<strong>强制反序列化transient修饰的属性</strong>。</p>
+<p>我们知道用transient修饰的属性是不会反序列化的，比如我们的demo中的sex属性：</p>
+<p><img src="/images/20231010195103.png"></p>
+<p>但是如果这时我们这样设计readObject方法和writeObject方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException &#123;</span><br><span class="line">    in.defaultReadObject();</span><br><span class="line">    this.sex = (String) in.readObject();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">private void writeObject(java.io.ObjectOutputStream ou) throws IOException, ClassNotFoundException &#123;</span><br><span class="line">    ou.defaultWriteObject();</span><br><span class="line">    ou.writeObject(this.sex);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这时就可以强制反序列化transient修饰的属性了</p>
+<p><img src="/images/20231010195246.png"></p>
+<h1 id="一些其他知识"><a href="#一些其他知识" class="headerlink" title="一些其他知识"></a>一些其他知识</h1><h2 id="反序列化拦截"><a href="#反序列化拦截" class="headerlink" title="反序列化拦截"></a>反序列化拦截</h2><p>很多通过黑名单来进行反序列化拦截是如何实现的？</p>
+<p>通过我们上面的分析我们知道，在<code>readClassDesc</code>方法中，<code>readClassDescriptor()</code>读取反序列化类的相关描述符信息赋值给<code>readDesc</code>变量中，读取完类的信息后，下面调用<code>resolveClass</code>得到反序列类的Class对象，这时可以重写<code>resolveClass</code>方法，维护一个黑名单，判断这个类是否在黑名单中。</p>
+<p><img src="/images/20231010170523.png"></p>
+<p>实现如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protected Class&lt;?&gt; resolveClass(ObjectStreamClass desc)</span><br><span class="line">    throws IOException, ClassNotFoundException</span><br><span class="line">  &#123;</span><br><span class="line">    for (String s : blackList) &#123;</span><br><span class="line">      if (desc.getName().contains(s)) &#123;</span><br><span class="line">        throw new ClassNotFoundException(&quot;Illegal class&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return super.resolveClass(desc);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="关于transient修饰符"><a href="#关于transient修饰符" class="headerlink" title="关于transient修饰符"></a>关于transient修饰符</h2><p>在序列化时，获取要序列化的属性时，其中<code>java.io.ObjectStreamClass#getDefaultSerialFields</code>就会去筛选掉<code>TRANSIENT</code>和<code>STATIC</code>修饰的属性：</p>
+<p><img src="/images/20231010202328.png"></p>
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>java安全</tag>
+        <tag>fastjson</tag>
+      </tags>
+  </entry>
 </search>
