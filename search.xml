@@ -6740,7 +6740,7 @@ filterConfigs.put(FilterName,filterConfig);
       </categories>
       <tags>
         <tag>java安全</tag>
-        <tag>fastjson</tag>
+        <tag>反序列化</tag>
       </tags>
   </entry>
 </search>
